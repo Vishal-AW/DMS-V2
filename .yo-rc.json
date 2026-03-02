@@ -1,0 +1,19 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "useGulp": false,
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.21.1",
+    "sdksVersions": {},
+    "version": "1.22.1",
+    "libraryName": "dms-v-2",
+    "libraryId": "08e0534a-19fd-4fbb-8983-f5bcc823aeac",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "dms-v-2",
+    "solutionShortDescription": "dms-v-2 description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

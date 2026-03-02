@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "dms-landing-page-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/dmsLandingPage/DmsLandingPageWebPart.js",
+          "manifest": "./src/webparts/dmsLandingPage/DmsLandingPageWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "DmsLandingPageWebPartStrings": "lib/webparts/dmsLandingPage/loc/{locale}.js"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "dms-v-2-client-side-solution",
+    "id": "08e0534a-19fd-4fbb-8983-f5bcc823aeac",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.22.1"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "dms-v-2 description"
+      },
+      "longDescription": {
+        "default": "dms-v-2 description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "dms-v-2 Feature",
+        "description": "The feature that activates elements of the dms-v-2 solution.",
+        "id": "e9eaae0a-13bd-42d8-93d1-244d46883695",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/dms-v-2.sppkg"
+  }
+}
