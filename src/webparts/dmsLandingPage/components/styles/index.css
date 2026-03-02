@@ -1,0 +1,100 @@
+/* Import all style files */
+/* @import url('./variables.css');
+@import url('./layout.css');
+@import url('./components.css'); */
+
+/* Global Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== Hide Top SharePoint Header ===== */
+#spSiteHeader,
+#spCommandBar,
+#sp-appBar,
+#spLeftNav,
+#CommentsWrapper,
+.ms-compositeHeader,
+.ms-CommandBar,
+.ms-CommandBar-primaryCommand,
+.ms-CommandBar-secondaryCommand {
+  display: none !important;
+}
+
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--font-size-300);
+  line-height: var(--line-height-300);
+  color: var(--color-neutral-foreground-1);
+  background-color: var(--color-neutral-background-2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+#root {
+  height: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Remove default button styles */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Remove default link styles */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Remove list styles */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Image defaults */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-stroke-1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-neutral-foreground-3);
+}

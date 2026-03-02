@@ -1,0 +1,226 @@
+:root {
+  /* Fluent UI compatible color tokens */
+  --color-brand-primary: #2563eb; /* was #0078d4 */
+  --color-brand-primary-hover: #1d4ed8; /* was #106ebe */
+  --color-brand-primary-active: #1e40af; /* was #005a9e */
+
+  /* Modern blue-grey neutral colors */
+  --color-neutral-background-1: #ffffff;
+  --color-neutral-background-2: #f8fafc;
+  --color-neutral-background-3: #f1f5f9;
+  --color-neutral-background-4: #e2e8f0;
+  --color-neutral-foreground-1: #1e293b;
+  --color-neutral-foreground-2: #475569;
+  --color-neutral-foreground-3: #94a3b8;
+  --color-neutral-stroke-1: #cbd5e1;
+  --color-neutral-stroke-2: #e2e8f0;
+
+  /* Page background (changes in dark mode) */
+  --color-page-background: #f8fafc;
+
+  /* Sidebar colors - Light/White with grey hover */
+  --color-sidebar-background: #ffffff;
+  --color-sidebar-background-hover: #f1f5f9;
+  --color-sidebar-background-active: #eff6ff; /* was #e0f2fe */
+  --color-sidebar-foreground: #1e293b;
+  --color-sidebar-foreground-muted: #64748b;
+  --color-sidebar-active-text: #2563eb; /* was #0078d4 */
+
+  /* Status colors */
+  --color-success: #107c10;
+  --color-warning: #f7630c;
+  --color-error: #d13438;
+  --color-info: #2563eb; /* was #0078d4 */
+
+  /* Spacing tokens */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-s: 12px;
+  --spacing-m: 16px;
+  --spacing-l: 20px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-xxxl: 48px;
+
+  /* Border radius - Slightly larger for modern feel */
+  --radius-small: 6px;
+  --radius-medium: 10px;
+  --radius-large: 14px;
+  --radius-xl: 20px;
+
+  /* Typography */
+  --font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-100: 10px;
+  --font-size-200: 12px;
+  --font-size-300: 14px;
+  --font-size-400: 16px;
+  --font-size-500: 20px;
+  --font-size-600: 24px;
+  --font-size-700: 28px;
+  --font-size-800: 32px;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-100: 14px;
+  --line-height-200: 16px;
+  --line-height-300: 20px;
+  --line-height-400: 22px;
+  --line-height-500: 28px;
+  --line-height-600: 32px;
+
+  /* Shadows - Modern subtle shadows */
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-8: 0 4px 8px rgba(0, 0, 0, 0.06), 0 8px 16px rgba(0, 0, 0, 0.08);
+  --shadow-16: 0 8px 16px rgba(0, 0, 0, 0.08), 0 16px 32px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Layout */
+  --header-height: 40px;
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 48px;
+  --content-max-width: 1400px;
+
+  /* Header background (changes in dark mode) */
+  --color-header-background: #ffffff;
+
+  /* Card background (changes in dark mode) */
+  --color-card-background: #ffffff;
+}
+
+/* Dark mode - fully dark theme matching reference image */
+.dark-mode {
+  /* Page and content backgrounds - all dark */
+  --color-page-background: #0f172a;
+  --color-neutral-background-1: #1e293b;
+  --color-neutral-background-2: #1e293b;
+  --color-neutral-background-3: #334155;
+  --color-neutral-background-4: #475569;
+
+  /* Text colors - light on dark */
+  --color-neutral-foreground-1: #f1f5f9;
+  --color-neutral-foreground-2: #cbd5e1;
+  --color-neutral-foreground-3: #94a3b8;
+
+  /* Borders */
+  --color-neutral-stroke-1: #475569;
+  --color-neutral-stroke-2: #334155;
+
+  /* Sidebar - darker than page */
+  --color-sidebar-background: #0f172a;
+  --color-sidebar-background-hover: #1e293b;
+  --color-sidebar-background-active: #1e3a5f;
+  --color-sidebar-foreground: #e2e8f0;
+  --color-sidebar-foreground-muted: #94a3b8;
+  --color-sidebar-active-text: #60a5fa;
+
+  /* Override Fluent UI CSS variables to force blue theme */
+
+  --colorBrandBackground: #2563eb !important;
+  --colorBrandBackgroundHover: #1d4ed8 !important;
+  --colorBrandBackgroundPressed: #1e40af !important;
+  --colorBrandForeground1: #2563eb !important;
+  --colorBrandForeground2: #1d4ed8 !important;
+  --colorCompoundBrandBackground: #2563eb !important;
+  --colorCompoundBrandBackgroundHover: #1d4ed8 !important;
+  --colorBrandStroke1: #2563eb !important;
+  --colorBrandStroke2: #93c5fd !important;
+  --colorBrandBackground2: #eff6ff !important;
+
+  /* Header background */
+  --color-header-background: #0f172a;
+
+  /* Card backgrounds */
+  --color-card-background: #1e293b;
+
+  /* Shadows for dark mode */
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-8: 0 4px 8px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* RTL support for Arabic */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .app-sidebar {
+  border-right: none;
+  border-left: 1px solid var(--color-neutral-stroke-2);
+}
+
+[dir="rtl"] .header-brand {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sidebar-nav-item {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .list-item {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .widget-card-header {
+  flex-direction: row-reverse;
+}
+
+/* Fluent UI brand elements */
+
+/* Switch/Toggle */
+/* Switch unchecked - grey */
+[class*="fui-Switch__indicator"] {
+  background-color: #d1d5db !important;
+}
+
+/* Switch checked - blue (input:checked targets the hidden checkbox) */
+[class*="fui-Switch"] input:checked ~ [class*="fui-Switch__indicator"] {
+  background-color: #2563eb !important;
+}
+
+/* Thumb always white */
+[class*="fui-Switch__thumb"] {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+/* Primary buttons - circular and regular  */
+button[class*="fui-Button"][class*="primary"],
+[class*="fui-Button"][class*="colorBrandBackground"] {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+/* Brand foreground text (New Request Details, email links etc) */
+[class*="fui-Text"][style*="colorBrandForeground1"],
+[class*="fui-BreadcrumbButton--current"] {
+  color: #2563eb !important;
+}
+
+/* Section header background */
+[class*="sectionHeader"] {
+  background: #eff6ff !important;
+  border-bottom: 1px solid #bfdbfe !important;
+}
+
+/* Brand colored icons 
+[class*="fui-Icon"] {
+  color: #2563eb !important;
+}*/
+
+/* Fluent UI blue theme */
+[class*="fui-FluentProvider"],
+[class*="fui-FluentProvider"] * {
+  --colorBrandBackground: #2563eb !important;
+  --colorBrandBackgroundHover: #1d4ed8 !important;
+  --colorBrandBackgroundPressed: #1e3faf !important;
+  --colorBrandForeground1: #2563eb !important;
+  --colorCompoundBrandBackground: #2563eb !important;
+  --colorCompoundBrandBackgroundHover: #1d4ed8 !important;
+  --colorBrandStroke1: #2563eb !important;
+  --colorBrandBackground2: #eff6ff !important;
+  --colorBrandForegroundLink: #2563eb !important;
+  --colorNeutralBackground1: #ffffff !important;
+  --colorBrandBackground2Hover: #dbeafe !important;
+}
