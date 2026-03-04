@@ -1,19 +1,20 @@
 import * as React from 'react';
 import type { IDmsLandingPageProps } from "./IDmsLandingPageProps";
 import { HashRouter, Route, Routes } from "react-router-dom";
-
 import { GetAllLabel } from "../../../Services/ControlLabel";
-import {
-  FluentProvider,
-  Toaster,
-  webDarkTheme,
-} from "@fluentui/react-components";
+import { FluentProvider, Toaster, webDarkTheme } from "@fluentui/react-components";
+
 import "./styles/index.css";
 import "./styles/components.css";
 import "./styles/layout.css";
 import "./styles/variables.css";
 import "./styles/Hidedesign.css";
+import "./styles/global.css";
+
 import { MainLayout } from './layout/main-layout';
+import Dashboard from './pages/Dashboard';
+import Workspace from './pages/Workspace';
+
 export default class DmsLandingPage extends React.Component<IDmsLandingPageProps, {}> {
   private toasterMountRef = React.createRef<HTMLDivElement>();
   constructor(props: IDmsLandingPageProps) {
@@ -34,22 +35,25 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
       <div style={{ width: "100vw" }}>
         <HashRouter>
           <FluentProvider theme={webDarkTheme}>
-            <MainLayout context={this.props.context}>
-              <div ref={this.toasterMountRef}>
-                <Toaster
-                  toasterId="app-toaster"
-                  position="bottom-end"
-                  pauseOnHover
-                  mountNode={this.toasterMountRef.current}
-                />
-              </div>
-              <Routes>
-                <Route
-                  path="/Dashboard"
-                  element={<></>}
-                />
-              </Routes>
-            </MainLayout>
+
+            <div ref={this.toasterMountRef}>
+              <Toaster
+                toasterId="app-toaster"
+                position="bottom-end"
+                pauseOnHover
+                mountNode={this.toasterMountRef.current}
+              />
+            </div>
+            <Routes>
+              <Route
+                path="/"
+                element={<MainLayout context={this.props.context}>
+                  <Dashboard context={this.props.context} />
+                </MainLayout>
+                }
+              />
+              <Route path="/workspace/:workspaceId" element={<Workspace context={this.props.context} />} />
+            </Routes>
           </FluentProvider>
         </HashRouter>
       </div>
