@@ -272,26 +272,13 @@ body {
     padding: 5px 0px !important;
 }
 
-/* .rt-th input {
-    width: 100%;
-    background-color: #f5f8fa !important;
-    border-color: #f5f8fa !important;
-    color: #5e6278 !important;
-    transition: color .2s ease, background-color .2s ease !important;
-    height: 35px !important;
-    font-weight: 500 !important;
-    border-radius: .475rem !important;
-    border: 1px solid #e4e6ef !important;
-    padding: 7px !important;
-} */
+
 
 .rt-resizable-header {
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
-/* .rt-resizable-header:hover {
-    background-color: #ebebeb !important;
-} */
+
 
 .rt-thead .rt-th:hover {
     background-color: #f3f2f1;
@@ -308,116 +295,17 @@ body {
 }
 
 
-
-/*form CSS*/
-
 label {
     margin-bottom: 4px !important;
 }
 
-/* .css-13cymwt-control,
-.css-b62m3t-container,
-Select {
-    width: 100% !important;
-    background-color: #f5f8fa !important;
-    border-color: #f5f8fa !important;
-    color: #5e6278 !important;
-    transition: color .2s ease, background-color .2s ease !important;
-    height: 35px !important;
-    font-weight: 500 !important;
-    border-radius: .475rem !important;
-    padding: 0px !important;
-} */
 
-/* select:active {
-    width: 100%;
-    background-color: #f5f8fa !important;
-    border-color: #f5f8fa !important;
-    color: #5e6278 !important;
-    transition: color .2s ease, background-color .2s ease !important;
-    height: 35px !important;
-    font-weight: 500 !important;
-    border-radius: .475rem !important;
-    border: 1px solid #e4e6ef !important;
-    padding: 7px !important;
-} */
-
-.ms-BasePicker-text {
-    border: 1px solid #e4e6ef !important;
-    border-radius: .475rem !important;
-}
-
-/* .ms-TextField-field,
-.css-1dimb5e-singleValue {
-    font-size: 13px !important;
-    color: #5e6278 !important;
-    font-weight: 500 !important;
-} */
-
-.ms-TextField-fieldGroup::after,
-.ms-BasePicker-text::after,
-.ms-Dropdown::after {
-    border: none !important;
-}
-
-/* .ms-BasePicker-input:active {
-    width: 100%;
-    background-color: #f5f8fa !important;
-    border-color: #f5f8fa !important;
-    color: #5e6278 !important;
-    transition: color .2s ease, background-color .2s ease !important;
-    height: 35px !important;
-    font-weight: 500 !important;
-    border-radius: .475rem !important;
-    border: 1px solid #e4e6ef !important;
-    padding: 7px !important;
-} */
-
-div:focus-visible,
-.ms-TooltipHost:focus-visible,
-.ms-BasePicker-text:focus-visible,
-.ms-PeoplePicker:focus-visible,
-.defaultClass_fdafbcc6:focus-visible,
-.ms-SelectionZone:focus-visible,
-.is-active {
-    outline: None !important;
-    border: none !important;
-}
-
-/* .ms-BasePicker-input,
-.ms-TextField-fieldGroup {
-    width: 100%;
-    background-color: #f5f8fa !important;
-    border-color: #f5f8fa !important;
-    color: #5e6278 !important;
-    transition: color .2s ease, background-color .2s ease !important;
-    height: 35px !important;
-    font-weight: 500 !important;
-    border-radius: .475rem !important;
-    border: 1px solid #e4e6ef !important;
-    padding: 6px !important;
-} */
 
 .ms-Panel-main {
     border-radius: 5px !important;
 }
 
-/* .ms-BasePicker-text {
-    border: none !important;
-    background-color: #f5f8fa !important;
-} */
-/* 
-.ms-BasePicker-text .ms-BasePicker-input {
-    border: none !important;
-} */
 
-.ms-TextField-fieldGroup {
-    border: none !important;
-    height: 35px !important;
-    border-color: #f5f8fa !important;
-    border-radius: 5px !important;
-
-}
 
 .ms-Toggle-background {
     background-color: #eff2f5 !important;
@@ -890,9 +778,9 @@ a {
     display: none !important;
 }
 
-.ms-TextField-field {
+/* .ms-TextField-field {
     background-color: #f5f8fa !important;
-}
+} */
 
 .s_b_d71df89c {
     display: none !important;

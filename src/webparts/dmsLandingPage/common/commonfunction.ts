@@ -46,7 +46,8 @@ export const buildFolderHierarchy = (
             name,
             path: folder.FileRef,
             children: [],
-            isLastLevel: false
+            isLastLevel: false,
+            ...folder,
         });
     });
 
@@ -84,20 +85,67 @@ export const buildLibraryRootPath = (context: WebPartContext, libName: string) =
         : `${webRelativeUrl}/${libName}`;
 };
 
-export const getAllDocuments = async (context: WebPartContext, folderPath: string) => {
+export const getAllDocuments = async (
+    context: WebPartContext,
+    folderPath: string
+) => {
     const sp = spfi().using(SPFx(context));
+
     const files = await sp.web
         .getFolderByServerRelativePath(folderPath)
-        .files();
+        .files
+        .select("*,ListItemAllFields/*,CheckedOutByUser")
+        .expand("ListItemAllFields,CheckedOutByUser")();
+
     return files;
 };
 
-export const fileTypeConfig: Record<string, { Icon: typeof DocumentPdf20Regular; className: string; label: string; }> = {
-    pdf: { Icon: DocumentPdf20Regular, className: 'doc-icon-pdf', label: 'PDF' },
-    docx: { Icon: DocumentText20Regular, className: 'doc-icon-word', label: 'Word' },
-    xlsx: { Icon: DocumentTable20Regular, className: 'doc-icon-excel', label: 'Excel' },
-    png: { Icon: Image20Regular, className: 'doc-icon-image', label: 'Image' },
-    jpg: { Icon: Image20Regular, className: 'doc-icon-image', label: 'Image' },
-    dwg: { Icon: Cube20Regular, className: 'doc-icon-cad', label: 'AutoCAD' },
-    other: { Icon: Document20Regular, className: 'doc-icon-other', label: 'File' },
+export const fileTypeConfig: Record<string, { IconName: typeof DocumentPdf20Regular; className: string; label: string; }> = {
+    pdf: { IconName: DocumentPdf20Regular, className: 'doc-icon-pdf', label: 'PDF' },
+    docx: { IconName: DocumentText20Regular, className: 'doc-icon-word', label: 'Word' },
+    xlsx: { IconName: DocumentTable20Regular, className: 'doc-icon-excel', label: 'Excel' },
+    png: { IconName: Image20Regular, className: 'doc-icon-image', label: 'Image' },
+    jpg: { IconName: Image20Regular, className: 'doc-icon-image', label: 'Image' },
+    dwg: { IconName: Cube20Regular, className: 'doc-icon-cad', label: 'AutoCAD' },
+    other: { IconName: Document20Regular, className: 'doc-icon-other', label: 'File' },
+};
+
+export const checkExtension = (fileName: string): boolean => {
+    if (!fileName) return false;
+    const extension = fileName.split(".").pop()?.toLowerCase();
+    const allowedExtensions = ["pdf", "txt", "jpg", "jpeg", "png", "gif", "bmp"];
+    return !allowedExtensions.includes(extension || "");
+};
+
+export const checkButtons = (input: string): boolean => {
+    if (!input) return false;
+    const buttonTypes = ["OpenInApp", "CheckIn", "DiscardCheckOut", "CheckOut", "Preview"];
+    return !buttonTypes.includes(input);
+};
+
+export const getOpenAppURL = (filePath: string, SiteURL: string) => {
+    const portalUrl = new URL(SiteURL).origin;
+    if (!filePath) return;
+    const extension = filePath.split('.').pop()?.toLowerCase();
+    if (!extension) return;
+
+    let appUrl: string | null = null;
+    switch (extension) {
+        case 'xls':
+        case 'xlsx':
+            appUrl = `ms-excel:ofe|u|${portalUrl}${filePath}`;
+            break;
+        case 'doc':
+        case 'docx':
+            appUrl = `ms-word:ofe|u|${portalUrl}${filePath}`;
+            break;
+        case 'ppt':
+        case 'pptx':
+            appUrl = `ms-powerpoint:ofe|u|${portalUrl}${filePath}`;
+            break;
+    }
+
+    if (appUrl) {
+        window.open(appUrl, '_blank');
+    }
 };

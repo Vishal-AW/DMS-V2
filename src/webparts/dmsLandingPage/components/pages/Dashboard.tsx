@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { SearchBox } from "@fluentui/react";
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';

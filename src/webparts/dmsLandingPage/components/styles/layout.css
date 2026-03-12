@@ -235,3 +235,17 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-m);
+}
+
+.grid-item-large {
+  grid-column: span 3;
+}
+
+.grid-item-small {
+  grid-column: span 1;
+}

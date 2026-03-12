@@ -202,5 +202,6 @@ export interface ILabel {
     Search: string;
     AllDocuments: string;
     RenameAlertMsg: string;
-
+    CheckoutSuccess: string;
+    CheckInSuccess: string;
 }

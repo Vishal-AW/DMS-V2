@@ -14,6 +14,8 @@ import "./styles/global.css";
 import { MainLayout } from './layout/main-layout';
 import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
+import Search from './pages/Search';
+import Approvals from './pages/Approvals';
 
 export default class DmsLandingPage extends React.Component<IDmsLandingPageProps, {}> {
   private toasterMountRef = React.createRef<HTMLDivElement>();
@@ -53,6 +55,8 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
                 }
               />
               <Route path="/workspace/:workspaceId" element={<Workspace context={this.props.context} />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/approvals" element={<Approvals context={this.props.context} />} />
             </Routes>
           </FluentProvider>
         </HashRouter>

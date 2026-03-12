@@ -1,4 +1,8 @@
-/* * {
+/* SharePoint Document Management System - Global Styles */
+/* All styles use class-based approach with Fluent UI design tokens */
+
+/* Base Reset & Typography */
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -9,7 +13,7 @@ body,
 #root {
   height: 100%;
   width: 100%;
-} */
+}
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
@@ -45,7 +49,7 @@ body {
 .content-area-full {
   flex: 1;
   overflow: auto;
-  /* padding: 24px; */
+  padding: 24px;
 }
 
 /* Top Navigation */
@@ -1720,9 +1724,23 @@ body {
   justify-content: space-between;
 }
 
-.approval-card-secondary-actions {
+.approval-card-metadata-link {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0078d4;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.approval-card-metadata-link:hover {
+  color: #004578;
+  text-decoration: underline;
 }
 
 .approval-card-primary-actions {
@@ -1748,28 +1766,6 @@ body {
   height: 16px;
 }
 
-.approval-action-view {
-  background: none;
-  color: #605e5c;
-  border-color: #edebe9;
-}
-
-.approval-action-view:hover {
-  background-color: #f5f4f3;
-  border-color: #d2d0ce;
-}
-
-.approval-action-download {
-  background: none;
-  color: #605e5c;
-  border-color: #edebe9;
-}
-
-.approval-action-download:hover {
-  background-color: #f5f4f3;
-  border-color: #d2d0ce;
-}
-
 .approval-action-approve {
   background-color: #107c10;
   color: #ffffff;
@@ -1788,6 +1784,187 @@ body {
 
 .approval-action-reject:hover {
   background-color: #fde7e9;
+}
+
+.meta-panel-header {
+  padding: 20px 24px 0;
+  width: 100%;
+}
+
+.meta-panel-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.meta-panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #242424;
+}
+
+.meta-panel-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #605e5c;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.meta-panel-close:hover {
+  background-color: #f3f2f1;
+  color: #242424;
+}
+
+.meta-panel-doc-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background-color: #f8f8fa;
+  border: 1px solid #edebe9;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.meta-panel-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.meta-panel-doc-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #242424;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-panel-doc-ref {
+  font-size: 12px;
+  color: #a19f9d;
+}
+
+.meta-panel-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.meta-panel-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #edebe9;
+  background-color: #ffffff;
+  color: #323130;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.meta-panel-quick-btn:hover {
+  background-color: #f3f2f1;
+  border-color: #d2d0ce;
+}
+
+.meta-panel-quick-icon {
+  width: 16px;
+  height: 16px;
+  color: #605e5c;
+}
+
+.meta-panel-body {
+  padding: 8px 0 24px;
+}
+
+.meta-panel-section {
+  margin-bottom: 24px;
+}
+
+.meta-panel-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0078d4;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf4fc;
+}
+
+.meta-panel-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.meta-panel-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.meta-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-panel-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #323130;
+}
+
+.meta-panel-req {
+  color: #a4262c;
+  margin-left: 2px;
+}
+
+.meta-panel-plain-value {
+  font-size: 14px;
+  color: #605e5c;
+}
+
+.meta-panel-input-box {
+  font-size: 14px;
+  color: #323130;
+  padding: 8px 12px;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  background-color: #faf9f8;
+}
+
+.meta-panel-select-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #323130;
+  padding: 8px 12px;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  background-color: #faf9f8;
+}
+
+.meta-panel-chevron {
+  font-size: 16px;
+  color: #a19f9d;
+  line-height: 1;
 }
 
 .approval-empty {
@@ -2331,4 +2508,78 @@ body {
   .panel-container {
     width: 100%;
   }
+}
+
+
+.ag-cell {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.iFrameDialog {
+  border: none;
+  height: 100%;
+}
+
+.iFrameDialog .spinnerContainer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -14px;
+  margin-top: -14px;
+}
+
+
+.fluent-file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fluent-file-upload input[type="file"] {
+  border: 1px solid #8a8886;
+  border-radius: 2px;
+  padding: 6px;
+  font-size: 14px;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.fluent-file-upload input[type="file"]:hover {
+  border-color: #605e5c;
+}
+
+.fluent-file-upload input[type="file"]:focus {
+  outline: none;
+  border-color: #0078d4;
+  box-shadow: 0 0 0 1px #0078d4;
+}
+
+.error-text {
+  color: #a4262c;
+  font-size: 12px;
+}
+
+.fluent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fluent-table th {
+  text-align: left;
+  padding: 10px;
+  background: #EFF6FF;
+  border-bottom: 1px solid #EFF6FF;
+  font-weight: 600;
+  color: #2563EB
+}
+
+.fluent-table td {
+  padding: 10px;
+  border-bottom: 1px solid #edebe9;
+}
+
+.fluent-table tr:hover {
+  background-color: #faf9f8;
 }

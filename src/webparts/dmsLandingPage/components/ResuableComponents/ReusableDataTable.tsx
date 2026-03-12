@@ -1,16 +1,11 @@
-import * as React from "react";
-import {
-    AllCommunityModule,
-    ModuleRegistry,
-    themeQuartz,
-} from "ag-grid-community";
+import * as React from 'react';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, RowDragModule } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
-// import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
-ModuleRegistry.registerModules([AllCommunityModule]);
-import { useEffect, useRef } from "react";
-//import { useTheme } from "office-ui-fabric-react";
+import { useEffect, useMemo, useRef } from "react";
 import type { ColDef } from "ag-grid-community";
+import { tokens } from "@fluentui/react-components";
+
+ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);
 
 export interface IReusableDataTableComponentProps {
     rowData: any[];
@@ -18,53 +13,94 @@ export interface IReusableDataTableComponentProps {
     loading?: boolean;
     onGridReady?: (params: any) => void;
     searchText?: string;
+    onRowDragEnd?: (event: any) => void;
+    pagination?: boolean;
 }
 
 const ReusableDataTable: React.FC<IReusableDataTableComponentProps> = ({
-    rowData,
-    columnDefs,
-    loading,
-    onGridReady,
-    searchText,
+    rowData, columnDefs, loading, onGridReady, searchText, onRowDragEnd, pagination = true
 }) => {
     const gridRef = useRef<AgGridReact<any>>(null);
-    //const theme = useTheme();
-    const myTheme = themeQuartz.withParams({
-        headerTextColor: "#2563EB",
-        headerBackgroundColor: "#EFF6FF",
-        rowHoverColor: "#DBEAFE",
-    });
+    const [filterData, setFilterData] = React.useState<any[]>(rowData);
 
-    const defaultColDef = React.useMemo(
+    const agTheme = useMemo(
+        () =>
+            themeQuartz.withParams({
+                headerTextColor: "#2563EB",
+                headerBackgroundColor: "#EFF6FF",
+                rowHoverColor: "#DBEAFE",
+                oddRowBackgroundColor: tokens.colorNeutralBackground1,
+                // rowBorderColor: tokens.colorNeutralStroke2,
+            }),
+        []
+    );
+
+    const defaultColDef = useMemo(
         () => ({
             editable: false,
             filter: true,
             flex: 1,
-            minWidth: 100,
+            minWidth: 120,
         }),
-        [],
+        []
     );
 
     useEffect(() => {
-        if (gridRef.current) {
-            (gridRef?.current?.api as any)?.setQuickFilter?.(searchText);
+        if (!searchText) setFilterData(rowData);
+        else if (searchText.trim()) {
+            const query = searchText.toLowerCase();
+            const result = rowData.filter((item) =>
+                Object.values(item).some(
+                    (value) =>
+                        value !== null &&
+                        value !== undefined &&
+                        value
+                            .toString()
+                            .toLowerCase()
+                            .includes(query)
+                )
+            );
+            setFilterData(result);
         }
-    }, [searchText]);
+    }, [searchText, rowData]);
+
+    // const columns = columnDefs.map(col => ({
+    //     ...col,
+    //     headerName: col.headerName?.toUpperCase() || col.field?.toUpperCase()
+    // }));
+
+    const toPrettyTitle = (text: string) =>
+        text
+            .replace(/_/g, " ")
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .toLowerCase()
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+    const columns = columnDefs.map((col, index) => ({
+        ...col,
+        headerName: toPrettyTitle(col.headerName || col.field || ""),
+        maxWidth: index === 0 ? 80 : undefined
+    }));
+
+
     return (
-        <div className="ag-theme-balham" style={{ width: "100%", height: "600px" }}>
+        <div style={{ width: "100%", height: "600px" }} className="ag-theme-alpine">
             <AgGridReact
                 ref={gridRef}
-                rowData={rowData}
-                theme={myTheme}
-                columnDefs={columnDefs}
+                rowData={filterData}
+                columnDefs={columns}
+                theme={agTheme}
                 defaultColDef={defaultColDef}
-                paginationAutoPageSize={true}
-                pagination={true}
+                pagination={pagination}
+                paginationPageSize={10}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
                 rowSelection="multiple"
                 onGridReady={onGridReady}
                 loading={loading}
-                quickFilterText={searchText}
                 multiSortKey="ctrl"
+                rowDragManaged
+                onRowDragEnd={onRowDragEnd}
+                animateRows
             />
         </div>
     );

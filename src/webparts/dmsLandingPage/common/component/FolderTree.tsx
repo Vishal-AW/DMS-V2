@@ -6,8 +6,12 @@ import {
   Folder20Filled,
   FolderOpen20Filled,
   ChevronRight20Regular,
-  FolderArrowRight20Regular
+  FolderArrowRight20Regular,
+  MoreHorizontalRegular,
+  ChevronRight24Regular
 } from '@fluentui/react-icons';
+import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
+import * as FluentIcons from "@fluentui/react-icons";
 
 export interface FolderNode {
   id: string;
@@ -22,6 +26,7 @@ interface FolderTreeProps {
   selectedId?: string;
   onFolderSelect: (folder: FolderNode) => void;
   onFolderAction?: (action: string, folder: FolderNode) => void;
+  buttons: any;
 }
 
 interface FolderTreeItemProps {
@@ -30,9 +35,11 @@ interface FolderTreeItemProps {
   selectedId?: string;
   onSelect: (folder: FolderNode) => void;
   onFolderAction?: (action: string, folder: FolderNode) => void;
+  buttons: any;
+  showButton: boolean;
 }
 
-function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction }: FolderTreeItemProps) {
+function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, buttons, showButton }: FolderTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasChildren = folder.children && folder.children.length > 0;
   const isSelected = folder.id === selectedId;
@@ -45,13 +52,7 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction }:
     onSelect(folder);
   };
 
-  const folderMenuProps: IContextualMenuProps = {
-    items: [
-      { key: 'rename', text: 'Rename', iconProps: { iconName: 'Rename' }, onClick: () => onFolderAction?.('rename', folder) },
-      { key: 'newSubfolder', text: 'New Subfolder', iconProps: { iconName: 'NewFolder' }, onClick: () => onFolderAction?.('newSubfolder', folder) },
-      { key: 'delete', text: 'Delete', iconProps: { iconName: 'Delete' }, onClick: () => onFolderAction?.('delete', folder) },
-    ],
-  };
+
 
   const renderFolderIcon = () => {
     if (isLeaf) {
@@ -101,15 +102,41 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction }:
             <span className="folder-tree-count">{folder.children?.length}</span>
           )}
         </div>
-        {onFolderAction && (
-          <IconButton
-            className="folder-tree-actions"
-            menuProps={folderMenuProps}
-            iconProps={{ iconName: 'More' }}
-            title="Folder actions"
-            ariaLabel="Folder actions"
-            data-testid={`button-folder-actions-${folder.id}`}
-          />
+        {onFolderAction && showButton && (
+
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Button
+                appearance="subtle"
+                className="folder-tree-actions"
+                icon={<MoreHorizontalRegular className="table-action-btn" />}
+              />
+            </MenuTrigger>
+
+            <MenuPopover
+              style={{
+                boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                padding: "15px"
+              }}
+            >
+              <MenuList>
+                {buttons.map((e: any) => {
+                  // const IconComponent = FluentIcons[e.Icons as keyof typeof FluentIcons] as React.FC ?? <ChevronRight24Regular />;
+                  const IconComponent = (
+                    FluentIcons[e.Icons as keyof typeof FluentIcons] ??
+                    ChevronRight24Regular
+                  ) as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+                  return <MenuItem
+                    key={e?.key}
+                    icon={<IconComponent className="table-action-btn" />}
+                    onClick={() => onFolderAction(e?.key, folder)}
+                  >
+                    {e?.ButtonDisplayName}
+                  </MenuItem>;
+                })}
+              </MenuList>
+            </MenuPopover>
+          </Menu>
         )}
       </div>
       {hasChildren && isExpanded && folder.children?.map((child) => (
@@ -120,16 +147,18 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction }:
           selectedId={selectedId}
           onSelect={onSelect}
           onFolderAction={onFolderAction}
+          buttons={buttons}
+          showButton={true}
         />
       ))}
     </>
   );
 }
 
-export default function FolderTree({ folders, selectedId, onFolderSelect, onFolderAction }: FolderTreeProps) {
+export default function FolderTree({ folders, selectedId, onFolderSelect, onFolderAction, buttons }: FolderTreeProps) {
   return (
     <div role="tree" aria-label="Folder navigation" data-testid="tree-folders">
-      {folders.map((folder) => (
+      {folders.map((folder, index) => (
         <FolderTreeItem
           key={folder.id}
           folder={folder}
@@ -137,6 +166,8 @@ export default function FolderTree({ folders, selectedId, onFolderSelect, onFold
           selectedId={selectedId}
           onSelect={onFolderSelect}
           onFolderAction={onFolderAction}
+          buttons={buttons}
+          showButton={index !== 0}
         />
       ))}
     </div>
