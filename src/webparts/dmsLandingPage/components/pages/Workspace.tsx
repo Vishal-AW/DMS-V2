@@ -106,8 +106,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [projectUpdateData, setProjectUpdateData] = useState<any>({});
     const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [isRestrictedView, setIsRestrictedView] = useState(false);
-    const [actionFolderPath, setActionFolderPath] = useState("");
-
+    const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
     useEffect(() => {
         fetchTileData();
         getAdmin();
@@ -153,12 +152,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
         const folder = buildFolderHierarchy(allFolders, rootPath);
-        setFolders([{
+        const folderObj = {
             id: 0,
             name: tileData?.LibraryName,
             path: tileData?.LibraryName,
             children: [...folder]
-        }]);
+        };
+        setFolders([folderObj]);
+        expandParentFolders(folderObj);
+        setSelectedFolder(folderObj);
     };
 
 
@@ -177,6 +179,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const handleFolderSelect = (folder: FolderNode) => {
         setFiles([]);
         setSelectedFolder(folder);
+        expandParentFolders(folder);
     };
 
     const getPendingApprovalData = async () => {
@@ -191,13 +194,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const handleFolderAction = (action: string, folder: FolderNode) => {
         console.log('Folder action:', action, folder.name);
 
-        const folderPath = selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "");
+        // const folderPath = selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "");
         switch (action) {
             case "FView":
-                setActionFolderPath(folderPath); setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("ViewForm");
+                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("ViewForm");
                 break;
             case "FEdit":
-                setActionFolderPath(folderPath); setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("EditForm");
+                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("EditForm");
                 break;
             case "AdvancePermission":
                 setItemId(Number(folder.id)); setIsPanelOpen(true);
@@ -527,7 +530,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 const filePath = item.ServerRelativeUrl;
                                 const folderPath = filePath.substring(0, filePath.lastIndexOf("/"));
 
-                                const previewUrl = `${SiteURL}/AWHSE/Forms/AllItems.aspx?id=${encodeURIComponent(filePath)
+                                const previewUrl = `${SiteURL}/${tileData?.LibraryName}/Forms/AllItems.aspx?id=${encodeURIComponent(filePath)
                                     }&parent=${encodeURIComponent(folderPath)}`;
 
                                 window.open(previewUrl, "_blank");
@@ -568,7 +571,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const hidePopup = useCallback(() => { setIsPopupBoxVisible(false); }, [isPopupBoxVisible]);
     const hideCommonPopup = useCallback(() => { setIsShowCommnPopupBoxVisible(false); }, []);
     const dismissFolderPanel = () => { setIsOpenFolderPanel(false); };
-    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); }, []);
+    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); fetchFolder(); }, []);
     const dismissUploadPanel = useCallback(() => { setIsOpenUploadPanel(false); }, []);
 
     const handleConfirm = useCallback(
@@ -687,10 +690,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
             updateLibrary(SiteURL, context.spHttpClient, obj, response, tileData.LibraryName).then((response) => {
                 dismissFolderPanel();
-                // setShowLoader({ display: "none" });
                 setAlertMsg(DisplayLabel.SubmitMsg);
                 setIsPopupBoxVisible(true);
-                // fetchFolders(folderPath, `${folderName}`);
                 fetchFolder();
             });
         });
@@ -795,26 +796,75 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         ];
     }, [buttons]);
 
+
     const renderRightFolder = (nodes: Folder[]) => {
-        return nodes.map((node: any) => (
-            node.Name !== "Forms" && (
-                <div key={node.Id} className="col-md-2">
-                    {/* <div
-                        onClick={() => toggleNode(node.Name, `${node.folderPath}`, node)}
-                        style={{ cursor: "pointer" }}
-                        className={styles["folderTile"]}
+        return (
+            <div className="folder-grid">
+                {nodes.map((node: any) => (
+                    <div
+                        key={node?.id}
+                        className="folder-card"
+                        onClick={() => handleFolderSelect(node)}
                     >
-                        <Icon
-                            iconName="FabricFolderFill"
-                            className={styles["folder-icon"]}
-                            style={{ marginRight: "5px", color: "#009ef7", fontSize: "50px", height: "50px" }}
-                        />
-                        <span className={styles["folderLabel"]}>{node.Name}</span>
-                    </div> */}
-                </div>
-            )
-        ));
+                        <FluentIcons.Folder20Filled className="folder-icon" />
+                        <span className="folder-name">{node?.name}</span>
+                    </div>
+                ))}
+            </div>
+        );
     };
+
+    const expandParentFolders = (folder: any) => {
+        setExpandedFolders(prev => {
+            if (prev.includes(folder?.id)) {
+                return prev.filter(id => id !== folder?.id);
+            } else {
+                return [...prev, folder?.id];
+            }
+        });
+    };
+
+    const foldersColumn = React.useMemo(() => {
+        return [
+            {
+                headerName: DisplayLabel.SrNo,
+                filter: false,
+                resizable: false,
+                maxWidth: 80,
+                valueGetter: (params: any) => params.node.rowIndex + 1
+            },
+            {
+                headerName: DisplayLabel.FileName,
+                filter: true,
+                sortable: true,
+                field: "Name",
+                maxWidth: 400,
+                minWidth: 400,
+                cellRenderer: (item: any) => <a href="javascript:void()" onClick={() => handleFolderSelect(item?.data)} style={{ color: "rgb(0, 158, 247)" }}>{item?.data?.name}</a>
+            },
+            {
+                headerName: DisplayLabel.LastModified,
+                filter: false,
+                resizable: false,
+                maxWidth: 80,
+                valueGetter: (params: any) => format(params?.data?.Modified, "dd-MM-yyyy hh:mm a")
+            },
+        ];
+    }, []);
+
+    const getItemStyle = (type: string) => ({
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        padding: "8px 12px",
+        borderRadius: "6px",
+        cursor: "pointer",
+        backgroundColor: viewListSetting === type ? "#EAF3FC" : "transparent",
+        color: viewListSetting === type ? "#0F6CBD" : "#323130",
+        fontWeight: viewListSetting === type ? 600 : 400,
+        transition: "all 0.2s ease"
+    });
+
     const projectCreation = useCallback(() => { setIsCreateProjectPopupOpen(true); setFormType("EntryForm"); setProjectUpdateData({}); }, []);
     const hasRequiredPermissions = () => {
         checkPermissions(context, selectedFolder?.path).then((permission: boolean) => setHasPermission(permission));
@@ -831,17 +881,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             return <ApprovalFlow context={context} libraryName={tileData?.LibraryName} userEmail={UserEmailID} action="Archive" />;
         }
         else {
-            return selectedFolder.children.length === 0 ?
+            return (selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
                 <ReusableDataTable rowData={files} columnDefs={columns} />
                 :
-                <div className="grid" style={{ height: "832px", overflow: "auto" }}>
+                <div>
                     {viewListSetting === "List View" ? (
-                        <ReusableDataTable rowData={files} columnDefs={columns} />
+                        <ReusableDataTable rowData={selectedFolder?.children} columnDefs={foldersColumn} />
                     ) : (
-                        <div className="grid" style={{ height: "832px", overflow: "auto" }}>
-                            <div className="row">
-                                {renderRightFolder(selectedFolder?.children)}
-                            </div>
+                        <div >
+                            {renderRightFolder(selectedFolder?.children)}
                         </div>
                     )}
                 </div>;
@@ -896,6 +944,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     LibDetails={tileData}
                     archiveCount={archiveData.length}
                     buttons={buttons.filter((btn) => btn.ButtonType === "Folder")}
+                    expandedFolders={expandedFolders}
                 />
 
                 <div className="workspace-content">
@@ -919,7 +968,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             </div>
                             <div className="workspace-content-actions">
                                 {tables === "" ? <>
-                                    {selectedFolder?.children.length === 0 && (isValidUser || tileData?.TileAdminId === UserID || hasPermission) ?
+                                    {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) && (isValidUser || tileData?.TileAdminId === UserID || hasPermission) ?
                                         <Menu>
                                             <MenuTrigger disableButtonEnhancement>
                                                 <Button
@@ -987,14 +1036,67 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                         </PrimaryButton> : <></>}
                                 </> : <> </>
                                 }
-                                {/* <DefaultButton
-                                    onClick={handleUpload}
-                                    className="workspace-upload-btn"
-                                    data-testid="button-upload"
-                                >
-                                    <ArrowUpload20Regular className="workspace-btn-icon" />
-                                    <span>Upload</span>
-                                </DefaultButton> */}
+
+
+                                {selectedFolder?.children.length !== 0 && (
+                                    <Menu>
+                                        <MenuTrigger disableButtonEnhancement>
+                                            <Button
+                                                appearance="transparent"
+                                                iconPosition="after"
+                                                icon={<FluentIcons.Board24Regular />}
+                                            />
+                                        </MenuTrigger>
+
+                                        <MenuPopover
+                                            style={{
+                                                padding: "8px",
+                                                borderRadius: "8px",
+                                                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                                                minWidth: "140px"
+                                            }}
+                                        >
+                                            <div
+                                                style={getItemStyle('List View')}
+                                                onClick={() => setViewListSetting('List View')}
+                                                onMouseEnter={(e) => {
+                                                    if (viewListSetting !== 'List View')
+                                                        e.currentTarget.style.backgroundColor = "#F3F2F1";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (viewListSetting !== 'List View')
+                                                        e.currentTarget.style.backgroundColor = "transparent";
+                                                }}
+                                            >
+                                                <FluentIcons.List20Regular
+                                                    style={{
+                                                        color: viewListSetting === 'List View' ? "#0F6CBD" : "#605E5C"
+                                                    }}
+                                                />
+                                                List
+                                            </div>
+                                            <div
+                                                style={getItemStyle('Tiles View')}
+                                                onClick={() => setViewListSetting('Tiles View')}
+                                                onMouseEnter={(e) => {
+                                                    if (viewListSetting !== 'Tiles View')
+                                                        e.currentTarget.style.backgroundColor = "#F3F2F1";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (viewListSetting !== 'Tiles View')
+                                                        e.currentTarget.style.backgroundColor = "transparent";
+                                                }}
+                                            >
+                                                <FluentIcons.Grid20Regular
+                                                    style={{
+                                                        color: viewListSetting === 'Tiles View' ? "#0F6CBD" : "#605E5C"
+                                                    }}
+                                                />
+                                                Tiles
+                                            </div>
+                                        </MenuPopover>
+                                    </Menu>
+                                )}
 
                             </div>
                         </div>
@@ -1002,7 +1104,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
                     {selectedFolder ? (
                         <>
-                            {/* <ReusableDataTable rowData={files} columnDefs={columns} /> */}
                             {bindTable()}
                         </>
                         // <></>
@@ -1049,37 +1150,33 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 </>)}
                 isFooterAtBottom={true}
             >
-                <div className="grid">
-                    <div className="row">
-                        <div className="col-md-12">
-                            <label>{DisplayLabel.Path}: <b>{
-                                selectedFolder?.path
-                                    ?.replace(context.pageContext.web.serverRelativeUrl, "")
-                                    ?.replace(/^\/+/, "")
-                            }</b></label>
-                        </div>
-                    </div>
+                <Field>
+                    <label>{DisplayLabel.Path}: <b>{
+                        selectedFolder?.path
+                            ?.replace(context.pageContext.web.serverRelativeUrl, "")
+                            ?.replace(/^\/+/, "")
+                    }</b></label>
+                </Field>
 
-                    <Field >
-                        <TextField
-                            label={DisplayLabel.FolderName}
-                            required value={folderName} onChange={(_, val) => {
+                <Field >
+                    <TextField
+                        label={DisplayLabel.FolderName}
+                        required value={folderName} onChange={(_, val) => {
 
-                                setFolderName(val as string);
+                            setFolderName(val as string);
 
-                                if (invalidCharsRegex.test(val as string)) {
-                                    setFolderNameErr(
-                                        "Please enter a name that doesn't include any of these characters: \" * : < > ? / \\ |"
-                                    );
-                                } else {
-                                    setFolderNameErr("");
-                                }
-                            }}
-                            errorMessage={folderNameErr}
-                        />
-                        {/* <span style={{ color: "red" }}>{folderNameErr}</span> */}
-                    </Field>
-                </div>
+                            if (invalidCharsRegex.test(val as string)) {
+                                setFolderNameErr(
+                                    "Please enter a name that doesn't include any of these characters: \" * : < > ? / \\ |"
+                                );
+                            } else {
+                                setFolderNameErr("");
+                            }
+                        }}
+                        errorMessage={folderNameErr}
+                    />
+                    {/* <span style={{ color: "red" }}>{folderNameErr}</span> */}
+                </Field>
             </Panel>
 
             <IFrameDialog

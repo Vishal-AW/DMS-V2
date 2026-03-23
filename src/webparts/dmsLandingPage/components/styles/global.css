@@ -2,7 +2,7 @@
 /* All styles use class-based approach with Fluent UI design tokens */
 
 /* Base Reset & Typography */
-* {
+/* * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -13,7 +13,7 @@ body,
 #root {
   height: 100%;
   width: 100%;
-}
+} */
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
@@ -29,7 +29,7 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* height: 100vh; */
   overflow: hidden;
 }
 
@@ -2001,7 +2001,7 @@ body {
 .tile-settings-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* height: 100vh; */
   background-color: #f8f7f6;
 }
 
@@ -2289,15 +2289,11 @@ body {
 }
 
 .tile-field-table {
-  border: 1px solid #edebe9;
-  border-radius: 8px;
-  overflow: hidden;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.tile-field-table-header {
-  display: grid;
-  grid-template-columns: 50px 1fr 90px 100px 120px 130px 80px;
-  align-items: center;
+.tile-field-table thead th {
   padding: 10px 16px;
   background-color: #f5f4f3;
   border-bottom: 1px solid #edebe9;
@@ -2306,17 +2302,13 @@ body {
   color: #605e5c;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  gap: 8px;
+  text-align: left;
 }
 
-.tile-field-table-new-row {
-  display: grid;
-  grid-template-columns: 50px 1fr 90px 100px 120px 130px 80px;
-  align-items: center;
+.tile-field-table tbody td {
   padding: 10px 16px;
   border-bottom: 1px solid #f3f2f1;
   background-color: #faf9f8;
-  gap: 8px;
 }
 
 .tile-field-table-row {
@@ -2582,4 +2574,65 @@ body {
 
 .fluent-table tr:hover {
   background-color: #faf9f8;
+}
+
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  /* 6 per row */
+  gap: 16px;
+}
+
+.folder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+  background: #ffffff;
+  border: 1px solid #eee;
+}
+
+.folder-card:hover {
+  background: #f5f9ff;
+  transform: translateY(-3px);
+}
+
+.folder-icon {
+  font-size: "50px";
+  width: "50px";
+  height: "50px";
+  color: #009ef7;
+  margin-bottom: 8px;
+}
+
+.folder-name {
+  font-size: 13px;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .folder-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Small tablet */
+@media (max-width: 768px) {
+  .folder-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .folder-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

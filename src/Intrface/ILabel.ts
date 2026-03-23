@@ -204,4 +204,5 @@ export interface ILabel {
     RenameAlertMsg: string;
     CheckoutSuccess: string;
     CheckInSuccess: string;
+    Role: string;
 }

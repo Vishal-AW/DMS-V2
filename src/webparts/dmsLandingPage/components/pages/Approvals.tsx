@@ -484,7 +484,7 @@ export default function Approvals({ context }: IApprovalsProps) {
 
       <Panel
         isOpen={isOpen}
-        onDismiss={() => setMetadataDoc(null)}
+        onDismiss={() => { setIsOpen(false); }}
         type={PanelType.custom}
         customWidth="520px"
         headerText=""
@@ -518,7 +518,12 @@ export default function Approvals({ context }: IApprovalsProps) {
               <div className="meta-panel-quick-actions">
                 <button
                   className="meta-panel-quick-btn"
-                  onClick={() => console.log('View:', metadataDoc?.ID)}
+                  onClick={() => {
+                    if (metadataDoc?.File?.LinkingUrl === "")
+                      window.open(metadataDoc?.File?.ServerRelativeUrl, "_blank");
+                    else
+                      window.open(metadataDoc?.File?.LinkingUrl, "_blank");
+                  }}
                   data-testid="button-view-doc"
                 >
                   <Eye20Regular className="meta-panel-quick-icon" />
@@ -526,7 +531,9 @@ export default function Approvals({ context }: IApprovalsProps) {
                 </button>
                 <button
                   className="meta-panel-quick-btn"
-                  onClick={() => console.log('Download:', metadataDoc.Id)}
+                  onClick={() => {
+                    window.open(metadataDoc?.File?.ServerRelativeUrl + "?download=1");
+                  }}
                   data-testid="button-download-doc"
                 >
                   <ArrowDownload20Regular className="meta-panel-quick-icon" />
@@ -536,6 +543,33 @@ export default function Approvals({ context }: IApprovalsProps) {
             </div>
           );
         }}
+        onRenderFooterContent={() => (
+          <div className="approval-card-primary-actions" style={{ display: "center" }}>
+            <button
+              className="approval-action-btn approval-action-reject"
+              onClick={() => {
+                setActions("REJECT");
+                setIsDialogOpen(true);
+              }}
+              data-testid={`button-reject-${metadataDoc?.ID}`}
+            >
+              <Dismiss20Regular className="approval-action-icon" />
+              <span>Reject</span>
+            </button>
+            <button
+              className="approval-action-btn approval-action-approve"
+              onClick={() => {
+                setActions("REJECT");
+                setIsDialogOpen(true);
+              }}
+              data-testid={`button-approve-${metadataDoc?.ID}`}
+            >
+              <Checkmark20Regular className="approval-action-icon" />
+              <span>Approve</span>
+            </button>
+          </div>
+        )}
+      // isFooterAtBottom={true}
       >
         {metadataDoc && (
           <div className="meta-panel-body">

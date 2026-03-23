@@ -68,7 +68,7 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
             filter += ` and (Permission/ID eq ${USERID} or TileAdmin/ID eq ${USERID} ${groupFilter ? `or ${groupFilter}` : ""} or Permission/Title eq 'Everyone except external users')`;
         }
 
-        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Order0,icon,accentColor,Author/Title&$expand=Permission,Author&$filter=${filter}&$orderby=Order0`;
+        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Order0,icon,accentColor,Author/Title&$expand=Permission,Author&$filter=${filter}&$orderby=Order0 asc`;
 
         const response = await context.spHttpClient.get(
             query,

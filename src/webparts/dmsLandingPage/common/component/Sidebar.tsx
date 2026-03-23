@@ -22,6 +22,7 @@ interface SidebarProps {
   onAdvancedSearchClick?: () => void;
   LibDetails: any;
   buttons: any;
+  expandedFolders: any;
 }
 
 const Sidebar = ({
@@ -38,7 +39,8 @@ const Sidebar = ({
   onArchiveClick,
   LibDetails,
   archiveCount,
-  buttons
+  buttons,
+  expandedFolders
 }: SidebarProps) => {
   return (
     <div className="sidebar1" data-testid="container-sidebar">
@@ -102,6 +104,7 @@ const Sidebar = ({
           onFolderSelect={onFolderSelect}
           onFolderAction={onFolderAction}
           buttons={buttons}
+          expandedFolders={expandedFolders}
         />
       </div>
     </div>

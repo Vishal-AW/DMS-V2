@@ -130,6 +130,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--spacing-m);
+  margin-bottom: 10px;
 }
 
 @media (min-width: 640px) {
@@ -159,6 +160,24 @@
 @media (min-width: 1024px) {
   .grid-5 {
     grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-m);
+}
+
+@media (min-width: 640px) {
+  .grid-4 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

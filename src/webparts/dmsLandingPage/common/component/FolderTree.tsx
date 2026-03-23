@@ -27,6 +27,7 @@ interface FolderTreeProps {
   onFolderSelect: (folder: FolderNode) => void;
   onFolderAction?: (action: string, folder: FolderNode) => void;
   buttons: any;
+  expandedFolders: any;
 }
 
 interface FolderTreeItemProps {
@@ -37,18 +38,17 @@ interface FolderTreeItemProps {
   onFolderAction?: (action: string, folder: FolderNode) => void;
   buttons: any;
   showButton: boolean;
+  expandedFolders: any;
 }
 
-function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, buttons, showButton }: FolderTreeItemProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, buttons, showButton, expandedFolders }: FolderTreeItemProps) {
+
   const hasChildren = folder.children && folder.children.length > 0;
   const isSelected = folder.id === selectedId;
   const isLeaf = folder.isLastLevel || (!hasChildren);
+  const isExpanded = expandedFolders.includes(folder.id);
 
   const handleClick = () => {
-    if (hasChildren) {
-      setIsExpanded(!isExpanded);
-    }
     onSelect(folder);
   };
 
@@ -149,13 +149,14 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
           onFolderAction={onFolderAction}
           buttons={buttons}
           showButton={true}
+          expandedFolders={expandedFolders}
         />
       ))}
     </>
   );
 }
 
-export default function FolderTree({ folders, selectedId, onFolderSelect, onFolderAction, buttons }: FolderTreeProps) {
+export default function FolderTree({ folders, selectedId, onFolderSelect, onFolderAction, buttons, expandedFolders }: FolderTreeProps) {
   return (
     <div role="tree" aria-label="Folder navigation" data-testid="tree-folders">
       {folders.map((folder, index) => (
@@ -168,6 +169,7 @@ export default function FolderTree({ folders, selectedId, onFolderSelect, onFold
           onFolderAction={onFolderAction}
           buttons={buttons}
           showButton={index !== 0}
+          expandedFolders={expandedFolders}
         />
       ))}
     </div>

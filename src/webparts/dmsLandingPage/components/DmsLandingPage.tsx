@@ -16,6 +16,10 @@ import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
 import Search from './pages/Search';
 import Approvals from './pages/Approvals';
+import TileSetting from './pages/TileSetting';
+import TemplateMaster from './Masters/TemplateMaster';
+import FolderMaster from './Masters/FolderMaster';
+import ConfigMaster from './Masters/ConfigEntryForm';
 
 export default class DmsLandingPage extends React.Component<IDmsLandingPageProps, {}> {
   private toasterMountRef = React.createRef<HTMLDivElement>();
@@ -57,6 +61,31 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
               <Route path="/workspace/:workspaceId" element={<Workspace context={this.props.context} />} />
               <Route path="/search" element={<Search />} />
               <Route path="/approvals" element={<Approvals context={this.props.context} />} />
+              <Route path="/tilesetting" element={<MainLayout context={this.props.context}>
+                <TileSetting context={this.props.context} />
+              </MainLayout>
+              } />
+              <Route path="/TemplateMaster"
+                element={
+                  <MainLayout context={this.props.context}>
+                    <TemplateMaster context={this.props.context} />
+                  </MainLayout>
+                }
+              />
+              <Route path="/FolderMaster"
+                element={
+                  <MainLayout context={this.props.context}>
+                    <FolderMaster context={this.props.context} />
+                  </MainLayout>
+                }
+              />
+              <Route path="/ConfigMaster"
+                element={
+                  <MainLayout context={this.props.context}>
+                    <ConfigMaster context={this.props.context} />
+                  </MainLayout>
+                }
+              />
             </Routes>
           </FluentProvider>
         </HashRouter>

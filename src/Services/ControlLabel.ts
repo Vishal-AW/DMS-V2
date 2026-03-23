@@ -219,8 +219,8 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
       AllDocuments: getValue("AllDocuments", data, Language),
       RenameAlertMsg: getValue("RenameAlertMsg", data, Language),
       CheckoutSuccess: getValue("CheckoutSuccess", data, Language),
-      CheckInSuccess: getValue("CheckInSuccess", data, Language)
-
+      CheckInSuccess: getValue("CheckInSuccess", data, Language),
+      Role: getValue("Role", data, Language),
     };
 
     // 
