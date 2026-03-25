@@ -39,7 +39,7 @@ import { getHistoryByID } from "../../../../Services/GeneralDocHistoryService";
 import { format } from "date-fns";
 import { getConfigActive } from "../../../../Services/ConfigService";
 import { getDataByLibraryName } from "../../../../Services/MasTileService";
-import IFrameDialog from "../../common/component/IFrameDialog";
+import IFrameDialogPopup from "../../common/component/IFrameDialog";
 import AdvancePermission from "../../common/component/AdvancePermission";
 import PopupBox, { ConfirmationDialog } from "../../common/component/PopupBox";
 import { FolderStructure } from "../../../../Services/FolderStructure";
@@ -47,6 +47,8 @@ import { isMember } from "../../../../DAL/Commonfile";
 import ProjectEntryForm from "../../common/component/ProjectEntryForm";
 import UploadFiles from "../../common/component/UploadFile";
 import ApprovalFlow from "../../common/component/ApprovalFlow";
+
+
 
 interface IWorkspaceProps {
     context: WebPartContext;
@@ -297,7 +299,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 setActionButton(null);
                 setPanelSize(PanelType.smallFluid);
                 setPanelTitle(DisplayLabel.Preview);
-                const previewData = getPreviewUrl(item._original.ServerRelativeUrl);
+                const previewData = getPreviewUrl(item.ServerRelativeUrl);
                 setPanelForm(previewData);
                 setIsOpenCommonPanel(true);
                 break;
@@ -378,7 +380,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 setIsPanelOpen(true);
                 break;
             case "Share":
-                setShareURL(`${SiteURL}/_layouts/15/sharedialog.aspx?listId=${tileData.LibGuidName}&listItemId=${item.ListItemAllFields.Id}&clientId=sharePoint&policyTip=0&folderColor=undefined&ma=0&fullScreenMode=true&itemName=${item.ListItemAllFields.ActualName}&origin=${portalUrl}`);
+                const URL = `${SiteURL}/_layouts/15/sharedialog.aspx?listId=${tileData.LibGuidName}&listItemId=${item.ListItemAllFields.Id}&clientId=sharePoint&policyTip=0&folderColor=undefined&ma=0&fullScreenMode=true&itemName=${item.ListItemAllFields.ActualName}&origin=${portalUrl}&clientId=sharePoint&ma=1`;
+                setShareURL(URL);
                 setIFrameDialogOpened(true);
                 break;
             case "OpenInBrowser":
@@ -412,7 +415,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
         };
     };
-
 
 
     const getUserGroups = async () => {
@@ -572,6 +574,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const hideCommonPopup = useCallback(() => { setIsShowCommnPopupBoxVisible(false); }, []);
     const dismissFolderPanel = () => { setIsOpenFolderPanel(false); };
     const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); fetchFolder(); }, []);
+    const dissmissSharePopup = useCallback((value: boolean) => { setIFrameDialogOpened(value); }, []);
     const dismissUploadPanel = useCallback(() => { setIsOpenUploadPanel(false); }, []);
 
     const handleConfirm = useCallback(
@@ -605,15 +608,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
     useEffect(() => {
-        setPanelForm(<>
-            <div className="col-md-10">
-                <Input value={fileName} required onChange={(_, val) => {
-                    setFileName(val.value);
+        setPanelForm(<div className="grid">
+            <div className="grid-item-large">
+                <TextField value={fileName} required onChange={(_, val) => {
+                    setFileName(val || "");
                 }} />
+
+                <Label style={{ color: "red" }}>{fileNameErr}</Label>
             </div>
-            <Label style={{ color: "red" }}>{fileNameErr}</Label>
-            <div className="col-md-2"><Input readOnly value={extension} /></div>
-        </>);
+            <div className="grid-item-small"><TextField readOnly value={extension} /></div>
+        </div>);
         setActionButton(<PrimaryButton text={DisplayLabel.Rename} style={{ marginRight: "10px" }} onClick={() => renameTheFile(itemId)} />);
     }, [fileName, extension, fileNameErr]);
 
@@ -899,6 +903,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
 
+    // const handleShareDialogCancel = useCallback(() => {
+    //     setIFrameDialogOpened(false);
+    // }, []);
 
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
@@ -1131,11 +1138,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 isFooterAtBottom={true}
             >
                 <div style={{ marginTop: "10px" }}>
-                    <div className="grid">
-                        <div className="row">
-                            {panelForm}
-                        </div>
-                    </div>
+                    {/* <div className="grid">
+                        <div className="row"> */}
+                    {panelForm}
+                    {/* </div>
+                    </div> */}
                 </div>
             </Panel>
             <Panel
@@ -1179,7 +1186,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 </Field>
             </Panel>
 
-            <IFrameDialog
+            {/* <IFrameDialog
                 url={shareURL}
                 width="800px !important"
                 height="600px"
@@ -1194,7 +1201,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     type: DialogType.close,
                     showCloseButton: true
                 }}
-            />
+            /> */}
+            {iFrameDialogOpened && (
+                <IFrameDialogPopup url={shareURL} isOpen={iFrameDialogOpened} dismissPanel={dissmissSharePopup} />
+            )}
+
+
+
             <AdvancePermission isOpen={isPanelOpen} context={context} folderId={itemId} LibraryName={tileData?.LibraryName} dismissPanel={onDismiss} />
             {tileData && <ProjectEntryForm isOpen={isCreateProjectPopupOpen} dismissPanel={dissmissProjectCreationPanel} context={context} LibraryDetails={tileData} admin={admin} FormType={formType} folderObject={projectUpdateData} folderPath={selectedFolder?.path} ChildFolderRoleInheritance={tileData?.AllowChildInheritance} />}
             <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
@@ -1203,12 +1216,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             <ConfirmationDialog hideDialog={hideDialogCheckOut} closeDialog={closeDialogCheckOut} handleConfirm={handleConfirmCheckOut} msg={message} />
             <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} />
             <PopupBox isPopupBoxVisible={isShowCommnPopupBoxVisible} hidePopup={hideCommonPopup} msg={alertMsg} type="warning" />
-            {/* <NewFolderPanel
-                isOpen={isPanelOpen}
-                onDismiss={() => setIsPanelOpen(false)}
-                onSubmit={handleCreateFolder}
-                metadataFields={metadataFields}
-            /> */}
         </div>
     );
 };

@@ -28,7 +28,7 @@ import { getAllButtons } from "../../../../Services/Buttons";
 import { IButtonsProps, IRolePermission } from "../../../../Intrface/IButtonInterface";
 import { format } from "date-fns";
 import { getActiveRedundancyDays } from "../../../../Services/ArchiveRedundancyDaysService";
-import { uuidv4 } from "../../../../DAL/Commonfile";
+import { getUserIdFromLoginName, uuidv4 } from "../../../../DAL/Commonfile";
 import { getListData } from "../../../../Services/GeneralDocument";
 import { getDataById, getTileAllData, SaveTileSetting, UpdateTileSetting } from "../../../../Services/MasTileService";
 import { createColumn, getColumnType, GetListData, TileLibrary } from "../../common/ListCreation";
@@ -860,6 +860,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         });
     };
 
+    const isValidNumberString = (value: string): boolean => {
+        return !isNaN(Number(value)) && value.trim() !== "";
+    };
+
 
     return (
         <>
@@ -1018,10 +1022,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     {roles && roles.map((role: any) => (<th>{role.Title}</th>))}
                                                 </tr>
                                                 <tr>
-                                                    <th></th>
-                                                    <th></th>
+                                                    <td></td>
+                                                    <td></td>
                                                     {roles && roles.map((role: any) => (
-                                                        <th>
+                                                        <td>
                                                             <PeoplePicker context={peoplePickerContext}
                                                                 personSelectionLimit={20}
                                                                 showtooltip={true}
@@ -1029,17 +1033,26 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                                 errorMessage={errors?.AccessTileUserErr}
                                                                 ensureUser={true}
                                                                 onChange={async (items: any[]) => {
-                                                                    // const userIds = items.map((item: any) => {
-                                                                    //     return item.id || item.Id;
-                                                                    // });
-                                                                    grantButtonPermission(role.Title, items);
+                                                                    const userIds = await Promise.all(
+                                                                        items.map(async (item: any) => {
+                                                                            let userid: number = 0;
+                                                                            if (isValidNumberString(item.id)) {
+                                                                                userid = item;
+                                                                            } else {
+                                                                                const data = await getUserIdFromLoginName(context, item.id);
+                                                                                userid = data;
+                                                                            };
+                                                                            return userid;
+                                                                        })
+                                                                    );
+                                                                    grantButtonPermission(role.Title, userIds);
                                                                 }}
                                                                 showHiddenInUI={false}
                                                                 principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup]}
                                                                 defaultSelectedUsers={isEditMode ? bindPermission(role.Title) : undefined}
                                                                 styles={{ root: { order: -1 } }}
                                                             />
-                                                        </th>
+                                                        </td>
                                                     ))}
                                                 </tr>
                                             </thead>
@@ -1063,7 +1076,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     <React.Fragment key={group}>
                                                         {groupByButtons[group].map((item: any, index: number) => (
                                                             <tr key={item.Id} style={{ borderBottom: "1px solid #eee" }}>
-                                                                <td>{index === 0 ? group : ""}</td>
+                                                                {index === 0 && <td rowSpan={groupByButtons[group].length}> {group} </td>}
                                                                 <td style={{ padding: "8px 12px" }}>{item.Title}</td>
                                                                 {roles.map((role: any) => {
                                                                     const foundRole = allButtonsWithPermissions.find(

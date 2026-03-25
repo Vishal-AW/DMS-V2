@@ -5,6 +5,7 @@
   padding: 1em;
   color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+
   &.teams {
     font-family: $ms-font-family-fallbacks;
   }
@@ -30,5 +31,18 @@
       color: "[theme:linkHovered, default: #014446]";
       color: var(--linkHovered); // note: CSS Custom Properties support is limited to modern browsers only
     }
+  }
+}
+
+.iFrameDialog {
+  border: none !important;
+  height: 100% !important;
+
+  .spinnerContainer {
+    position: absolute !important;
+    left: 50%;
+    top: 50%;
+    margin-left: -14px;
+    margin-top: -14px;
   }
 }
