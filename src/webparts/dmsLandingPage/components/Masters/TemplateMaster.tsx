@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import "../styles/global.css";
 import ReactTableComponent from "../ResuableComponents/ReusableDataTable";
+import { getAddActionButtonStyles, getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "../../common/component/buttonStyles";
 import PopupBox from "../../common/component/PopupBox";
 import PageLoader from "../../common/component/PageLoader";
 
@@ -280,6 +281,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                     <PrimaryButton
                         text="Add Template"
                         onClick={openTemplatePanel}
+                        styles={getAddActionButtonStyles()}
                     />
 
                 </div>
@@ -303,21 +305,13 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                         <PrimaryButton
                             text={isTemplateEditMode ? "Update" : "Submit"}
                             onClick={SaveItemData}
-                            styles={{
-                                root: {
-                                    backgroundColor: "#009ef7",
-                                    borderRadius: 6,
-                                    marginRight: 10
-                                }
-                            }}
+                            styles={getPrimaryActionButtonStyles(8)}
                         />
 
                         <DefaultButton
                             text="Cancel"
                             onClick={closeTemplatePanel}
-                            styles={{
-                                root: { borderRadius: 6 }
-                            }}
+                            styles={getSecondaryActionButtonStyles()}
                         />
                     </>
                 )}

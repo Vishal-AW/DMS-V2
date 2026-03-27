@@ -37,6 +37,7 @@ import { spfi, SPFx } from '@pnp/sp';
 import { IColumnSchema } from "../../../../Intrface/IListSchema";
 import PageLoader from "../../common/component/PageLoader";
 import FieldError from "../../common/component/FieldError";
+import { getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "../../common/component/buttonStyles";
 
 interface ITileFormProps {
     context: WebPartContext;
@@ -887,12 +888,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                         <h2 className="tile-settings-subtitle">Workspace Tiles</h2>
                         <div>
                             {!isEditMode ? (
-                                <PrimaryButton onClick={submitTileData} text={DisplayLabel?.Submit} className="tile-panel-save-btn" styles={{ root: { marginRight: 8 } }} disabled={isDisabled} />
+                                <PrimaryButton onClick={submitTileData} text={DisplayLabel?.Submit} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled} />
                             ) :
-                                <PrimaryButton onClick={UpdateTileData} text={DisplayLabel?.Update} className="tile-panel-save-btn" styles={{ root: { marginRight: 8 } }} disabled={isDisabled} />
+                                <PrimaryButton onClick={UpdateTileData} text={DisplayLabel?.Update} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled} />
                             }
                             <DefaultButton
                                 className="tile-panel-cancel-btn"
+                                styles={getSecondaryActionButtonStyles()}
                                 onClick={() => setIsOpenEditor(false)}
                                 title="Edit"
                             >{DisplayLabel.Cancel}</DefaultButton>

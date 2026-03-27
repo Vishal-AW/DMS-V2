@@ -15,6 +15,7 @@ import { TileSendMail } from "../../../../Services/SendEmail";
 import { Field } from "@fluentui/react-components";
 import FieldError from "./FieldError";
 import PageLoader from "./PageLoader";
+import { getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "./buttonStyles";
 
 interface IUploadFileProps {
     isOpenUploadPanel: boolean;
@@ -742,11 +743,11 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 type={PanelType.large}
                 onRenderFooterContent={() => (<>
                     {filetype === "upload" ? (
-                        <PrimaryButton onClick={submit} styles={{ root: { marginRight: 8 } }} disabled={showLoader.display === "block"}>{DisplayLabel.Submit}</PrimaryButton>
+                        <PrimaryButton onClick={submit} styles={getPrimaryActionButtonStyles(8)} disabled={showLoader.display === "block"}>{DisplayLabel.Submit}</PrimaryButton>
                     ) : (
-                        <PrimaryButton onClick={createOfficeFile} styles={{ root: { marginRight: 8 } }} disabled={showLoader.display === "block"}>Create File</PrimaryButton>
+                        <PrimaryButton onClick={createOfficeFile} styles={getPrimaryActionButtonStyles(8)} disabled={showLoader.display === "block"}>Create File</PrimaryButton>
                     )}
-                    <DefaultButton onClick={dismissUploadPanel} disabled={showLoader.display === "block"}>{DisplayLabel.Cancel}</DefaultButton>
+                    <DefaultButton onClick={dismissUploadPanel} styles={getSecondaryActionButtonStyles()} disabled={showLoader.display === "block"}>{DisplayLabel.Cancel}</DefaultButton>
                 </>)}
                 isFooterAtBottom={true}
             >

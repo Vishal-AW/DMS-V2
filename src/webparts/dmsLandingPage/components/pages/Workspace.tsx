@@ -519,11 +519,84 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 setActionButton(null);
                 const dataConfig = await getConfigActive(context.pageContext.web.absoluteUrl, context.spHttpClient);
                 const libraryData = await getDataByLibraryName(context.pageContext.web.absoluteUrl, context.spHttpClient, tileData.LibraryName);
+                const currentSelectedFolder = selectedFolderRef.current || selectedFolder;
+                const selectedFolderName =
+                    currentSelectedFolder?.name ||
+                    currentSelectedFolder?.path?.split("/").filter(Boolean).pop() ||
+                    "";
                 let jsonData = JSON.parse(libraryData.value[0].DynamicControl);
                 jsonData = jsonData.filter((ele: any) => ele.IsActiveControl);
                 //setPanelSize(PanelType.large);
                 const htm = <>
+                    <div className="row">
+                        <div className="col-md-12">
+                            <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
+                        </div>
+                    </div>
+                    <div className="grid-2">
 
+                        <div className="col-md-6">
+                            <label >{DisplayLabel.TileName}</label>
+                            <TextField
+                                value={tileData.TileName}
+                                //disabled={true}
+                                readOnly
+                            />
+                            <br></br>
+                        </div>
+                        <div className="col-md-6">
+                            <label>{DisplayLabel.FolderName}</label>
+                            <TextField
+                                value={selectedFolderName}
+                                // disabled={true}
+                                readOnly
+                            />
+                            <br></br>
+                        </div>
+                        {item.ListItemAllFields.IsSuffixRequired ? <>
+                            <div className="col-md-6">
+                                <label>{DisplayLabel.DocumentSuffix}</label>
+                                <TextField
+                                    value={item.ListItemAllFields.DocumentSuffix}
+                                    //disabled={true}
+                                    readOnly
+                                />
+                                <br></br>
+                            </div>
+
+
+                            {item.ListItemAllFields.DocumentSuffix === "Other" && (
+                                <div className="col-md-6">
+                                    <label>{DisplayLabel.OtherSuffixName}</label>
+                                    <TextField
+                                        value={item.ListItemAllFields.OtherSuffix}
+                                        //disabled={true}
+                                        readOnly
+                                    />
+                                    <br></br>
+                                </div>
+                            )}</> : <></>
+                        }
+                        {
+                            jsonData.map((el: any, index: number) => {
+                                const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
+                                if (!filterObj) return null;
+                                return <div className="col-md-6">
+                                    <label>{el.Title}</label>
+                                    {filterObj.ColumnType === "Date and Time" ? <TextField
+                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(item.ListItemAllFields[el.InternalTitleName], "DD/MM/YYYY") : ""}
+                                        disabled={true}
+                                    /> : <TextField
+                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? (el.ColumnType === "Person or Group" ? item.ListItemAllFields[el.InternalTitleName].Title : item.ListItemAllFields[el.InternalTitleName]) : ""}
+                                        //disabled={true}
+                                        readOnly
+                                    />}
+                                    <br></br>
+                                </div>;
+
+                            })
+                        }
+                    </div>
                 </>;
                 setPanelForm(htm);
                 setPanelTitle(DisplayLabel.View);

@@ -25,6 +25,7 @@ import { getUserIdFromLoginName } from "../../../../DAL/Commonfile";
 import PopupBox from "./PopupBox";
 import PageLoader from "./PageLoader";
 import FieldError from "./FieldError";
+import { getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "./buttonStyles";
 import { ILabel } from "../../../../Intrface/ILabel";
 import Select from 'react-select';
 import { getTemplateActive } from "../../../../Services/TemplateService";
@@ -68,7 +69,6 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const [libraryDetails, setLibraryDetails] = useState<any>({});
     const [options, setOptions] = useState<any>({});
     const [dynamicValues, setDynamicValues] = useState<{ [key: string]: any; }>({});
-    const buttonStyles = { root: { marginRight: 8 } };
     const [folderAccess, setFolderAccess] = useState<any[]>([]);
     const [usersIds, setUsersIds] = useState<any[]>([]);
     const [publisher, setPublisher] = useState<any[]>([]);
@@ -626,8 +626,8 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 type={PanelType.medium}
                 onRenderFooterContent={() => (
                     <>
-                        {FormType !== "ViewForm" ? <PrimaryButton onClick={submit} styles={buttonStyles} >{FormType === "EntryForm" ? DisplayLabel.Submit : DisplayLabel.Update}</PrimaryButton> : <></>}
-                        <DefaultButton onClick={() => dismissPanel(false)}>{DisplayLabel.Cancel}</DefaultButton>
+                        {FormType !== "ViewForm" ? <PrimaryButton onClick={submit} styles={getPrimaryActionButtonStyles(8)} >{FormType === "EntryForm" ? DisplayLabel.Submit : DisplayLabel.Update}</PrimaryButton> : <></>}
+                        <DefaultButton onClick={() => dismissPanel(false)} styles={getSecondaryActionButtonStyles()}>{DisplayLabel.Cancel}</DefaultButton>
                     </>
                 )}
                 isFooterAtBottom={true}

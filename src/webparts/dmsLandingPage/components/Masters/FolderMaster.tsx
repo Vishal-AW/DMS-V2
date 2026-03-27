@@ -19,6 +19,7 @@ import "../styles/global.css";
 import ReactTableComponent from "../ResuableComponents/ReusableDataTable";
 import PopupBox from "../../common/component/PopupBox";
 import PageLoader from "../../common/component/PageLoader";
+import { getAddActionButtonStyles, getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "../../common/component/buttonStyles";
 
 import {
     getParent,
@@ -397,7 +398,7 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
                         styles={{ root: { width: 300 } }}
                     />
 
-                    <PrimaryButton text="Add Folder" onClick={openPanel} />
+                    <PrimaryButton text="Add Folder" onClick={openPanel} styles={getAddActionButtonStyles()} />
 
                 </div>
 
@@ -417,8 +418,8 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
                 onRenderFooterContent={() => (
 
                     <>
-                        <PrimaryButton text={isEditMode ? "Update" : "Submit"} onClick={SaveItemData} />
-                        <DefaultButton text="Cancel" onClick={closePanel} />
+                        <PrimaryButton text={isEditMode ? "Update" : "Submit"} onClick={SaveItemData} styles={getPrimaryActionButtonStyles(8)} />
+                        <DefaultButton text="Cancel" onClick={closePanel} styles={getSecondaryActionButtonStyles()} />
                     </>
 
                 )}
