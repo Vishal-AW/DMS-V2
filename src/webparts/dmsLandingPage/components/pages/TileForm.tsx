@@ -21,7 +21,7 @@ import {
     TabDesktop20Regular,
 } from '@fluentui/react-icons';
 import { ILabel } from "../../../../Intrface/ILabel";
-import Select from "react-select";
+import Select, { CSSObjectWithLabel } from "react-select";
 import { getConfigActive } from "../../../../Services/ConfigService";
 import { getRoles } from "../../../../Services/Role";
 import { getAllButtons } from "../../../../Services/Buttons";
@@ -35,6 +35,8 @@ import { createColumn, getColumnType, GetListData, TileLibrary } from "../../com
 import { breakRoleInheritanceForLib, grantPermissionsForLib } from "../../../../Services/FolderStructure";
 import { spfi, SPFx } from '@pnp/sp';
 import { IColumnSchema } from "../../../../Intrface/IListSchema";
+import PageLoader from "../../common/component/PageLoader";
+import FieldError from "../../common/component/FieldError";
 
 interface ITileFormProps {
     context: WebPartContext;
@@ -82,11 +84,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         new Set(['tileDetails', 'fields', 'referenceNo', 'archive', 'buttons'])
     );
     const [isToggleDisabled, setIsToggleDisabled] = useState(false);
+    const [isPageLoading, setIsPageLoading] = useState(true);
 
     const RedundancyDaysData = async () => {
         const ActiveRedundancyDaysData: any = await getActiveRedundancyDays(SiteURL, context.spHttpClient);
         const options: any = ActiveRedundancyDaysData.value.map((item: any) => ({ value: item.ID, label: item.RedundancyDays }));
         setRedundancyData(options);
+        return options;
     };
 
 
@@ -100,18 +104,25 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     };
 
     useEffect(() => {
-        fetchFieldConfig();
-        getAllRoles();
-        getAllButton();
-        RedundancyDaysData();
-        getAdmin();
-    }, []);
+        const initializeForm = async () => {
+            setIsPageLoading(true);
+            const redundancyOptions = await RedundancyDaysData();
+            await Promise.all([
+                fetchFieldConfig(),
+                getAllRoles(),
+                getAllButton(),
+                getAdmin()
+            ]);
+            if (tileID > 0) {
+                await openEditPanel(redundancyOptions);
+            }
+            setIsPageLoading(false);
+        };
 
-    useEffect(() => {
-        if (tileID > 0) openEditPanel();
-    }, [tileID, redundancyData]);
+        void initializeForm();
+    }, [tileID]);
 
-    const openEditPanel = async () => {
+    const openEditPanel = async (redundancyOptionsParam?: any[]) => {
 
         const GetEditData = await getDataById(SiteURL, context.spHttpClient, tileID);
         const EditSettingData = GetEditData.value[0];
@@ -123,7 +134,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         setTableData(EditSettingData?.DynamicControl === null ? [] : JSON.parse(EditSettingData?.DynamicControl));
 
         if (EditSettingData?.IsArchiveRequired === true) {
-            const FilterRetentionDays = redundancyData.find((item: any) => item.label === EditSettingData?.RetentionDays);
+            const currentRedundancyData = redundancyOptionsParam || redundancyData;
+            const FilterRetentionDays = currentRedundancyData.find((item: any) => item.label === EditSettingData?.RetentionDays);
             setFormData((prevData) => ({
                 ...prevData, RedundancyData: FilterRetentionDays,
                 ArchiveInternal: EditSettingData?.ArchiveLibraryName,
@@ -194,13 +206,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     };
 
     const getAllRoles = () => {
-        getRoles(SiteURL, context.spHttpClient).then((response: any) => {
+        return getRoles(SiteURL, context.spHttpClient).then((response: any) => {
             const roleData = response.value;
             setRoles(roleData);
         });
     };
     const getAllButton = () => {
-        getAllButtons(SiteURL, context.spHttpClient).then((response: any) => {
+        return getAllButtons(SiteURL, context.spHttpClient).then((response: any) => {
             const buttonData = response.value;
             const buttonsList: IButtonsProps[] = buttonData.map(convertToButtonProps);
             const grouped = buttonsList.reduce((acc: any, item: any) => {
@@ -864,7 +876,9 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         return !isNaN(Number(value)) && value.trim() !== "";
     };
 
-
+    if (isPageLoading) {
+        return <PageLoader message="Loading tile form..." minHeight="72vh" />;
+    }
     return (
         <>
             <div className="tile-settings-page" data-testid="page-tile-settings">
@@ -927,8 +941,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
 
                                                     }}
                                                     defaultSelectedUsers={formData?.TileAdminEmail}
-                                                    errorMessage={errors.TileAdmin}
                                                 />
+                                                <FieldError message={errors.TileAdmin} />
                                             </div>
                                         </div>
                                         <div className="tile-form-field">
@@ -951,8 +965,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     }));
                                                 }}
                                                 defaultSelectedUsers={formData?.PermissionEmail}
-                                                errorMessage={errors.Permission}
                                             />
+                                            <FieldError message={errors.Permission} />
                                         </div>
                                         <div className="grid-3">
                                             <div className="tile-form-field">
@@ -1184,14 +1198,19 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                         <label style={{ display: 'block' }}>{DisplayLabel?.SelectArchiveDays}<span style={{ color: "red" }}>*</span></label>
                                                         <Select
                                                             options={redundancyData}
-                                                            // value={redundancyData.find((option: any) => option.value === formData?.RedundancyData)}
                                                             value={formData?.RedundancyData || {}}
                                                             onChange={handleArchiveDropdownChange}
                                                             isSearchable
                                                             placeholder={DisplayLabel?.Selectanoption}
+                                                            menuPortalTarget={document.body}
+                                                            menuPosition="fixed"
+                                                            styles={{
+                                                                menuPortal: (base: CSSObjectWithLabel) => ({ ...base, zIndex: 9999 }),
+                                                                menu: (base: CSSObjectWithLabel) => ({ ...base, zIndex: 9999 })
+                                                            }}
                                                             errorMessage={errors?.RedundancyData}
                                                         />
-                                                        {<p style={{ color: "rgb(164, 38, 44)" }}>{errors?.RedundancyData}</p>}
+                                                        <FieldError message={errors?.RedundancyData} />
                                                     </div>
                                                     <div className="column6">
                                                         <label style={{ display: 'block' }}>{DisplayLabel?.ArchiveVersions}<span style={{ color: "red" }}>*</span></label>

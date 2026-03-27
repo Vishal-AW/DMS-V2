@@ -1,9 +1,9 @@
 /* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint } from '@fluentui/react';
+import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize } from '@fluentui/react';
 import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular } from '@fluentui/react-icons';
 import Sidebar from "../../common/component/Sidebar";
 import { FolderNode } from "../../common/component/FolderTree";
@@ -47,6 +47,7 @@ import { isMember } from "../../../../DAL/Commonfile";
 import ProjectEntryForm from "../../common/component/ProjectEntryForm";
 import UploadFiles from "../../common/component/UploadFile";
 import ApprovalFlow from "../../common/component/ApprovalFlow";
+import PageLoader from "../../common/component/PageLoader";
 
 
 
@@ -109,6 +110,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [isRestrictedView, setIsRestrictedView] = useState(false);
     const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
+    const [isVersionsLoading, setIsVersionsLoading] = useState(false);
+    const [versionsPanelUrl, setVersionsPanelUrl] = useState("");
+    const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
+    const selectedFolderRef = useRef<any | null>(null);
+
     useEffect(() => {
         fetchTileData();
         getAdmin();
@@ -122,16 +128,63 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     useEffect(() => {
         if (tileData) {
-            fetchFolder();
-            getDeletedData();
-            getArchiveFile();
-            getUserGroups();
+            setIsWorkspaceLoading(true);
+            Promise.all([
+                fetchFolder(),
+                getDeletedData(),
+                getArchiveFile(),
+                getUserGroups()
+            ]).finally(() => setIsWorkspaceLoading(false));
         }
     }, [tileData]);
 
     useEffect(() => {
+        if (!tileData?.LibraryName) return;
         getPendingApprovalData();
     }, [isOpenUploadPanel, tileData]);
+
+    useEffect(() => {
+        selectedFolderRef.current = selectedFolder;
+    }, [selectedFolder]);
+
+    const findFolderByPath = (nodes: any[], targetPath?: string): any | null => {
+        if (!targetPath) return null;
+
+        for (const node of nodes) {
+            if (node.path === targetPath) {
+                return node;
+            }
+
+            if (node.children?.length) {
+                const matchedNode = findFolderByPath(node.children, targetPath);
+                if (matchedNode) {
+                    return matchedNode;
+                }
+            }
+        }
+
+        return null;
+    };
+
+    // const collectExpandedFolderIds = (nodes: any[], targetPath?: string, parents: string[] = []): string[] => {
+    //     if (!targetPath) return [];
+
+    //     for (const node of nodes) {
+    //         const currentBranch = [...parents, String(node.id)];
+    //         if (node.path === targetPath) {
+    //             return currentBranch;
+    //         }
+
+    //         if (node.children?.length) {
+    //             const childBranch = collectExpandedFolderIds(node.children, targetPath, currentBranch);
+    //             if (childBranch.length) {
+    //                 return childBranch;
+    //             }
+    //         }
+    //     }
+
+    //     return [];
+    // };
 
 
 
@@ -157,12 +210,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         const folderObj = {
             id: 0,
             name: tileData?.LibraryName,
-            path: tileData?.LibraryName,
+            path: rootPath,
             children: [...folder]
         };
-        setFolders([folderObj]);
+        const nextFolders = [folderObj];
+        const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+        setFolders(nextFolders);
         expandParentFolders(folderObj);
-        setSelectedFolder(folderObj);
+        setSelectedFolder(preservedFolder);
     };
 
 
@@ -178,13 +233,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setDeletedData(deletedData.value);
     };
 
-    const handleFolderSelect = (folder: FolderNode) => {
+    const handleFolderSelect = async (folder: FolderNode) => {
         setFiles([]);
+        const isSameFolder = selectedFolderRef.current?.path === folder.path;
+        selectedFolderRef.current = folder;
         setSelectedFolder(folder);
         expandParentFolders(folder);
+        if (isSameFolder) {
+            await getDocument(folder);
+        }
     };
 
     const getPendingApprovalData = async () => {
+        if (!tileData?.LibraryName) return;
         const pendingApprovalData = await getApprovalData(context, tileData.LibraryName, UserEmailID);
         setApprovalData(pendingApprovalData.value);
     };
@@ -215,19 +276,20 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
     const getRestrictedUserData = async () => {
+        if (!selectedFolder?.path) return;
 
         let View: any = "viewListItems";
         let Edit: any = "editListItems";
 
         const canView = await hasFolderPermission(
             context,
-            selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, ""),
+            selectedFolder.path,
             View
         );
 
         const canEdit = await hasFolderPermission(
             context,
-            selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, ""),
+            selectedFolder.path,
             Edit
         );
 
@@ -266,6 +328,95 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
+    const hideDeleteButtonInVersionsFrame = (iframe: HTMLIFrameElement | null) => {
+        if (!iframe) return;
+
+        try {
+            const frameDocument = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!frameDocument || frameDocument.getElementById("hide-versions-delete-button")) return;
+
+            const style = frameDocument.createElement("style");
+            style.id = "hide-versions-delete-button";
+            style.textContent = `
+                [id*="Delete" i],
+                [class*="delete" i],
+                [title*="Delete" i],
+                [aria-label*="Delete" i],
+                input[value*="Delete" i],
+                button[title*="Delete" i],
+                a[title*="Delete" i] {
+                    display: none !important;
+                    visibility: hidden !important;
+                }
+            `;
+
+            frameDocument.head?.appendChild(style);
+        } catch (error) {
+            console.warn("Unable to hide delete action in versions iframe.", error);
+        } finally {
+            setIsVersionsLoading(false);
+        }
+    };
+
+    const renderVersionsPanel = (url: string) => (
+        <div
+            style={{
+                position: "relative",
+                minHeight: "80vh",
+                borderRadius: "16px",
+                overflow: "hidden",
+                background: "linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%)",
+                border: "1px solid #dbe7f3",
+                boxShadow: "0 10px 30px rgba(15, 108, 189, 0.08)"
+            }}
+        >
+            {isVersionsLoading && (
+                <div
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(248, 251, 255, 0.96)",
+                        zIndex: 2
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "28px 32px",
+                            borderRadius: "18px",
+                            background: "#ffffff",
+                            boxShadow: "0 14px 40px rgba(15, 108, 189, 0.12)",
+                            border: "1px solid #e3edf7"
+                        }}
+                    >
+                        <Spinner size={SpinnerSize.large} label="Loading version history..." />
+                        <span style={{ color: "#4b5563", fontSize: "13px" }}>
+                            Preparing the SharePoint versions view
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            <iframe
+                id="frame"
+                src={url}
+                style={{
+                    width: "100%",
+                    height: "calc(80vh - 58px)",
+                    border: "none",
+                    backgroundColor: "#fff"
+                }}
+                onLoad={(event) => hideDeleteButtonInVersionsFrame(event.currentTarget)}
+            ></iframe>
+        </div>
+    );
+
     const handleDocumentAction = async (action: string, item: any) => {
         switch (action) {
             case "OpenInApp":
@@ -278,8 +429,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 break;
             case "Versions":
                 setActionButton(null);
+                setIsVersionsLoading(true);
+                setPanelSize(PanelType.large);
                 const url = `${SiteURL}/_layouts/15/Versions.aspx?list=${tileData?.LibraryName}&FileName=${item.ServerRelativeUrl}&IsDlg=${item.ListItemAllFields.Id}`;
-                setPanelForm(<iframe id="frame" src={url} style={{ width: "100%", height: "80vh" }}></iframe>);
+                setVersionsPanelUrl(url);
+                setPanelForm(null);
                 setPanelTitle(DisplayLabel.Versions);
                 setIsOpenCommonPanel(true);
                 break;
@@ -307,14 +461,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 await commonPostMethod(`${SiteURL}/_api/web/GetFileByServerRelativeUrl('${item.ServerRelativeUrl}')/checkout`, context);
                 setAlertMsg(DisplayLabel.CheckoutSuccess);
                 setIsPopupBoxVisible(true);
-                getDocument();
+                await getDocument(selectedFolderRef.current);
                 break;
             case "CheckIn":
                 setActionButton(<PrimaryButton text={DisplayLabel.CheckIn} style={{ marginRight: "10px" }} onClick={async () => {
                     await commonPostMethod(`${SiteURL}/_api/web/GetFileByServerRelativeUrl('${item.ServerRelativeUrl}')/checkin(comment='${comment}',checkintype=0)`, context);
                     setAlertMsg(DisplayLabel.CheckInSuccess);
                     setIsPopupBoxVisible(true);
-                    getDocument();
+                    await getDocument(selectedFolderRef.current);
                 }} />);
                 setIsOpenCommonPanel(true);
                 break;
@@ -408,12 +562,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         getDocument();
     }, [isOpenUploadPanel]);
 
-    const getDocument = async () => {
-        if (!selectedFolder) return [];
-        if (selectedFolder.isLastLevel) {
-            const files = await getAllDocuments(context, selectedFolder?.path);
+    const getDocument = async (folderNode?: FolderNode | null) => {
+        const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
+        if (!folderToLoad) return [];
+        if (folderToLoad.isLastLevel) {
+            const files = await getAllDocuments(context, folderToLoad.path);
             setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
-        };
+        } else {
+            setFiles([]);
+        }
     };
 
 
@@ -566,14 +723,21 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
-    const dismissCommanPanel = () => { setIsOpenCommonPanel(false); setActionButton(null); setPanelForm(null); setPanelSize(PanelType.medium); };
+    const dismissCommanPanel = () => {
+        setIsOpenCommonPanel(false);
+        setActionButton(null);
+        setPanelForm(null);
+        setPanelSize(PanelType.medium);
+        setVersionsPanelUrl("");
+        setIsVersionsLoading(false);
+    };
     const onDismiss: any = useCallback(() => { setIsPanelOpen(false); }, []);
     const closeDialog = useCallback(() => setHideDialog(false), []);
     const closeDialogCheckOut = useCallback(() => setHideDialogCheckOut(false), []);
     const hidePopup = useCallback(() => { setIsPopupBoxVisible(false); }, [isPopupBoxVisible]);
     const hideCommonPopup = useCallback(() => { setIsShowCommnPopupBoxVisible(false); }, []);
     const dismissFolderPanel = () => { setIsOpenFolderPanel(false); };
-    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); fetchFolder(); }, []);
+    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); fetchFolder(); }, [isCreateProjectPopupOpen]);
     const dissmissSharePopup = useCallback((value: boolean) => { setIFrameDialogOpened(value); }, []);
     const dismissUploadPanel = useCallback(() => { setIsOpenUploadPanel(false); }, []);
 
@@ -592,7 +756,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             await commonPostMethod(`${SiteURL}/_api/web/GetFileByServerRelativeUrl('${serverRelativeUrl}')/undocheckout()`, context);
             setAlertMsg(DisplayLabel.DiscardedCheckOut);
             setIsPopupBoxVisible(true);
-            getDocument();
+            await getDocument(selectedFolderRef.current);
         }
     }, [serverRelativeUrl]);
 
@@ -625,7 +789,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     useEffect(() => {
         setPanelForm(<>
             <div className="col-md-10">
-                <Input value={comment} onChange={(_, val) => setComment(val.value)} />
+                <TextField value={comment} onChange={(_, val) => setComment(val || "")} />
             </div>
         </>);
 
@@ -907,6 +1071,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setIFrameDialogOpened(false);
     // }, []);
 
+    if (isWorkspaceLoading || !tileData || folders.length === 0) {
+        return <div className="workspace-page"><PageLoader message="Loading workspace..." minHeight="72vh" /></div>;
+    }
+
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
             <div className="workspace-topbar">
@@ -1140,7 +1308,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 <div style={{ marginTop: "10px" }}>
                     {/* <div className="grid">
                         <div className="row"> */}
-                    {panelForm}
+                    {versionsPanelUrl ? renderVersionsPanel(versionsPanelUrl) : panelForm}
                     {/* </div>
                     </div> */}
                 </div>

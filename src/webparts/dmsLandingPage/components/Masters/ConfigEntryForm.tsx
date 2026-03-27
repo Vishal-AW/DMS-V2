@@ -12,6 +12,7 @@ import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { SPHttpClient } from "@microsoft/sp-http-base";
 import PopupBox from "../../common/component/PopupBox";
+import PageLoader from "../../common/component/PageLoader";
 import { getConfidDataByID, getConfig, SaveconfigMaster, UpdateconfigMaster } from "../../../../Services/ConfigService";
 import ReactTableComponent from '../ResuableComponents/ReusableDataTable';
 import { WebPartContext } from "@microsoft/sp-webpart-base";
@@ -78,12 +79,12 @@ export default function ConfigMaster({ context }: IConfigMaster): JSX.Element {
     const [selectedListOption, setSelectedListOption] = React.useState<any>(null);
     const inputRefs = useRef<{ [key: string]: HTMLInputElement | null; }>({});
     const [searchText, setSearchText] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         let DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
         setDisplayLabel(DisplayLabel);
-        getAllListFromSite();
-        fetchData();
+        Promise.all([getAllListFromSite(), fetchData()]).finally(() => setIsLoading(false));
     }, []);
 
     const fetchData = async () => {
@@ -518,6 +519,10 @@ export default function ConfigMaster({ context }: IConfigMaster): JSX.Element {
         return terms.every(term => searchableString.includes(String(term).toLowerCase()));
     });
 
+    if (isLoading) {
+        return <PageLoader message="Loading configuration..." minHeight="72vh" />;
+    }
+
     return (
         <div>
 
@@ -718,7 +723,7 @@ export default function ConfigMaster({ context }: IConfigMaster): JSX.Element {
 
             </Panel>
 
-            <PopupBox isPopupBoxVisible={isPopupVisible} hidePopup={hidePopup} msg={alertMsg} />
+            <PopupBox isPopupBoxVisible={isPopupVisible} hidePopup={hidePopup} msg={alertMsg} type={isEditMode ? "update" : "insert"} />
 
         </div>
     );

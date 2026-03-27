@@ -18,6 +18,7 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 import "../styles/global.css";
 import ReactTableComponent from "../ResuableComponents/ReusableDataTable";
 import PopupBox from "../../common/component/PopupBox";
+import PageLoader from "../../common/component/PageLoader";
 
 import {
     getParent,
@@ -60,10 +61,10 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
 
     const [isPopupVisible, setIsPopupVisible] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchData();
-        fetchTemplates();
+        Promise.all([fetchData(), fetchTemplates()]).finally(() => setIsLoading(false));
     }, []);
 
     const fetchData = async () => {
@@ -377,6 +378,10 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
         }
     ];
 
+    if (isLoading) {
+        return <PageLoader message="Loading folder master..." minHeight="72vh" />;
+    }
+
     return (
 
         <div>
@@ -521,6 +526,7 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
                 isPopupBoxVisible={isPopupVisible}
                 hidePopup={hidePopup}
                 msg={alertMsg}
+                type={isEditMode ? "update" : "insert"}
             />
 
         </div>

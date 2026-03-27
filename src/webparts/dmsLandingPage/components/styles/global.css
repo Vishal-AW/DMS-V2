@@ -948,9 +948,9 @@ body {
 .panel-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 24px;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px 24px;
   border-top: 1px solid #edebe9;
   background-color: #faf9f8;
 }
@@ -2526,6 +2526,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  height: 100%;
+}
+
+.fluent-file-upload-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .fluent-file-upload input[type="file"] {
@@ -2545,6 +2552,25 @@ body {
   outline: none;
   border-color: #0078d4;
   box-shadow: 0 0 0 1px #0078d4;
+}
+
+.upload-file-row {
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.upload-file-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 44px;
+}
+
+.upload-file-action .ms-Button {
+  min-width: 42px;
+  height: 38px;
+  border-radius: 6px;
 }
 
 .error-text {

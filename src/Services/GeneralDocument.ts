@@ -138,13 +138,27 @@ export async function checkUserInProjectAdmin(context: any, userId: number) {
 
 //new added by rupali to check is user restricted view permision
 
+const normalizeFolderServerRelativeUrl = (context: WebPartContext, folderPath: string): string => {
+    if (!folderPath) return "";
+
+    if (folderPath.startsWith("/")) {
+        return folderPath;
+    }
+
+    const webRelativeUrl = context.pageContext.web.serverRelativeUrl;
+    return webRelativeUrl === "/"
+        ? `/${folderPath}`
+        : `${webRelativeUrl}/${folderPath}`;
+};
+
 export const hasFolderPermission = async (
     context: any,
     folderServerRelativeUrl: string,
     permissionKind: keyof SPPermission
 ): Promise<boolean> => {
     try {
-        const url = `${context.pageContext.web.absoluteUrl}/_api/web/getFolderByServerRelativeUrl('${folderServerRelativeUrl}')/ListItemAllFields?$select=EffectiveBasePermissions`;
+        const normalizedFolderPath = normalizeFolderServerRelativeUrl(context, folderServerRelativeUrl);
+        const url = `${context.pageContext.web.absoluteUrl}/_api/web/getFolderByServerRelativeUrl('${normalizedFolderPath}')/ListItemAllFields?$select=EffectiveBasePermissions`;
 
         const response = await context.spHttpClient.get(url,
             SPHttpClient.configurations.v1);
@@ -337,7 +351,8 @@ export async function checkPermissions(context: any, folderPath: string): Promis
     try {
         // const url = `${context.pageContext.web.absoluteUrl}/_api/web/DoesUserHavePermissions?high=${permissionMaskHigh}&low=${permissionMaskLow}`;
 
-        const url = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${folderPath}')/ListItemAllFields/effectiveBasePermissions`;
+        const normalizedFolderPath = normalizeFolderServerRelativeUrl(context, folderPath);
+        const url = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${normalizedFolderPath}')/ListItemAllFields/effectiveBasePermissions`;
 
         const response: SPHttpClientResponse = await context.spHttpClient.get(
             url,

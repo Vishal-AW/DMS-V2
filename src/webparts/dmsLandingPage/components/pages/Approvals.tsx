@@ -34,6 +34,7 @@ import { createHistoryItem } from '../../../../Services/GeneralDocHistoryService
 import { TileSendMail } from '../../../../Services/SendEmail';
 import { getConfigActive } from '../../../../Services/ConfigService';
 import { getDataByLibraryName } from '../../../../Services/MasTileService';
+import PageLoader from '../../common/component/PageLoader';
 
 
 interface IApprovalsProps {
@@ -106,6 +107,7 @@ export default function Approvals({ context }: IApprovalsProps) {
   const [comment, setComment] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [actions, setActions] = useState<actionType>("APPROVE");
+  const [isLoading, setIsLoading] = useState(true);
 
   const fromPath = (location.state as any)?.from || '/';
   const libraryName = (location.state as any)?.libName || "";
@@ -133,8 +135,7 @@ export default function Approvals({ context }: IApprovalsProps) {
   }, [searchQuery, allDocs]);
 
   useEffect(() => {
-    getFiles();
-    fetchLibraryDetails();
+    Promise.all([getFiles(), fetchLibraryDetails()]).finally(() => setIsLoading(false));
   }, []);
 
   const getFiles = async () => {
@@ -223,6 +224,7 @@ export default function Approvals({ context }: IApprovalsProps) {
       emailObj.libraryName = libraryName;
       await TileSendMail(context, emailObj);
       setIsDialogOpen(false);
+      getFiles();
 
     } catch (error) {
       console.log("error", error);
@@ -273,7 +275,7 @@ export default function Approvals({ context }: IApprovalsProps) {
 
     await TileSendMail(context, emailObj);
     setIsDialogOpen(false);
-
+    getFiles();
   };
 
 
@@ -432,6 +434,10 @@ export default function Approvals({ context }: IApprovalsProps) {
     );
   };
 
+  if (isLoading) {
+    return <PageLoader message="Loading approvals..." minHeight="72vh" />;
+  }
+
   return (
     <div className="approval-page" data-testid="page-approvals">
       <div className="approval-topbar">
@@ -559,7 +565,7 @@ export default function Approvals({ context }: IApprovalsProps) {
             <button
               className="approval-action-btn approval-action-approve"
               onClick={() => {
-                setActions("REJECT");
+                setActions("APPROVE");
                 setIsDialogOpen(true);
               }}
               data-testid={`button-approve-${metadataDoc?.ID}`}

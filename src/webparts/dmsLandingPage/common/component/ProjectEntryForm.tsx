@@ -23,6 +23,8 @@ import { getAllFolder, getListData, updateLibrary } from "../../../../Services/G
 import { FolderStructure } from "../../../../Services/FolderStructure";
 import { getUserIdFromLoginName } from "../../../../DAL/Commonfile";
 import PopupBox from "./PopupBox";
+import PageLoader from "./PageLoader";
+import FieldError from "./FieldError";
 import { ILabel } from "../../../../Intrface/ILabel";
 import Select from 'react-select';
 import { getTemplateActive } from "../../../../Services/TemplateService";
@@ -72,6 +74,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const [publisher, setPublisher] = useState<any[]>([]);
     const [approver, setApprover] = useState<any[]>([]);
     const [isPopupBoxVisible, setIsPopupBoxVisible] = useState(false);
+    const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
     const [alertMsg, setAlertMsg] = useState("");
     const [isApprovalRequired, setIsApprovalRequired] = useState<boolean>(false);
     const [allUsers, setAllUsers] = useState<any>([]);
@@ -83,7 +86,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const [folderAccessErr, setFolderAccessErr] = useState<string>("");
     const [publisherErr, setPublisherErr] = useState<string>("");
     const [approverErr, setApproverErr] = useState<string>("");
-    const [showLoader, setShowLoader] = useState({ display: "none" });
+    const [showLoader, setShowLoader] = useState(false);
     const [isDisabled, setIsDisabled] = useState<boolean>(false);
     const [projectManagerEmail, setProjectManagerEmail] = useState("");
     const [publisherEmail, setPublisherEmail] = useState("");
@@ -95,6 +98,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const [folderStructure, setFolderStructure] = useState<any>([]);
     const inputRefs = useRef<{ [key: string]: HTMLInputElement | null; }>({});
     const [TemFolderName, setTemFolderName] = useState<string>("");
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     const meargestyles = mergeStyleSets({
         root: { selectors: { '> *': { marginBottom: 15 } } },
@@ -120,11 +124,13 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     };
 
     useEffect(() => {
-        fetchLibraryDetails();
-        fetchSuffixData();
-        getAllUsers();
-        getFolderStructure();
-        getFolderTemplate();
+        Promise.all([
+            fetchLibraryDetails(),
+            fetchSuffixData(),
+            getAllUsers(),
+            getFolderStructure(),
+            getFolderTemplate()
+        ]).finally(() => setIsInitialLoading(false));
     }, []);
 
     useEffect(() => {
@@ -243,7 +249,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                 isDisabled={isDisabled}
                                 ref={(input: any) => (inputRefs.current[item.InternalTitleName] = input)}
                             />
-                            {dynamicValuesErr[item.InternalTitleName] && <p style={{ color: "rgb(164, 38, 44)" }}>{dynamicValuesErr[item.InternalTitleName]}</p>}
+                            <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                         </Field>
                     );
 
@@ -281,9 +287,9 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                     .filter((el: any) => el.Id === dynamicValues[item.InternalTitleName])
                                     .map((user: any) => user.Email)}
                                 disabled={isDisabled}
-                                errorMessage={dynamicValuesErr[item.InternalTitleName]}
                                 ref={(input: any) => (inputRefs.current[item.InternalTitleName] = input)}
                             />
+                            <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                         </Field>
                     );
 
@@ -318,7 +324,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                 disabled={isDisabled}
                                 formatDate={(date) => date ? format(new Date(date), "dd/MM/yyyy") : ''}
                             />
-                            {dynamicValuesErr[item.InternalTitleName] && <p style={{ color: "rgb(164, 38, 44)" }}>{dynamicValuesErr[item.InternalTitleName]}</p>}
+                            <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                         </Field>
                     );
 
@@ -442,7 +448,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
 
 
     const createFolder = async () => {
-        setShowLoader({ display: "block" });
+        setShowLoader(true);
         if (FormType === "EntryForm") {
 
             const users = [
@@ -508,8 +514,9 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
         updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, id, LibraryDetails.LibraryName).then((response) => {
             if (!createStructure) {
                 dismissPanel(false);
-                setShowLoader({ display: "none" });
+                setShowLoader(false);
                 setAlertMsg(DisplayLabel.FolderUpdatedMsg);
+                setPopupType("update");
                 setIsPopupBoxVisible(true);
             }
         });
@@ -531,8 +538,9 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
             count++;
             if (firstlevel.length === count) {
                 dismissPanel(false);
-                setShowLoader({ display: "none" });
+                setShowLoader(false);
                 setAlertMsg(DisplayLabel.SubmitMsg);
+                setPopupType("insert");
                 setIsPopupBoxVisible(true);
             }
         });
@@ -624,220 +632,238 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 )}
                 isFooterAtBottom={true}
             >
-
-                <div className="grid-2">
-                    <div className="col-md-6">
-                        <TextField
-                            label={DisplayLabel.TileName}
-                            value={LibraryDetails?.TileName}
-                            disabled
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <TextField
-                            value={folderName}
-                            label={DisplayLabel.FolderName}
-                            required
-                            onChange={(_, newValue) => {
-                                const validName = removeFolderSepcialCharacters(newValue);
-                                setFolderName(validName);
-                            }}
-                            disabled={isDisabled || FormType === "EditForm"}
-                        />
-                        <span className="errorText">{folderNameErr}</span>
-
-                    </div>
-                </div>
-
-                <div className="grid-2">
-                    <div className="col-12">
-                        <Toggle
-                            label={DisplayLabel.IsSuffixRequired}
-                            onChange={handleToggleChange}
-                            checked={isSuffixRequired}
-                            disabled={isDisabled}
-                        />
-                    </div>
-                </div>
-
-                {isSuffixRequired && (
-                    <>
-
-                        <Field label={DisplayLabel.DocumentSuffix} required>
-                            <Select
-                                options={SuffixData}
-                                value={SuffixData.find((option: any) => option.value === Suffix)}
-                                onChange={(option: any) => setSuffix(option.value as string)}
-                                isSearchable
-                                placeholder={DisplayLabel?.Selectanoption}
-                                isDisabled={isDisabled}
-                                ref={(input: any) => (inputRefs.current["Suffix"] = input)}
+                <div style={{ position: "relative" }}>
+                    {isInitialLoading ? <PageLoader message="Loading form..." minHeight="52vh" /> : <div className="grid-2">
+                        <div className="col-md-6">
+                            <TextField
+                                label={DisplayLabel.TileName}
+                                value={LibraryDetails?.TileName}
+                                disabled
                             />
-                            {SuffixErr && <p style={{ color: "rgb(164, 38, 44)" }}>{SuffixErr}</p>}
-                        </Field>
+                        </div>
+                        <div className="col-md-6">
+                            <TextField
+                                value={folderName}
+                                label={DisplayLabel.FolderName}
+                                required
+                                onChange={(_, newValue) => {
+                                    const validName = removeFolderSepcialCharacters(newValue);
+                                    setFolderName(validName);
+                                }}
+                                disabled={isDisabled || FormType === "EditForm"}
+                            />
+                            <FieldError message={folderNameErr} />
 
-                        {Suffix === "Other" && (
-                            <Field>
-                                <TextField
-                                    label={DisplayLabel.OtherSuffixName}
-                                    value={OtherSuffix}
-                                    onChange={(_, newValue) =>
-                                        setOtherSuffix(removeSepcialCharacters(newValue))
-                                    }
-                                    required
-                                    disabled={isDisabled}
-                                />
-                                <span className="errorText">{OtherSuffixErr}</span>
-                            </Field>
+                        </div>
+                    </div>}
 
-                        )}
-                    </>
-                )}
+                    <div className="grid-2">
+                        <div className="col-12">
+                            <Toggle
+                                label={DisplayLabel.IsSuffixRequired}
+                                onChange={handleToggleChange}
+                                checked={isSuffixRequired}
+                                disabled={isDisabled}
+                            />
+                        </div>
+                    </div>
 
-                <div >{renderDynamicControls()}</div>
-                {libraryDetails?.AllowApprover ? <>
-                    <Field>
-                        <Toggle
-                            label={DisplayLabel.IsApprovalFlowRequired}
-                            onChange={() => { setIsApprovalRequired((pre) => !pre); }}
-                            disabled={isDisabled}
-                            checked={isApprovalRequired}
-                        />
-                    </Field>
-                    {
-                        isApprovalRequired ?
-                            <div className="grid-2">
-                                <Field>
-                                    <PeoplePicker
-                                        titleText={DisplayLabel.Approver}
-                                        context={peoplePickerContext}
-                                        personSelectionLimit={1}
-                                        showtooltip={true}
-                                        required
-                                        showHiddenInUI={false}
-                                        principalTypes={[PrincipalType.User]}
-                                        ensureUser={true}
-                                        onChange={async (items: any) => {
-                                            try {
-                                                setProjectManagerEmail(items[0].secondaryText as string);
-                                                setApprover(items[0].id);
-                                            } catch (error) {
-                                                console.error("Error fetching user IDs:", error);
-                                            }
-                                        }}
-                                        defaultSelectedUsers={[projectManagerEmail]}
-                                        errorMessage={approverErr}
-                                        disabled={isDisabled}
-                                        ref={(input: any) => (inputRefs.current["Approver"] = input)}
-                                    />
-                                </Field>
-                                <Field >
-                                    <PeoplePicker
-                                        titleText={DisplayLabel.Publisher}
-                                        context={peoplePickerContext}
-                                        personSelectionLimit={1}
-                                        showtooltip={true}
-                                        required
-                                        showHiddenInUI={false}
-                                        principalTypes={[PrincipalType.User]}
-                                        defaultSelectedUsers={[publisherEmail]}
-                                        ensureUser={true}
-                                        onChange={async (items: any) => {
-                                            try {
-                                                setPublisherEmail(items[0].secondaryText as string);
-                                                setPublisher(items[0].id);
-                                            } catch (error) {
-                                                console.error("Error fetching user IDs:", error);
-                                            }
-                                        }}
-                                        errorMessage={publisherErr}
-                                        disabled={isDisabled}
-                                        ref={(input: any) => (inputRefs.current["Publisher"] = input)}
-                                    />
+                    {isSuffixRequired && (
+                        <>
 
-                                </Field>
-                            </div> : <></>
-                    }
-                </> : <></>}
-                <Field>
-                    {FormType === "EntryForm" ? <PeoplePicker
-                        titleText={DisplayLabel.FolderAccess}
-                        context={peoplePickerContext}
-                        personSelectionLimit={20}
-                        showtooltip={true}
-                        required
-                        showHiddenInUI={false}
-                        principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup]}
-                        onChange={async (items: any[]) => {
-                            try {
-                                const userIds = await Promise.all(
-                                    items.map(async (item: any) => {
-                                        let userid: number = 0;
-                                        if (isValidNumberString(item.id)) {
-                                            userid = Number(item.id);
-                                        } else {
-                                            const data = await getUserIdFromLoginName(context, item.id);
-                                            userid = data.Id;
-                                        };
-                                        return userid;
-                                    })
-                                );
-                                setFolderAccess(userIds);
-                            } catch (error) {
-                                console.error("Error fetching user IDs:", error);
-                            }
-                        }}
-                        errorMessage={folderAccessErr}
-                        ref={(input: any) => (inputRefs.current["FolderAccess"] = input)}
-                    />
-                        : <></>
-                    }
-                </Field>
-                <div className="grid-2">
-                    <Field >
-                        <Toggle
-                            label={DisplayLabel.CreateStructure}
-                            onChange={() => { setCreateStructure((pre) => !pre); }}
-                            disabled={isDisabled || FormType === "EditForm"}
-                            checked={createStructure}
-                        />
-                    </Field>
-                    {
-                        createStructure ?
-                            <Field>
-                                <TextField
-                                    label={DisplayLabel.FolderName}
-                                    value={TemFolderName}
-                                    onChange={(ev, newValue) => setTemFolderName(newValue || "")}
-                                    disabled={isDisabled || FormType === "EditForm"}
-                                />
-                            </Field> : <></>
-                    }
-                </div>
-
-                <div className="grid-2">
-                    {
-                        createStructure ?
-
-
-                            <Field label={DisplayLabel.TemplateName} required>
+                            <Field label={DisplayLabel.DocumentSuffix} required>
                                 <Select
-                                    options={allFolderTemplate}
-                                    value={allFolderTemplate.find((option: any) => option.value === folderTemplate)}
-                                    onChange={(option: any) => setFolderTemplate(option.value as string)}
+                                    options={SuffixData}
+                                    value={SuffixData.find((option: any) => option.value === Suffix)}
+                                    onChange={(option: any) => setSuffix(option.value as string)}
                                     isSearchable
                                     placeholder={DisplayLabel?.Selectanoption}
-                                    ref={(input: any) => (inputRefs.current["CreateStructure"] = input)}
-                                    isDisabled={isDisabled || FormType === "EditForm"}
+                                    isDisabled={isDisabled}
+                                    ref={(input: any) => (inputRefs.current["Suffix"] = input)}
                                 />
-                                {folderTemplateErr && <p style={{ color: "rgb(164, 38, 44)" }}>{folderTemplateErr}</p>}
-                            </Field> : <></>
-                    }
-                </div>
+                                <FieldError message={SuffixErr} />
+                            </Field>
 
+                            {Suffix === "Other" && (
+                                <Field>
+                                    <TextField
+                                        label={DisplayLabel.OtherSuffixName}
+                                        value={OtherSuffix}
+                                        onChange={(_, newValue) =>
+                                            setOtherSuffix(removeSepcialCharacters(newValue))
+                                        }
+                                        required
+                                        disabled={isDisabled}
+                                    />
+                                    <span className="errorText">{OtherSuffixErr}</span>
+                                </Field>
+
+                            )}
+                        </>
+                    )}
+
+                    <div >{renderDynamicControls()}</div>
+                    {libraryDetails?.AllowApprover ? <>
+                        <Field>
+                            <Toggle
+                                label={DisplayLabel.IsApprovalFlowRequired}
+                                onChange={() => { setIsApprovalRequired((pre) => !pre); }}
+                                disabled={isDisabled}
+                                checked={isApprovalRequired}
+                            />
+                        </Field>
+                        {
+                            isApprovalRequired ?
+                                <div className="grid-2">
+                                    <Field>
+                                        <PeoplePicker
+                                            titleText={DisplayLabel.Approver}
+                                            context={peoplePickerContext}
+                                            personSelectionLimit={1}
+                                            showtooltip={true}
+                                            required
+                                            showHiddenInUI={false}
+                                            principalTypes={[PrincipalType.User]}
+                                            ensureUser={true}
+                                            onChange={async (items: any) => {
+                                                try {
+                                                    setProjectManagerEmail(items[0].secondaryText as string);
+                                                    setApprover([items[0].id]);
+                                                } catch (error) {
+                                                    console.error("Error fetching user IDs:", error);
+                                                }
+                                            }}
+                                            defaultSelectedUsers={[projectManagerEmail]}
+                                            disabled={isDisabled}
+                                            ref={(input: any) => (inputRefs.current["Approver"] = input)}
+                                        />
+                                        <FieldError message={approverErr} />
+                                    </Field>
+                                    <Field >
+                                        <PeoplePicker
+                                            titleText={DisplayLabel.Publisher}
+                                            context={peoplePickerContext}
+                                            personSelectionLimit={1}
+                                            showtooltip={true}
+                                            required
+                                            showHiddenInUI={false}
+                                            principalTypes={[PrincipalType.User]}
+                                            defaultSelectedUsers={[publisherEmail]}
+                                            ensureUser={true}
+                                            onChange={async (items: any) => {
+                                                try {
+                                                    setPublisherEmail(items[0].secondaryText as string);
+                                                    setPublisher([items[0].id]);
+                                                } catch (error) {
+                                                    console.error("Error fetching user IDs:", error);
+                                                }
+                                            }}
+                                            disabled={isDisabled}
+                                            ref={(input: any) => (inputRefs.current["Publisher"] = input)}
+                                        />
+                                        <FieldError message={publisherErr} />
+
+                                    </Field>
+                                </div> : <></>
+                        }
+                    </> : <></>}
+                    <Field>
+                        {FormType === "EntryForm" ?
+                            <>
+                                <PeoplePicker
+                                    titleText={DisplayLabel.FolderAccess}
+                                    context={peoplePickerContext}
+                                    personSelectionLimit={20}
+                                    showtooltip={true}
+                                    required
+                                    showHiddenInUI={false}
+                                    principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup]}
+                                    onChange={async (items: any[]) => {
+                                        try {
+                                            const userIds = await Promise.all(
+                                                items.map(async (item: any) => {
+                                                    let userid: number = 0;
+                                                    if (isValidNumberString(item.id)) {
+                                                        userid = Number(item.id);
+                                                    } else {
+                                                        const data = await getUserIdFromLoginName(context, item.id);
+                                                        userid = data.Id;
+                                                    };
+                                                    return userid;
+                                                })
+                                            );
+                                            setFolderAccess(userIds);
+                                        } catch (error) {
+                                            console.error("Error fetching user IDs:", error);
+                                        }
+                                    }}
+                                    ref={(input: any) => (inputRefs.current["FolderAccess"] = input)}
+                                />
+                                <FieldError message={folderAccessErr} />
+                            </>
+                            : <></>
+                        }
+                    </Field>
+                    <div className="grid-2">
+                        <Field >
+                            <Toggle
+                                label={DisplayLabel.CreateStructure}
+                                onChange={() => { setCreateStructure((pre) => !pre); }}
+                                disabled={isDisabled || FormType === "EditForm"}
+                                checked={createStructure}
+                            />
+                        </Field>
+                        {
+                            createStructure ?
+                                <Field>
+                                    <TextField
+                                        label={DisplayLabel.FolderName}
+                                        value={TemFolderName}
+                                        onChange={(ev, newValue) => setTemFolderName(newValue || "")}
+                                        disabled={isDisabled || FormType === "EditForm"}
+                                    />
+                                </Field> : <></>
+                        }
+                    </div>
+
+                    <div className="grid-2">
+                        {
+                            createStructure ?
+                                <Field label={DisplayLabel.TemplateName} required>
+                                    <Select
+                                        options={allFolderTemplate}
+                                        value={allFolderTemplate.find((option: any) => option.value === folderTemplate)}
+                                        onChange={(option: any) => setFolderTemplate(option.value as string)}
+                                        isSearchable
+                                        placeholder={DisplayLabel?.Selectanoption}
+                                        ref={(input: any) => (inputRefs.current["CreateStructure"] = input)}
+                                        isDisabled={isDisabled || FormType === "EditForm"}
+                                    />
+                                    <FieldError message={folderTemplateErr} />
+                                </Field> : <></>
+                        }
+                    </div>
+
+                    {showLoader && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(255, 255, 255, 0.78)",
+                                backdropFilter: "blur(2px)",
+                                zIndex: 10,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: "8px"
+                            }}
+                        >
+                            <PageLoader message={FormType === "EntryForm" ? "Submitting request..." : "Updating request..."} minHeight="100%" />
+                        </div>
+                    )}
+                </div>
             </Panel>
-            {/* <div className={cls["modal"]} style={showLoader}></div> */}
-            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} />
+            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} type={popupType} />
         </>
     );
 };

@@ -16,6 +16,7 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 import "../styles/global.css";
 import ReactTableComponent from "../ResuableComponents/ReusableDataTable";
 import PopupBox from "../../common/component/PopupBox";
+import PageLoader from "../../common/component/PageLoader";
 
 import {
     getTemplate,
@@ -44,6 +45,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
 
     const [isPopupVisible, setIsPopupVisible] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         fetchData();
@@ -56,6 +58,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         );
 
         setTableData(res?.value || []);
+        setIsLoading(false);
     };
 
     const filteredData = tableData.filter((item) =>
@@ -225,6 +228,10 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         }
     ];
 
+    if (isLoading) {
+        return <PageLoader message="Loading templates..." minHeight="72vh" />;
+    }
+
     return (
         <div>
 
@@ -341,6 +348,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                 isPopupBoxVisible={isPopupVisible}
                 hidePopup={hidePopup}
                 msg={alertMsg}
+                type={isTemplateEditMode ? "update" : "insert"}
             />
 
         </div>

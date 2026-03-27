@@ -26,6 +26,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
     const [commentErr, setcommentErr] = useState("");
     const [fileData, setFileData] = useState<any>([]);
     const [isPopupBoxVisible, setIsPopupBoxVisible] = useState<boolean>(false);
+    const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
     const [itemId, setItemId] = useState(0);
     const [hideDialog, setHideDialog] = useState(false);
     const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
@@ -123,6 +124,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
         };
         await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, itemId, libraryName);
         setAlertMsg(DisplayLabel.RestoreDoc);
+        setPopupType("restore");
         setIsPopupBoxVisible(true);
     };
 
@@ -196,6 +198,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
                 emailObj.libraryName = libraryName;
                 await TileSendMail(context, emailObj);
                 setAlertMsg(DisplayLabel.ApprovedMsg);
+                setPopupType("approve");
                 setIsPopupBoxVisible(true);
                 // window.location.reload();
 
@@ -259,6 +262,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
 
             await TileSendMail(context, emailObj);
             setAlertMsg(DisplayLabel.RejectedMsg);
+            setPopupType("reject");
             setIsPopupBoxVisible(true);
         }
     };
@@ -328,7 +332,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
                 </div>
 
             </Panel>
-            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} />
+            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} type={popupType} />
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={DisplayLabel.RestoreConfirmMsg} />
         </>
     );

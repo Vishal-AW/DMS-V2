@@ -5707,9 +5707,54 @@
 
 /* Error Text */
 .errorText {
-  color: red;
-  font-size: 14px;
-  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d13438;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.errorText::before {
+  content: "i";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.form-error-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d13438;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.form-error-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.ms-TextField-errorMessage,
+.ms-Dropdown-errorMessage {
+  color: #d13438 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 500 !important;
+  margin-top: 8px !important;
 }
 
 .imagePreviewContainer {

@@ -12,6 +12,7 @@ import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import { format } from "date-fns";
 import TileForm from "./TileForm";
+import PageLoader from "../../common/component/PageLoader";
 interface ITileSettingProps {
     context: WebPartContext;
 }
@@ -23,8 +24,10 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
     const SiteURL = context.pageContext.web.absoluteUrl;
     const [isOpenEditor, setIsOpenEditor] = useState<boolean>(false);
     const [itemId, setItemId] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        setIsLoading(true);
         fetchTileData();
     }, [isOpenEditor]);
 
@@ -32,6 +35,7 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
         let FetchallTileData: any = await getTileAllData(SiteURL, context.spHttpClient);
         let TilesData = FetchallTileData.value;
         setRowData(TilesData);
+        setIsLoading(false);
     };
 
     const columns = React.useMemo(() => {
@@ -163,6 +167,10 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
 
     if (isOpenEditor) {
         return <TileForm context={context} tileID={itemId} setIsOpenEditor={setIsOpenEditor} allTiles={rowData} />;
+    }
+
+    if (isLoading) {
+        return <PageLoader message="Loading workspace tiles..." minHeight="72vh" />;
     }
 
     return (

@@ -13,6 +13,8 @@ import Select from "react-select";
 import moment from "moment";
 import { TileSendMail } from "../../../../Services/SendEmail";
 import { Field } from "@fluentui/react-components";
+import FieldError from "./FieldError";
+import PageLoader from "./PageLoader";
 
 interface IUploadFileProps {
     isOpenUploadPanel: boolean;
@@ -159,7 +161,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                     placeholder={DisplayLabel?.Selectanoption}
                                     isMulti={item.ColumnType === "Multiple Select"}
                                 />
-                                {dynamicValuesErr[item.InternalTitleName] && <p style={{ color: "rgb(164, 38, 44)" }}>{dynamicValuesErr[item.InternalTitleName]}</p>}
+                                <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                             </Field>
                         </div>
                     );
@@ -217,7 +219,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                     value={dynamicValues[item.InternalTitleName] || ""}
                                     formatDate={(date) => date ? moment(new Date(date)).format("DD/MM/YYYY") : ''}
                                 />
-                                {dynamicValuesErr[item.InternalTitleName] && <p style={{ color: "rgb(164, 38, 44)" }}>{dynamicValuesErr[item.InternalTitleName]}</p>}
+                                <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                             </Field>
                         </div>
                     );
@@ -740,11 +742,11 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 type={PanelType.large}
                 onRenderFooterContent={() => (<>
                     {filetype === "upload" ? (
-                        <PrimaryButton onClick={submit} styles={{ root: { marginRight: 8 } }} >{DisplayLabel.Submit}</PrimaryButton>
+                        <PrimaryButton onClick={submit} styles={{ root: { marginRight: 8 } }} disabled={showLoader.display === "block"}>{DisplayLabel.Submit}</PrimaryButton>
                     ) : (
-                        <PrimaryButton onClick={createOfficeFile} styles={{ root: { marginRight: 8 } }} >Create File</PrimaryButton>
+                        <PrimaryButton onClick={createOfficeFile} styles={{ root: { marginRight: 8 } }} disabled={showLoader.display === "block"}>Create File</PrimaryButton>
                     )}
-                    <DefaultButton onClick={dismissUploadPanel}>{DisplayLabel.Cancel}</DefaultButton>
+                    <DefaultButton onClick={dismissUploadPanel} disabled={showLoader.display === "block"}>{DisplayLabel.Cancel}</DefaultButton>
                 </>)}
                 isFooterAtBottom={true}
             >
@@ -766,31 +768,33 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                         {renderDynamicControls()}
                     </div>
                     {filetype === "upload" && (
-                        <div className="grid">
+                        <div className="grid upload-file-row">
                             <div className="grid-item-large">
                                 <Field className="fluent-file-upload">
-                                    <label>{DisplayLabel.ChooseFile}<span style={{ color: "red" }}>*</span> </label>
-                                    <label style={{ color: "red" }}>
-                                        {DisplayLabel?.FileAttachmentNote || ""}
-                                    </label>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                            if (event.target.files) {
-                                                setAttachment(Array.from(event.target.files));
-                                            }
-                                        }}
-                                        key={fileKey}
-                                    />
+                                    <div className="fluent-file-upload-control">
+                                        <label>{DisplayLabel.ChooseFile}<span style={{ color: "red" }}>*</span> </label>
+                                        <label style={{ color: "red" }}>
+                                            {DisplayLabel?.FileAttachmentNote || ""}
+                                        </label>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                                if (event.target.files) {
+                                                    setAttachment(Array.from(event.target.files));
+                                                }
+                                            }}
+                                            key={fileKey}
+                                        />
+                                    </div>
                                     <span style={{ color: "red" }}>{attachmentErr}</span>
                                 </Field>
 
                             </div>
-                            <div className="grid-item-small">
+                            <div className="grid-item-small upload-file-action">
                                 <IconButton
                                     iconProps={{ iconName: 'Add' }}
-                                    style={{ background: "#009ef7", color: "#fff", border: "#009ef7", marginTop: "58px" }}
+                                    style={{ background: "#009ef7", color: "#fff", border: "#009ef7" }}
                                     onClick={addAttachment}
                                     label="Add"
                                 />
@@ -818,35 +822,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                             <td>{item.attachment.name}</td>
 
                                             <td style={{ width: 200 }}>
-                                                {/* <Dropdown
-                                                    options={[
-                                                        { key: 'Yes', text: 'Yes' },
-                                                        { key: 'No', text: 'No' },
-                                                    ]}
-                                                    calloutProps={{ doNotLayer: false }}
-                                                    selectedKey={item.isUpdateExistingFile}
-                                                    onChange={async (ev, option) => {
-                                                        const attach = await Promise.all(attachmentsFiles.map((ele, i) => i === index ? { ...ele, isUpdateExistingFile: option?.key } : ele));
-                                                        let filterFiles = files.filter((el: any) => el.ListItemAllFields.IsExistingFlag === "New");
-                                                        if (filterFiles.length > 0 && attachmentsFiles.length > 0) {
-                                                            attachmentsFiles.map((el: any) => {
-                                                                filterFiles = filterFiles.filter((ele: any) => {
-                                                                    if (el.name !== "" && item.name != el.name) {
-                                                                        return ele.ListItemAllFields.Active === true && ele.ListItemAllFields.IsExistingFlag === "New" && el.name != ele.Name;
-                                                                    } else {
-                                                                        return ele.ListItemAllFields.Active === true && ele.ListItemAllFields.IsExistingFlag === "New";
-                                                                    }
-                                                                });
-                                                            });
-                                                        }
-                                                        setFilterFilesData(filterFiles);
-                                                        setFilesData(filterFiles.map((el: any) => ({ value: el.Name, label: el.ListItemAllFields.ActualName })));
-                                                        setAttachmentsFiles(attach);
-                                                        const filterD = attach.filter((el, i) => el.isUpdateExistingFile === "Yes");
-                                                        filterD.length > 0 ? setIsUpdateExistingFile(option?.key === "Yes" ? true : false) : "";
-                                                    }}
-                                                    disabled={item.isDisabled}
-                                                /> */}
+
 
                                                 <Select options={[
                                                     { value: "Yes", label: 'Yes' },
@@ -854,6 +830,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                 ]}
 
                                                     value={{ value: item.isUpdateExistingFile, label: item.isUpdateExistingFile }}
+                                                    isDisabled={item.isDisabled}
                                                     onChange={async (option: any) => {
                                                         const attach = await Promise.all(attachmentsFiles.map((ele, i) => i === index ? { ...ele, isUpdateExistingFile: option?.value } : ele));
                                                         let filterFiles = files.filter((el: any) => el.ListItemAllFields.IsExistingFlag === "New");
@@ -885,7 +862,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                         )}
                                                         isSearchable
                                                         placeholder={DisplayLabel?.Selectanoption}
-                                                        disabled={item.isDisabled}
+                                                        isDisabled={item.isDisabled}
                                                         onChange={(option: any) => {
                                                             const fData = filterFilesData.filter(
                                                                 (ele: any) => ele.Name === option?.value
@@ -955,13 +932,25 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                             </div>
                         </div>
                     )}
-
-
-
-
                 </div>
+                {showLoader.display === "block" && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(255, 255, 255, 0.72)",
+                            backdropFilter: "blur(2px)",
+                            zIndex: 100000,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                        }}
+                    >
+                        <PageLoader message="Uploading file..." minHeight="auto" />
+                    </div>
+                )}
             </Panel>
-            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} />
+            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} type="insert" />
             <ConfirmationDialog
                 hideDialog={showConfirmDialog}
                 closeDialog={() => setShowConfirmDialog(false)}
@@ -971,10 +960,9 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 No="Replace"
             />
 
-            <div style={showLoader}></div>
+
         </div>
     );
 }
 
 export default React.memo(UploadFiles);
-
