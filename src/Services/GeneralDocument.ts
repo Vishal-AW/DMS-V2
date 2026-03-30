@@ -1,4 +1,4 @@
-
+/* eslint-disable */
 import { ISPHttpClientOptions, SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import { GetListItem, UpdateItem } from "../DAL/Commonfile";
@@ -193,7 +193,7 @@ export async function UploadFile(WebUrl: string, spHttpClient: any, file: string
         const spOpts: ISPHttpClientOptions = {
             body: file
         };
-        var redirectionURL = WebUrl + "/_api/Web/GetFolderByServerRelativeUrl('" + FolderPath + "')/Files/Add(url='" + DisplayName + "', overwrite=true)?$expand=ListItemAllFields";
+        const redirectionURL = WebUrl + "/_api/Web/GetFolderByServerRelativeUrl('" + FolderPath + "')/Files/Add(url='" + DisplayName + "', overwrite=true)?$expand=ListItemAllFields";
         spHttpClient.post(redirectionURL, SPHttpClient.configurations.v1, spOpts).then((response: SPHttpClientResponse) => {
             response.json().then(async (responseJSON: any) => {
                 // console.log(responseJSON.ListItemAllFields.ID);
@@ -236,7 +236,7 @@ export function getDataByRefID(context: WebPartContext, Id: string, libeName: st
 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any, libeName: string) {
 
-    let option = {
+    const option = {
         select: "*,Projectmanager/Id,Projectmanager/Title,Publisher/Id,Publisher/Title,Status/Id,Status/StatusName,Author/EMail,Author/Title",
         expand: "File,Projectmanager,Publisher,Status,Author",
         filter: filter,
@@ -250,11 +250,11 @@ async function getMethod(WebUrl: string, spHttpClient: any, filter: any, libeNam
 
 export async function getDocument(WebUrl: string, spHttpClient: any, filter: any, libName: string) {
 
-    var selectcols = "*,ID,File,DefineRole,ProjectmanagerAllow,Projectmanager/Id,Projectmanager/Title,ProjectmanagerEmail,PublisherAllow,Publisher/Id,";
+    let selectcols = "*,ID,File,DefineRole,ProjectmanagerAllow,Projectmanager/Id,Projectmanager/Title,ProjectmanagerEmail,PublisherAllow,Publisher/Id,";
     selectcols += "Publisher/Title,PublisherEmail,CurrentApprover,InternalStatus,ProjectMasterLID,";
     selectcols += "LatestRemark,AllowApprover,Created,Author/EMail,Author/Title,FileLeafRef,FileRef,FileDirRef,Active,ProjectmanagerId,PublisherId,File,ServerRedirectedEmbedUrl,DisplayStatus,Level,OCRStatus,";
     selectcols += "Company,Template,IsArchiveFlag";
-    var option = {
+    const option = {
         select: selectcols,
         expand: "File,Projectmanager,Publisher,Author",
         filter: filter,

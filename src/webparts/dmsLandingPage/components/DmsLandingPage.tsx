@@ -59,7 +59,7 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
                 }
               />
               <Route path="/workspace/:workspaceId" element={<Workspace context={this.props.context} />} />
-              <Route path="/search" element={<Search />} />
+              <Route path="/search" element={<Search context={this.props.context} />} />
               <Route path="/approvals" element={<Approvals context={this.props.context} />} />
               <Route path="/tilesetting" element={<MainLayout context={this.props.context}>
                 <TileSetting context={this.props.context} />

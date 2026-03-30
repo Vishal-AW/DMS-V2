@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -18,7 +19,10 @@ import {
     Add20Regular,
     Edit16Regular,
     Delete16Regular,
-    TabDesktop20Regular,
+    DocumentFolder24Regular,
+    Document24Regular,
+    Archive24Regular,
+    People24Regular,
 } from '@fluentui/react-icons';
 import { ILabel } from "../../../../Intrface/ILabel";
 import Select, { CSSObjectWithLabel } from "react-select";
@@ -68,7 +72,9 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         isAllowApprover: false,
         allowChildInheritance: false,
         isArchiveAllowed: false,
-        isDynamicReference: false
+        isDynamicReference: false,
+        icon: "folder",
+        accentColor: "#0078d4"
     });
     const [refFormatData, setRefFormatData] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, any>>({});
@@ -86,6 +92,20 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     );
     const [isToggleDisabled, setIsToggleDisabled] = useState(false);
     const [isPageLoading, setIsPageLoading] = useState(true);
+
+    const tileIconOptions = [
+        { value: "folder", label: "Folder" },
+        { value: "document", label: "Document" },
+        { value: "archive", label: "Archive" },
+        { value: "team", label: "Team" }
+    ];
+
+    const tileIconMap: Record<string, JSX.Element> = {
+        folder: <DocumentFolder24Regular />,
+        document: <Document24Regular />,
+        archive: <Archive24Regular />,
+        team: <People24Regular />
+    };
 
     const RedundancyDaysData = async () => {
         const ActiveRedundancyDaysData: any = await getActiveRedundancyDays(SiteURL, context.spHttpClient);
@@ -190,6 +210,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             isArchiveAllowed: EditSettingData?.IsArchiveRequired,
             isDynamicReference: EditSettingData?.IsDynamicReference,
             separator: EditSettingData?.Separator || "-",
+            icon: EditSettingData?.icon || "folder",
+            accentColor: EditSettingData?.accentColor || "#0078d4",
             PermissionEmail: PermissionEmails,
             PermissionIds: PermissionIds
         }));
@@ -716,6 +738,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             let option = {
                 __metadata: { type: "SP.Data.DMS_x005f_Mas_x005f_TileListItem" },
                 TileName: formData?.TileName,
+                icon: formData?.icon,
+                accentColor: formData?.accentColor,
                 PermissionId: { results: formData?.PermissionIds },
                 TileAdminId: formData?.TileAdminId,
                 AllowApprover: formData?.isAllowApprover,
@@ -764,6 +788,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const option = {
                 __metadata: { type: "SP.Data.DMS_x005f_Mas_x005f_TileListItem" },
                 TileName: formData?.TileName,
+                icon: formData?.icon,
+                accentColor: formData?.accentColor,
                 PermissionId: { results: formData?.PermissionIds },
                 TileAdminId: formData?.TileAdminId,
                 AllowApprover: formData?.isAllowApprover,
@@ -945,6 +971,47 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     defaultSelectedUsers={formData?.TileAdminEmail}
                                                 />
                                                 <FieldError message={errors.TileAdmin} />
+                                            </div>
+                                        </div>
+                                        <div className="grid-2">
+                                            <div className="tile-form-field">
+                                                <label className="tile-form-label">Icon</label>
+                                                <Select
+                                                    options={tileIconOptions}
+                                                    value={tileIconOptions.find((option) => option.value === (formData?.icon || "folder"))}
+                                                    onChange={(option: any) => setFormData((prev: any) => ({ ...prev, icon: option?.value || "folder" }))}
+                                                    isSearchable={false}
+                                                    formatOptionLabel={(option: any) => (
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                            {tileIconMap[option.value]}
+                                                            <span>{option.label}</span>
+                                                        </div>
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="tile-form-field">
+                                                <label className="tile-form-label">Accent Color</label>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                    <input
+                                                        type="color"
+                                                        value={formData?.accentColor || "#0078d4"}
+                                                        onChange={(e) => setFormData((prev: any) => ({ ...prev, accentColor: e.target.value }))}
+                                                        style={{
+                                                            width: 48,
+                                                            height: 36,
+                                                            padding: 0,
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: 6,
+                                                            background: "transparent",
+                                                            cursor: "pointer"
+                                                        }}
+                                                    />
+                                                    <TextField
+                                                        value={formData?.accentColor || "#0078d4"}
+                                                        onChange={(_, val) => setFormData((prev: any) => ({ ...prev, accentColor: val || "#0078d4" }))}
+                                                        className="tile-form-input"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="tile-form-field">

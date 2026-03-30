@@ -1,7 +1,7 @@
 import { GetListItem } from "../DAL/Commonfile";
 
 export function getActiveTypeData(WebUrl: string, spHttpClient: any, PSType: string) {
-    var filter = `Active eq '1' and PSType eq '${PSType}'`;
+    const filter = `Active eq '1' and PSType eq '${PSType}'`;
     return getMethod(WebUrl, spHttpClient, filter);
 }
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {

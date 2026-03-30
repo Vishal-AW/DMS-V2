@@ -1,13 +1,12 @@
+/* eslint-disable */
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SearchBox,
   ComboBox,
   IComboBoxOption,
-  DatePicker,
   Checkbox,
   DefaultButton,
-  PrimaryButton,
 } from '@fluentui/react';
 import {
   ChevronDown16Regular,
@@ -15,16 +14,22 @@ import {
   Dismiss12Regular,
   DocumentText20Regular,
   CheckmarkCircle20Regular,
-  Scan20Regular,
   CalendarLtr20Regular,
-  Building20Regular,
   Filter20Regular,
+  Person20Regular,
+  TextT20Regular,
 } from '@fluentui/react-icons';
+import '../../components/styles/global.css';
+import { getListData } from '../../../../Services/GeneralDocument';
+import { getDataByLibraryName } from '../../../../Services/MasTileService';
+import { getConfigActive } from '../../../../Services/ConfigService';
+import Select from 'react-select';
 
-export interface FilterConfig {
+
+export interface DynamicFilterConfig {
   key: string;
   label: string;
-  type: 'dropdown' | 'date' | 'checkbox' | 'dateRange';
+  columnType: string;
   options?: { key: string; text: string; }[];
 }
 
@@ -36,116 +41,381 @@ export interface ActiveFilter {
 }
 
 interface SearchFiltersProps {
+  context: any;
+  siteUrl: string;
+  libraryName: string;
+
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
-  filters: FilterConfig[];
+  onConfigLoaded?: (dynamicControl: any[], filters: DynamicFilterConfig[]) => void;
   activeFilters: ActiveFilter[];
   onFilterChange: (key: string, value: any, displayValue: string) => void;
   onRemoveFilter: (key: string) => void;
   onClearFilters: () => void;
 }
 
-const sectionIcons: Record<string, typeof Filter20Regular> = {
-  documentType: DocumentText20Regular,
-  status: CheckmarkCircle20Regular,
-  ocrStatus: Scan20Regular,
-  modifiedDate: CalendarLtr20Regular,
-  workspace: Building20Regular,
+
+const COLUMN_TYPE_ICONS: Record<string, any> = {
+  'Dropdown': DocumentText20Regular,
+  'Multiple Select': DocumentText20Regular,
+  'Date and Time': CalendarLtr20Regular,
+  'Single line of Text': TextT20Regular,
+  'Multiple lines of Text': TextT20Regular,
+  'Person or Group': Person20Regular,
+  'Radio': CheckmarkCircle20Regular,
 };
 
 export default function SearchFilters({
+  context,
+  siteUrl,
+  libraryName,
   searchQuery,
   onSearchChange,
   onSearch,
-  filters,
+  onConfigLoaded,
   activeFilters,
   onFilterChange,
   onRemoveFilter,
   onClearFilters,
 }: SearchFiltersProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(filters.map(f => f.key)));
+
+  const [dynamicControl, setDynamicControl] = useState<any[]>([]);
+  const [dynamicFilters, setDynamicFilters] = useState<DynamicFilterConfig[]>([]);
+  const [options, setOptions] = useState<{ [key: string]: { value: string; label: string; }[]; }>({});
+  const [configLoading, setConfigLoading] = useState<boolean>(true);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!context || !libraryName) {
+      setConfigLoading(false);
+      return;
+    }
+    loadConfig();
+  }, [libraryName]);
+
+  const loadConfig = async () => {
+    setConfigLoading(true);
+    try {
+      const libraryData = await getDataByLibraryName(siteUrl, context.spHttpClient, libraryName);
+      console.log('libraryData ', libraryData);
+      if (!libraryData?.value?.length) {
+        setConfigLoading(false);
+        return;
+      }
+
+      const rawDynamicControl: any[] = JSON.parse(
+        libraryData.value[0].DynamicControl || '[]'
+      );
+      console.log('rawDynamicControl ', rawDynamicControl);
+      setDynamicControl(rawDynamicControl);
+
+      const configData = await getConfigActive(siteUrl, context.spHttpClient);
+      console.log('configData', configData);
+      const configItems: any[] = configData?.value || [];
+      const filterConfigs: DynamicFilterConfig[] = [];
+      console.log('filterConfigs', filterConfigs);
+      for (const item of rawDynamicControl) {
+        if (!item.IsShowAsFilter) continue;
+        const configRow = configItems.find((c: any) => c.Id === item.Id);
+        if (!configRow) continue;
+
+        filterConfigs.push({
+          key: item.InternalTitleName,
+          label: item.Title,
+          columnType: configRow.ColumnType,
+        });
+      }
+
+      setDynamicFilters(filterConfigs);
+      setExpandedSections(new Set(filterConfigs.map(f => f.key)));
+      await bindDropdown(rawDynamicControl, configItems, filterConfigs);
+      onConfigLoaded?.(rawDynamicControl, filterConfigs);
+
+    } catch (err) {
+      console.error('SearchFilters: error loading config', err);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  const bindDropdown = async (
+    controlArr: any[],
+    configItems: any[],
+    filterConfigs: DynamicFilterConfig[]
+  ) => {
+    for (const item of controlArr) {
+      if (item.ColumnType !== 'Dropdown' && item.ColumnType !== 'Multiple Select') continue;
+
+      const configRow = configItems.find((c: any) => c.Id === item.Id);
+
+      if (!configRow) continue;
+
+      let dropdownOptions: { value: string; label: string; }[] = [];
+
+      if (configRow.IsStaticValue && configRow.StaticDataObject) {
+        dropdownOptions = configRow.StaticDataObject
+          .split(';')
+          .filter(Boolean)
+          .map((ele: string) => ({ value: ele, label: ele }));
+      } else if (configRow.InternalListName) {
+        console.log('Fetching list ', configRow.InternalListName);
+        console.log('Display field ', configRow.DisplayValue);
+        try {
+          const data = await getListData(
+            `${context.pageContext.web.absoluteUrl}/_api/web/lists/getbytitle('${configRow.InternalListName}')/items?$top=5000&$filter=Active eq 1&$orderby=${configRow.DisplayValue} asc`,
+            context
+          );
+          console.log('Dropdown API data ', data);
+          dropdownOptions = (data?.value || []).map((ele: any) => ({
+            value: ele[configRow.DisplayValue],
+            label: ele[configRow.DisplayValue],
+          }));
+          console.log('dropdownOptions ', dropdownOptions);
+        } catch (e) {
+          console.warn(`Could not load options for ${item.InternalTitleName}`, e);
+        }
+      }
+
+      if (item.ColumnType === 'Radio' && configRow.IsStaticValue && configRow.StaticDataObject) {
+        dropdownOptions = configRow.StaticDataObject
+          .split(';')
+          .filter(Boolean)
+          .map((ele: string) => ({ value: ele, label: ele }));
+      }
+
+      setOptions(prev => {
+        const updated = { ...prev, [item.InternalTitleName]: dropdownOptions };
+        console.log('Updated options state 👉', updated);
+        return updated;
+      });
+
+      const fc = filterConfigs.find(f => f.key === item.InternalTitleName);
+      if (fc) {
+        fc.options = dropdownOptions.map(o => ({ key: o.value, text: o.label }));
+      }
+    }
+    setDynamicFilters(prev =>
+      prev.map(f => {
+        const updated = filterConfigs.find(fc => fc.key === f.key);
+        return updated ? { ...f, options: updated.options } : f;
+      })
+    );
+  };
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
+      if (newSet.has(key)) newSet.delete(key);
+      else newSet.add(key);
       return newSet;
     });
   };
 
-  const renderFilter = (filter: FilterConfig) => {
-    switch (filter.type) {
-      case 'dropdown':
-        const options: IComboBoxOption[] = filter.options?.map(opt => ({
-          key: opt.key,
-          text: opt.text,
-        })) || [];
 
-        return (
-          <div className="filter-section-body">
-            <ComboBox
-              options={options}
-              onChange={(_, option) => {
-                if (option) {
-                  onFilterChange(filter.key, option.key, option.text);
-                }
-              }}
-              allowFreeform
-              autoComplete="on"
-              placeholder={`Select ${filter.label.toLowerCase()}`}
-              data-testid={`filter-${filter.key}`}
-            />
-          </div>
-        );
+  const renderFilter = (filter: DynamicFilterConfig) => {
+    const colType = filter.columnType;
 
-      case 'date':
-        return (
-          <div className="filter-section-body">
-            <DatePicker
-              onSelectDate={(date) => {
-                if (date) {
-                  onFilterChange(filter.key, date, date.toLocaleDateString());
-                }
-              }}
-              placeholder="Select date"
-              data-testid={`filter-${filter.key}`}
-            />
-          </div>
-        );
+    if (colType === 'Dropdown' || colType === 'Multiple Select') {
+      const selectOptions =
+        (options[filter.key] || []).map(opt => ({
+          value: opt.value,
+          label: opt.label,
+        }));
 
-      case 'checkbox':
-        return (
-          <div className="filter-section-body filter-checkbox-group">
-            {filter.options?.map(opt => (
-              <Checkbox
-                key={opt.key}
-                label={opt.text}
-                onChange={(_, checked) => {
-                  if (checked) {
-                    onFilterChange(filter.key, opt.key, opt.text);
-                  } else {
-                    onRemoveFilter(`${filter.key}:${opt.key}`);
-                  }
-                }}
-                className="filter-checkbox-item"
-                data-testid={`filter-${filter.key}-${opt.key}`}
-              />
-            ))}
-          </div>
-        );
+      const selectedValue = activeFilters.find(f => f.key === filter.key);
 
-      default:
-        return null;
+      return (
+        <div className="filter-section-body">
+          <Select
+            options={selectOptions}
+            value={
+              selectedValue
+                ? { value: selectedValue.value, label: selectedValue.displayValue }
+                : null
+            }
+            onChange={(option: any) => {
+              if (option) {
+                onFilterChange(filter.key, option.value, option.label);
+              } else {
+                onRemoveFilter(filter.key);
+              }
+            }}
+            isSearchable
+            isClearable
+            placeholder={`Select ${filter.label.toLowerCase()}`}
+            classNamePrefix="react-select"
+          />
+        </div>
+      );
     }
+    if (colType === 'Radio') {
+      const radioOpts = options[filter.key] || [];
+      return (
+        <div className="filter-section-body filter-checkbox-group">
+          {radioOpts.map(opt => (
+            <Checkbox
+              key={opt.value}
+              label={opt.label}
+              checked={activeFilters.find(f => f.key === filter.key)?.value === opt.value}
+              onChange={(_, checked) => {
+                if (checked) onFilterChange(filter.key, opt.value, opt.label);
+                else onRemoveFilter(filter.key);
+              }}
+              className="filter-checkbox-item"
+              data-testid={`filter-${filter.key}-${opt.value}`}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (colType === 'Date and Time') {
+      // const existing = activeFilters.find(f => f.key === filter.key);
+      const existing = activeFilters.find(f => f.key === filter.key) || { value: {} };
+      return (
+        <div className="filter-section-body">
+          <label style={{ fontSize: '11px', color: '#605e5c', display: 'block', marginBottom: '4px' }}>
+            From
+          </label>
+          <input
+            type="date"
+            value={
+              existing?.value?.from
+                ? new Date(existing.value.from).toISOString().split('T')[0]
+                : ''
+            }
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              border: '1px solid #c8c6c4',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#323130',
+              backgroundColor: '#fff',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
+            onChange={(e) => {
+              const date = e.target.value ? new Date(e.target.value) : null;
+              if (date) {
+                // const toDate = existing?.value?.to || null;
+                const toDate = existing?.value?.to ?? null;
+                onFilterChange(
+                  filter.key,
+                  { from: date, to: toDate },
+                  `${date.toLocaleDateString('en-GB')}${toDate ? ' → ' + new Date(toDate).toLocaleDateString('en-GB') : ''}`
+                );
+              }
+            }}
+            data-testid={`filter-${filter.key}-from`}
+          />
+
+          <label style={{ fontSize: '11px', color: '#605e5c', display: 'block', margin: '8px 0 4px' }}>
+            To
+          </label>
+          <input
+            type="date"
+            value={
+              existing?.value?.to
+                ? new Date(existing.value.to).toISOString().split('T')[0]
+                : ''
+            }
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              border: '1px solid #c8c6c4',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#323130',
+              backgroundColor: '#fff',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
+            onChange={(e) => {
+              const date = e.target.value ? new Date(e.target.value) : null;
+              if (date) {
+                // const fromDate = existing?.value?.from || null;
+                const fromDate = existing?.value?.from ?? null;
+                onFilterChange(
+                  filter.key,
+                  { from: fromDate, to: date },
+                  `${fromDate ? new Date(fromDate).toLocaleDateString('en-GB') + ' → ' : ''}${date.toLocaleDateString('en-GB')}`
+                );
+              }
+            }}
+            data-testid={`filter-${filter.key}-to`}
+          />
+        </div>
+      );
+    }
+
+
+    if (colType === 'Single line of Text' || colType === 'Multiple lines of Text') {
+      return (
+        <div className="filter-section-body">
+          <input
+            type="text"
+            placeholder={`Filter by ${filter.label.toLowerCase()}...`}
+            value={activeFilters.find(f => f.key === filter.key)?.value || ''}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              border: '1px solid #c8c6c4',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#323130',
+              backgroundColor: '#fff',
+              boxSizing: 'border-box',
+            }}
+            onChange={(e) => {
+              const val = e.target.value;
+
+              const clean = val.replace(/[^a-zA-Z0-9\s]/g, '');
+              if (clean) onFilterChange(filter.key, clean, clean);
+              else onRemoveFilter(filter.key);
+            }}
+            data-testid={`filter-${filter.key}`}
+          />
+        </div>
+      );
+    }
+
+    if (colType === 'Person or Group') {
+      return (
+        <div className="filter-section-body">
+          <input
+            type="text"
+            placeholder={`Search by ${filter.label.toLowerCase()}...`}
+            value={activeFilters.find(f => f.key === filter.key)?.value || ''}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              border: '1px solid #c8c6c4',
+              borderRadius: '4px',
+              fontSize: '13px',
+              color: '#323130',
+              backgroundColor: '#fff',
+              boxSizing: 'border-box',
+            }}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.trim()) onFilterChange(filter.key, val, val);
+              else onRemoveFilter(filter.key);
+            }}
+            data-testid={`filter-${filter.key}`}
+          />
+        </div>
+      );
+    }
+
+    return null;
   };
+
 
   return (
     <div className="search-filters" data-testid="container-search-filters">
+
       <div className="search-filters-header">
         <Filter20Regular className="search-filters-header-icon" />
         <span>Filters</span>
@@ -167,7 +437,9 @@ export default function SearchFilters({
           <div className="filter-chips" data-testid="container-active-filters">
             {activeFilters.map(filter => (
               <div key={filter.key} className="filter-chip">
-                <span className="filter-chip-text">{filter.label}: {filter.displayValue}</span>
+                <span className="filter-chip-text">
+                  {filter.label}: {filter.displayValue}
+                </span>
                 <span
                   className="filter-chip-remove"
                   onClick={() => onRemoveFilter(filter.key)}
@@ -188,42 +460,63 @@ export default function SearchFilters({
         </div>
       )}
 
-      <div className="filter-sections">
-        {filters.map(filter => {
-          const SectionIcon = sectionIcons[filter.key] || Filter20Regular;
-          const isExpanded = expandedSections.has(filter.key);
-          return (
-            <div key={filter.key} className={`filter-section ${isExpanded ? 'filter-section-expanded' : ''}`}>
+      {configLoading ? (
+        <div style={{ padding: '16px', fontSize: '13px', color: '#605e5c' }}>
+          Loading filters...
+        </div>
+      ) : (
+        <div className="filter-sections">
+          {dynamicFilters.map(filter => {
+            const SectionIcon = COLUMN_TYPE_ICONS[filter.columnType] || Filter20Regular;
+            const isExpanded = expandedSections.has(filter.key);
+            return (
               <div
-                className="filter-section-title"
-                onClick={() => toggleSection(filter.key)}
-                data-testid={`toggle-filter-section-${filter.key}`}
+                key={filter.key}
+                className={`filter-section ${isExpanded ? 'filter-section-expanded' : ''}`}
               >
-                <div className="filter-section-title-left">
-                  <SectionIcon className="filter-section-icon" />
-                  <span>{filter.label}</span>
+                <div
+                  className="filter-section-title"
+                  onClick={() => toggleSection(filter.key)}
+                  data-testid={`toggle-filter-section-${filter.key}`}
+                >
+                  <div className="filter-section-title-left">
+                    <SectionIcon className="filter-section-icon" />
+                    <span>{filter.label}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronUp16Regular className="filter-section-chevron" />
+                  ) : (
+                    <ChevronDown16Regular className="filter-section-chevron" />
+                  )}
                 </div>
-                {isExpanded ? (
-                  <ChevronUp16Regular className="filter-section-chevron" />
-                ) : (
-                  <ChevronDown16Regular className="filter-section-chevron" />
-                )}
+                {isExpanded && renderFilter(filter)}
               </div>
-              {isExpanded && renderFilter(filter)}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      <div className="filter-apply-section">
-        <PrimaryButton
-          className="filter-apply-btn"
-          onClick={onSearch}
-          data-testid="button-apply-filters"
-        >
-          <span>Apply Filters</span>
-        </PrimaryButton>
-      </div>
+      <span
+        onClick={onSearch}
+        data-testid="button-apply-filters"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '40px',
+          borderRadius: '6px',
+          backgroundColor: '#0078d4',
+          color: '#ffffff',
+          fontWeight: 600,
+          fontSize: '14px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          marginTop: '12px',
+        }}
+      >
+        Apply Filters
+      </span>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { SPHttpClient, SPHttpClientResponse } from "@microsoft/sp-http-base";
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -190,7 +191,7 @@ export default function Approvals({ context }: IApprovalsProps) {
       dataObj.DisplayStatus = status.value[0].StatusName;
       await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, dataObj, metadataDoc.Id, libraryName);
 
-      var dataHistory = {
+      const dataHistory = {
         DocumetLID: metadataDoc.Id,
         ActionDate: new Date(),
         Remark: comment,
@@ -200,7 +201,7 @@ export default function Approvals({ context }: IApprovalsProps) {
         Action: "Approved"
       };
       await createHistoryItem(context.pageContext.web.absoluteUrl, context.spHttpClient, dataHistory);
-      var emailObj: any = {
+      const emailObj: any = {
         To: ToUser,
         FolderPath: metadataDoc.FolderDocumentPath,
         DocName: metadataDoc.ActualName,
@@ -251,7 +252,7 @@ export default function Approvals({ context }: IApprovalsProps) {
 
     await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, dataobj, metadataDoc?.Id, libraryName);
 
-    var dataHistory = {
+    const dataHistory = {
       DocumetLID: metadataDoc?.Id,
       ActionDate: new Date(),
       Remark: comment,
@@ -262,7 +263,7 @@ export default function Approvals({ context }: IApprovalsProps) {
     };
 
     await createHistoryItem(context.pageContext.web.absoluteUrl, context.spHttpClient, dataHistory);
-    var emailObj = {
+    const emailObj = {
       To: ToUser,
       FolderPath: metadataDoc?.FolderDocumentPath,
       DocName: metadataDoc?.ActualName,

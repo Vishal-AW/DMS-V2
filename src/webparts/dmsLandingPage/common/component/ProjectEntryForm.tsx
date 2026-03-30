@@ -1,7 +1,9 @@
+/* eslint-disable */
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
     ChoiceGroup,
     DefaultButton,
+    Icon,
     Panel,
     PanelType,
     PrimaryButton,
@@ -99,6 +101,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const inputRefs = useRef<{ [key: string]: HTMLInputElement | null; }>({});
     const [TemFolderName, setTemFolderName] = useState<string>("");
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isFolderStructureExpanded, setIsFolderStructureExpanded] = useState(false);
 
     const meargestyles = mergeStyleSets({
         root: { selectors: { '> *': { marginBottom: 15 } } },
@@ -136,6 +139,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     useEffect(() => {
         setCreateStructure(false);
         setFolderTemplate("");
+        setIsFolderStructureExpanded(false);
         clearErr();
         clearFeilds();
         setIsDisabled(FormType === "ViewForm");
@@ -364,6 +368,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
         setFolderName("");
         setSuffix("");
         setOtherSuffix("");
+        setTemFolderName("");
         setDynamicValues({});
         setFolderAccess([]);
         setPublisher([]);
@@ -616,6 +621,64 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const removeFolderSepcialCharacters = (newValue?: string) =>
         newValue?.replace(/[^a-zA-Z0-9_\-\s]/g, '') || '';
 
+    const getTemplateFolders = (templateName: string) => {
+        return folderStructure.filter((item: any) => item.TemplateName?.Name === templateName);
+    };
+
+    const buildFolderPreviewTree = (folders: any[], parentId: number | null = null): any[] => {
+        return folders
+            .filter((item: any) => {
+                const currentParentId = item.ParentFolderIdId ?? item.ParentFolderId?.ID ?? item.ParentFolderId?.Id ?? null;
+                return currentParentId === parentId;
+            })
+            .map((item: any) => ({
+                ...item,
+                children: buildFolderPreviewTree(folders, item.ID ?? item.Id)
+            }));
+    };
+
+    const renderFolderPreview = (nodes: any[], level: number = 0): JSX.Element[] => {
+        const elements: JSX.Element[] = [];
+
+        nodes.forEach((node: any) => {
+            const hasChildren = !!node.children?.length;
+            elements.push(
+                <div
+                    key={`${node.ID ?? node.Id}-${level}`}
+                    style={{
+                        marginLeft: level * 18,
+                        padding: "8px 12px",
+                        color: "#111827",
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8
+                    }}
+                >
+                    <Icon
+                        iconName={hasChildren ? "OpenFolderHorizontal" : "FabricFolder"}
+                        style={{
+                            color: "#d97706",
+                            fontSize: 16,
+                            flexShrink: 0
+                        }}
+                    />
+                    {node.FolderName}
+                </div>
+            );
+
+            if (node.children?.length) {
+                elements.push(...renderFolderPreview(node.children, level + 1));
+            }
+        });
+
+        return elements;
+    };
+
+    const templateFolderPreview = folderTemplate ? buildFolderPreviewTree(getTemplateFolders(folderTemplate)) : [];
+    const previewRootName = (TemFolderName || folderName || "").trim();
+
     return (
         <>
             <Panel
@@ -833,16 +896,92 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                     <Select
                                         options={allFolderTemplate}
                                         value={allFolderTemplate.find((option: any) => option.value === folderTemplate)}
-                                        onChange={(option: any) => setFolderTemplate(option.value as string)}
+                                        onChange={(option: any) => setFolderTemplate(option?.value as string || "")}
                                         isSearchable
                                         placeholder={DisplayLabel?.Selectanoption}
-                                        ref={(input: any) => (inputRefs.current["CreateStructure"] = input)}
+                                        ref={(input: any) => (inputRefs.current["FolderTemplate"] = input)}
                                         isDisabled={isDisabled || FormType === "EditForm"}
                                     />
                                     <FieldError message={folderTemplateErr} />
                                 </Field> : <></>
                         }
                     </div>
+
+                    {createStructure && folderTemplate ? (
+                        <div
+                            style={{
+                                marginTop: 12,
+                                border: "1px solid #d1d5db",
+                                borderRadius: 8,
+                                background: "#f8fafc",
+                                overflow: "hidden"
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setIsFolderStructureExpanded((prev) => !prev)}
+                                style={{
+                                    width: "100%",
+                                    cursor: "pointer",
+                                    padding: 16,
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    userSelect: "none",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#111827"
+                                }}
+                            >
+                                <span>Folder Structure</span>
+                                <Icon
+                                    iconName={isFolderStructureExpanded ? "ChevronUp" : "ChevronDown"}
+                                    style={{
+                                        color: "#4b5563",
+                                        fontSize: 14,
+                                        flexShrink: 0
+                                    }}
+                                />
+                            </button>
+                            {isFolderStructureExpanded ? (
+                                <div style={{ padding: "0 16px 16px" }}>
+                                    {previewRootName ? (
+                                        <div
+                                            style={{
+                                                padding: "8px 12px",
+                                                color: "#111827",
+                                                fontSize: 14,
+                                                lineHeight: 1.5,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <Icon
+                                                iconName="OpenFolderHorizontal"
+                                                style={{
+                                                    color: "#d97706",
+                                                    fontSize: 16,
+                                                    flexShrink: 0
+                                                }}
+                                            />
+                                            {previewRootName}
+                                        </div>
+                                    ) : null}
+                                    {templateFolderPreview.length > 0 ? (
+                                        <div>{renderFolderPreview(templateFolderPreview, previewRootName ? 1 : 0)}</div>
+                                    ) : (
+                                        <div style={{ fontSize: 13, color: "#6b7280", padding: "8px 12px" }}>
+                                            No folder structure is configured for this template.
+                                        </div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
 
                     {showLoader && (
                         <div

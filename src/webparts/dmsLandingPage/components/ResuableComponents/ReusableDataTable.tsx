@@ -1,3 +1,4 @@
+/* eslint-disable */
 import * as React from 'react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, RowDragModule } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";

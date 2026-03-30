@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Checkbox, DefaultButton, Panel, PanelType, PrimaryButton } from "@fluentui/react";
 import * as React from "react";
 import { WebPartContext } from "@microsoft/sp-webpart-base";

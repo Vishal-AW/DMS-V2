@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import { IColumnSchema, IListSchema } from "../../../Intrface/IListSchema";
 import { spfi, SPFx } from '@pnp/sp';

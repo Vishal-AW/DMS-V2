@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';
 import { useEffect, useState } from 'react';

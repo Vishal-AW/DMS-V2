@@ -31,7 +31,7 @@ export function getDataByLibraryName(WebUrl: string, spHttpClient: any, name: an
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
   let option = {
-    select: "ID,TileName,TileImageURL,SystemCreated,Permission/Name,Permission/Id,Permission/Title,Documentpath,Active,Order0,AllowApprover,Editor/Title,Modified,LibraryName,LibGuidName,AllowOrder,DynamicControl,IsDynamicReference,ReferenceFormula,Separator,ShowMoreActions,IsArchiveRequired,RetentionDays,ArchiveVersionCount,ArchiveLibraryName,TileAdmin/Id,TileAdmin/Title,TileAdmin/EMail,IsAllowFieldsInFile,CustomPermission",
+    select: "ID,TileName,TileImageURL,SystemCreated,Permission/Name,Permission/Id,Permission/Title,Documentpath,Active,Order0,AllowApprover,Editor/Title,Modified,LibraryName,LibGuidName,AllowOrder,DynamicControl,IsDynamicReference,ReferenceFormula,Separator,ShowMoreActions,IsArchiveRequired,RetentionDays,ArchiveVersionCount,ArchiveLibraryName,TileAdmin/Id,TileAdmin/Title,TileAdmin/EMail,IsAllowFieldsInFile,CustomPermission,icon,accentColor",
     expand: "Permission,Editor,TileAdmin",
     filter: filter,
     orderby: "Order0 asc",

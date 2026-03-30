@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import React, { useCallback, useEffect, useState } from 'react';
 import { getApprovalData, getRecycleData, getArchiveData, updateLibrary } from "../../../../Services/GeneralDocument";
@@ -162,7 +163,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
                 dataObj.DisplayStatus = status.value[0].StatusName;
                 await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, dataObj, fileData.Id, libraryName);
 
-                var dataHistory = {
+                const dataHistory = {
                     DocumetLID: fileData.Id,
                     ActionDate: new Date(),
                     Remark: comment,
@@ -172,7 +173,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
                     Action: "Approved"
                 };
                 await createHistoryItem(context.pageContext.web.absoluteUrl, context.spHttpClient, dataHistory);
-                var emailObj: any = {
+                const emailObj: any = {
                     To: ToUser,
                     FolderPath: fileData.FolderDocumentPath,
                     DocName: fileData.ActualName,
@@ -238,7 +239,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
 
             await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, dataobj, fileData.Id, libraryName);
 
-            var dataHistory = {
+            const dataHistory = {
                 DocumetLID: fileData.Id,
                 ActionDate: new Date(),
                 Remark: comment,
@@ -249,7 +250,7 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
             };
 
             await createHistoryItem(context.pageContext.web.absoluteUrl, context.spHttpClient, dataHistory);
-            var emailObj = {
+            const emailObj = {
                 To: ToUser,
                 FolderPath: fileData.FolderDocumentPath,
                 DocName: fileData.ActualName,

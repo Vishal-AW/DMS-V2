@@ -211,20 +211,19 @@ body {
   align-items: center;
   gap: 6px;
   border-radius: 6px;
-  border: 1px solid #0078d4;
-  background-color: #ffffff;
-  color: #0078d4;
+  border: none;
+  background-color: #6b3fa0;
+  color: #ffffff;
   font-weight: 600;
   font-size: 13px;
-  padding: 0 18px;
-  height: 38px;
+  padding: 4px 14px;
+  height: 34px;
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color 150ms ease;
 }
 
 .workspace-new-folder-btn:hover {
-  background-color: #eff6fc;
-  color: #0078d4;
+  background-color: #5a3490;
 }
 
 .workspace-action-icon-btn {
