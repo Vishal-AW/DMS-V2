@@ -205,4 +205,5 @@ export interface ILabel {
     CheckoutSuccess: string;
     CheckInSuccess: string;
     Role: string;
+    ProjectName: string;
 }

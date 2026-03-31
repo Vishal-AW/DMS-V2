@@ -6,11 +6,13 @@ import { IPeoplePickerContext, PeoplePicker, PrincipalType } from "@pnp/spfx-con
 
 import {
     Checkbox,
+    DirectionalHint,
     ChoiceGroup,
     DefaultButton,
     Dropdown,
     PrimaryButton,
     TextField,
+    TooltipHost,
     Toggle,
 } from '@fluentui/react';
 import {
@@ -23,6 +25,7 @@ import {
     Document24Regular,
     Archive24Regular,
     People24Regular,
+    Info12Regular,
 } from '@fluentui/react-icons';
 import { ILabel } from "../../../../Intrface/ILabel";
 import Select, { CSSObjectWithLabel } from "react-select";
@@ -92,6 +95,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     );
     const [isToggleDisabled, setIsToggleDisabled] = useState(false);
     const [isPageLoading, setIsPageLoading] = useState(true);
+    const [loaderMessage, setLoaderMessage] = useState("Loading tile form...");
 
     const tileIconOptions = [
         { value: "folder", label: "Folder" },
@@ -126,6 +130,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
 
     useEffect(() => {
         const initializeForm = async () => {
+            setLoaderMessage("Loading tile form...");
             setIsPageLoading(true);
             const redundancyOptions = await RedundancyDaysData();
             await Promise.all([
@@ -166,6 +171,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
 
         if (EditSettingData.IsDynamicReference) {
             const formula = EditSettingData.ReferenceFormula || "";
+            setRefExample(formula);
             const fields = new Set<string>();
             const extracted = formula.match(/\{[^}]+\}/g);
 
@@ -177,7 +183,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                     fields.add(fieldName);
 
             }) || [];
-            setRefExample(formula);
+
             setRefFormatData(Array.from(fields));
         }
         else {
@@ -459,8 +465,28 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                     <th>{DisplayLabel.Field}</th>
                     <th>{DisplayLabel.IsRequired}</th>
                     <th>{DisplayLabel.FieldStatus}</th>
-                    <th>{DisplayLabel.IsFieldAllowinFile}</th>
-                    <th>{DisplayLabel.SearchFilterRequired}</th>
+                    <th>
+                        <span className="tile-table-header-with-info">
+                            <span>{DisplayLabel.IsFieldAllowinFile}</span>
+                            <TooltipHost
+                                content="Allows this field to be available in the file form."
+                                directionalHint={DirectionalHint.topCenter}
+                            >
+                                <Info12Regular className="tile-table-info-icon" />
+                            </TooltipHost>
+                        </span>
+                    </th>
+                    <th>
+                        <span className="tile-table-header-with-info">
+                            <span>{DisplayLabel.SearchFilterRequired}</span>
+                            <TooltipHost
+                                content="Includes this field in the workspace Advanced search filters."
+                                directionalHint={DirectionalHint.topCenter}
+                            >
+                                <Info12Regular className="tile-table-info-icon" />
+                            </TooltipHost>
+                        </span>
+                    </th>
                     <th>{DisplayLabel.Action}</th>
                 </tr>
 
@@ -640,13 +666,24 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                 {refFormatData.map((item, index) => (
                                     <div key={index} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                                         <span>{item}</span>
-                                        <Dropdown
+                                        <Select
                                             options={[
-                                                { key: "Separator", text: "Separator" },
-                                                { key: "Concat", text: "Concat" },
+                                                { value: "Separator", label: "Separator" },
+                                                { value: "Concat", label: "Concat" },
                                             ]}
-                                            onChange={(e, option) => handleDropdownChange(index, option?.key?.toString() || "Separator")}
-                                            selectedKey={customSeparators[index] || "Separator"}
+                                            value={[
+                                                { value: "Separator", label: "Separator" },
+                                                { value: "Concat", label: "Concat" },
+                                            ].find(option => option.value === (customSeparators[index] || "Separator"))}
+                                            onChange={(option: any) => handleDropdownChange(index, option?.value || "Separator")}
+                                            isSearchable={false}
+                                            menuPortalTarget={document.body}
+                                            menuPosition="fixed"
+                                            styles={{
+                                                menuPortal: (base: CSSObjectWithLabel) => ({ ...base, zIndex: 9999 }),
+                                                menu: (base: CSSObjectWithLabel) => ({ ...base, zIndex: 9999 }),
+                                                container: (base: CSSObjectWithLabel) => ({ ...base, minWidth: 140 })
+                                            }}
                                         />
                                     </div>
                                 ))}
@@ -722,6 +759,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     const saveData = async () => {
         try {
             setIsDisabled(true);
+            setLoaderMessage("Saving tile form...");
+            setIsPageLoading(true);
             // setShowLoader({ display: "block" });
             let ArchiveInternal = "";
             const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
@@ -763,18 +802,23 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             if (LID != null) {
                 await TileLibrary(context, Internal, LID?.Id, ArchiveInternal, false, tableData, formData?.isArchiveAllowed);
                 await breakRoleInheritanceForLib(context, Internal, permissionData);
-                setIsOpenEditor(false);
-                setIsDisabled(false);
+
             }
         } catch (error) {
             console.error("Error during save operation:", error);
+        } finally {
             setIsDisabled(false);
+            setIsPageLoading(false);
+            setLoaderMessage("Loading tile form...");
+            setIsOpenEditor(false);
         }
     };
 
     const UpdateData = async () => {
         try {
             setIsDisabled(true);
+            setLoaderMessage("Updating tile form...");
+            setIsPageLoading(true);
             let ArchiveInternal = "";
             const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
             createAndUpdateColumn(Internal);
@@ -832,12 +876,16 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                     }
                 }
             }
-            setIsOpenEditor(false);
-            setIsDisabled(false);
+
         }
         catch (error) {
-            setIsDisabled(false);
             console.error("Error during save operation:", error);
+        }
+        finally {
+            setIsDisabled(false);
+            setIsPageLoading(false);
+            setLoaderMessage("Loading tile form...");
+            setIsOpenEditor(false);
         }
 
     };
@@ -887,7 +935,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 const updatedPermissions = Object.values(groupByButtons)
                     .flat()
                     .map((item: any) => ({
-                        Id: item.Id,
+                        ...item,
                         value: isChecked
                     }));
 
@@ -899,24 +947,35 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         });
     };
 
-    const isValidNumberString = (value: string): boolean => {
-        return !isNaN(Number(value)) && value.trim() !== "";
-    };
-
-    if (isPageLoading) {
-        return <PageLoader message="Loading tile form..." minHeight="72vh" />;
-    }
     return (
         <>
+
             <div className="tile-settings-page" data-testid="page-tile-settings">
+                {isPageLoading && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 99999,
+                            background: "rgba(255, 255, 255, 0.82)",
+                            backdropFilter: "blur(3px)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "24px"
+                        }}
+                    >
+                        <PageLoader message={loaderMessage} minHeight="100vh" />
+                    </div>
+                )}
                 <div className="tile-settings-body">
                     <div className="tile-settings-toolbar">
-                        <h2 className="tile-settings-subtitle">Workspace Tiles</h2>
+                        <h2 className="tile-settings-subtitle">Workspace</h2>
                         <div>
                             {!isEditMode ? (
-                                <PrimaryButton onClick={submitTileData} text={DisplayLabel?.Submit} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled} />
+                                <PrimaryButton onClick={submitTileData} text={DisplayLabel?.Submit} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled || isPageLoading} />
                             ) :
-                                <PrimaryButton onClick={UpdateTileData} text={DisplayLabel?.Update} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled} />
+                                <PrimaryButton onClick={UpdateTileData} text={DisplayLabel?.Update} className="tile-panel-save-btn" styles={getPrimaryActionButtonStyles(8)} disabled={isDisabled || isPageLoading} />
                             }
                             <DefaultButton
                                 className="tile-panel-cancel-btn"
@@ -927,7 +986,11 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                         </div>
                     </div>
                     <div className="tile-settings-table-wrap" data-testid="table-tiles">
-                        <div className="tile-panel-body" data-testid="container-edit-tile-panel">
+                        <div
+                            className="tile-panel-body"
+                            data-testid="container-edit-tile-panel"
+                            style={{ position: "relative" }}
+                        >
                             <div className="tile-panel-section">
                                 <div
                                     className="tile-panel-section-header"
@@ -963,8 +1026,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     onChange={(users: any[]) => {
                                                         setFormData((prevValues) => ({
                                                             ...prevValues,
-                                                            TileAdminId: users[0].id,
-                                                            TileAdminEmail: users[0].email
+                                                            TileAdminId: users[0]?.id,
+                                                            TileAdminEmail: users[0]?.email
                                                         }));
 
                                                     }}
@@ -980,7 +1043,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                     options={tileIconOptions}
                                                     value={tileIconOptions.find((option) => option.value === (formData?.icon || "folder"))}
                                                     onChange={(option: any) => setFormData((prev: any) => ({ ...prev, icon: option?.value || "folder" }))}
-                                                    isSearchable={false}
+                                                    isSearchable={true}
                                                     formatOptionLabel={(option: any) => (
                                                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                             {tileIconMap[option.value]}
@@ -1025,7 +1088,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                 principalTypes={[PrincipalType.User, PrincipalType.DistributionList, PrincipalType.SecurityGroup, PrincipalType.SharePointGroup]}
                                                 onChange={(users: any[]) => {
                                                     const ids = users.map((user: any) => user.id || user.Id);
-                                                    const emails = users.map((user: any) => user.secondaryText || user.loginName || user.email);
+                                                    const emails = users.map((user: any) => user.secondaryText.toLowerCase() === "tenantallusers" ? user.text : user.secondaryText);
 
                                                     setFormData((prevValues) => ({
                                                         ...prevValues,
@@ -1092,7 +1155,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                     onClick={() => toggleSection('buttons')}
                                     data-testid="toggle-section-fields"
                                 >
-                                    <span className="tile-panel-section-title">Buttons Permissions</span>
+                                    <span className="tile-panel-section-title">{DisplayLabel?.Permission}</span>
                                     {expandedSections.has('buttons') ? <ChevronUp20Regular /> : <ChevronDown20Regular />}
                                 </div>
                                 {expandedSections.has('buttons') && (
@@ -1116,19 +1179,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                                 errorMessage={errors?.AccessTileUserErr}
                                                                 ensureUser={true}
                                                                 onChange={async (items: any[]) => {
-                                                                    const userIds = await Promise.all(
-                                                                        items.map(async (item: any) => {
-                                                                            let userid: number = 0;
-                                                                            if (isValidNumberString(item.id)) {
-                                                                                userid = item;
-                                                                            } else {
-                                                                                const data = await getUserIdFromLoginName(context, item.id);
-                                                                                userid = data;
-                                                                            };
-                                                                            return userid;
-                                                                        })
-                                                                    );
-                                                                    grantButtonPermission(role.Title, userIds);
+                                                                    grantButtonPermission(role.Title, items);
                                                                 }}
                                                                 showHiddenInUI={false}
                                                                 principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup]}

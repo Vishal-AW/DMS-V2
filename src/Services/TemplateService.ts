@@ -1,17 +1,17 @@
 import { GetListItem, CreateItem, UpdateItem } from '../DAL/Commonfile';
 
 export function getTemplate(WebUrl: string, spHttpClient: any) {
-  let filter = "";
+  const filter = "";
 
   return getMethod(WebUrl, spHttpClient, filter);
 }
 export function getTemplateActive(WebUrl: string, spHttpClient: any) {
-  let filter = "Active eq 1";
+  const filter = "Active eq 1";
 
   return getMethod(WebUrl, spHttpClient, filter);
 }
 export function getTemplateDataByID(WebUrl: string, spHttpClient: any, ID: number) {
-  let filter = "ID eq " + ID;
+  const filter = "ID eq " + ID;
 
   return getMethod(WebUrl, spHttpClient, filter);
 }
@@ -20,7 +20,7 @@ export function getTemplateDataByID(WebUrl: string, spHttpClient: any, ID: numbe
 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
-  let option = {
+  const option = {
     select: "ID,Name,Active",
     filter: filter,
     orderby: 'Name',

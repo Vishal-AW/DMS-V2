@@ -1,11 +1,10 @@
 import * as React from "react";
 import { useState } from 'react';
-import { IconButton, IContextualMenuProps } from '@fluentui/react';
+import { IconButton, IContextualMenuProps, TooltipHost } from '@fluentui/react';
 import {
   Folder20Regular,
   Folder20Filled,
   FolderOpen20Filled,
-  ChevronRight20Regular,
   FolderArrowRight20Regular,
   MoreHorizontalRegular,
   ChevronRight24Regular
@@ -87,17 +86,14 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
           style={{ paddingLeft: `${12 + level * 20}px` }}
           onClick={handleClick}
         >
-          {hasChildren ? (
-            <ChevronRight20Regular
-              className={`folder-tree-chevron ${isExpanded ? 'folder-tree-chevron-expanded' : ''}`}
-            />
-          ) : (
-            <span className="folder-tree-chevron-placeholder" />
-          )}
           {renderFolderIcon()}
+
           <span className="folder-tree-name" data-testid={`text-folder-name-${folder.id}`}>
-            {folder.name}
+            <TooltipHost content={folder.name}>
+              {folder.name}
+            </TooltipHost>
           </span>
+
           {hasChildren && (
             <span className="folder-tree-count">{folder.children?.length}</span>
           )}

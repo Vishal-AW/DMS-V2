@@ -112,8 +112,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
     const [isVersionsLoading, setIsVersionsLoading] = useState(false);
     const [versionsPanelUrl, setVersionsPanelUrl] = useState("");
+    const [isVersionsOverlayVisible, setIsVersionsOverlayVisible] = useState(false);
     const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
     const selectedFolderRef = useRef<any | null>(null);
+    const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
+
 
     useEffect(() => {
         fetchTileData();
@@ -328,16 +331,47 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
-    const hideDeleteButtonInVersionsFrame = (iframe: HTMLIFrameElement | null) => {
+    const hideClickableOptionsInVersionsFrame = (iframe: HTMLIFrameElement | null) => {
         if (!iframe) return;
 
         try {
             const frameDocument = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!frameDocument || frameDocument.getElementById("hide-versions-delete-button")) return;
+            if (!frameDocument) {
+                setIsVersionsOverlayVisible(true);
+                return;
+            }
+
+            const existingStyle = frameDocument.getElementById("readonly-versions-style");
+            if (existingStyle) {
+                existingStyle.remove();
+            }
 
             const style = frameDocument.createElement("style");
-            style.id = "hide-versions-delete-button";
+            style.id = "readonly-versions-style";
             style.textContent = `
+                a,
+                button,
+                input,
+                select,
+                textarea,
+                [role="button"],
+                [onclick] {
+                    pointer-events: none !important;
+                    cursor: default !important;
+                }
+
+                a {
+                    text-decoration: none !important;
+                    color: inherit !important;
+                }
+
+                button,
+                input[type="button"],
+                input[type="submit"],
+                input[type="reset"] {
+                    opacity: 0.55 !important;
+                }
+                    
                 [id*="Delete" i],
                 [class*="delete" i],
                 [title*="Delete" i],
@@ -351,8 +385,28 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             `;
 
             frameDocument.head?.appendChild(style);
+
+            const blockInteraction = (event: Event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if ("stopImmediatePropagation" in event) {
+                    (event as Event & { stopImmediatePropagation: () => void; }).stopImmediatePropagation();
+                }
+            };
+
+            frameDocument.addEventListener("click", blockInteraction, true);
+            frameDocument.addEventListener("dblclick", blockInteraction, true);
+            frameDocument.addEventListener("contextmenu", blockInteraction, true);
+            frameDocument.addEventListener("submit", blockInteraction, true);
+            frameDocument.addEventListener("keydown", (event: KeyboardEvent) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    blockInteraction(event);
+                }
+            }, true);
+            setIsVersionsOverlayVisible(false);
         } catch (error) {
-            console.warn("Unable to hide delete action in versions iframe.", error);
+            console.warn("Unable to update versions iframe actions.", error);
+            setIsVersionsOverlayVisible(true);
         } finally {
             setIsVersionsLoading(false);
         }
@@ -402,7 +456,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     </div>
                 </div>
             )}
-
             <iframe
                 id="frame"
                 src={url}
@@ -410,10 +463,27 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     width: "100%",
                     height: "calc(80vh - 58px)",
                     border: "none",
-                    backgroundColor: "#fff"
+                    backgroundColor: "#fff",
+                    pointerEvents: "none"
                 }}
-                onLoad={(event) => hideDeleteButtonInVersionsFrame(event.currentTarget)}
+                onLoad={(event) => hideClickableOptionsInVersionsFrame(event.currentTarget)}
             ></iframe>
+            <div
+                aria-hidden="true"
+                style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: isVersionsLoading ? 1 : 3,
+                    background: "transparent",
+                    cursor: "default",
+                    pointerEvents: "auto"
+                }}
+                onClick={(event) => event.preventDefault()}
+                onDoubleClick={(event) => event.preventDefault()}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseUp={(event) => event.preventDefault()}
+                onContextMenu={(event) => event.preventDefault()}
+            />
         </div>
     );
 
@@ -430,6 +500,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             case "Versions":
                 setActionButton(null);
                 setIsVersionsLoading(true);
+                setIsVersionsOverlayVisible(false);
                 setPanelSize(PanelType.large);
                 const url = `${SiteURL}/_layouts/15/Versions.aspx?list=${tileData?.LibraryName}&FileName=${item.ServerRelativeUrl}&IsDlg=${item.ListItemAllFields.Id}`;
                 setVersionsPanelUrl(url);
@@ -460,13 +531,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             case "CheckOut":
                 await commonPostMethod(`${SiteURL}/_api/web/GetFileByServerRelativeUrl('${item.ServerRelativeUrl}')/checkout`, context);
                 setAlertMsg(DisplayLabel.CheckoutSuccess);
+                setPopupType("checkout");
                 setIsPopupBoxVisible(true);
                 await getDocument(selectedFolderRef.current);
                 break;
             case "CheckIn":
+                setPanelTitle(DisplayLabel.CheckIn);
                 setActionButton(<PrimaryButton text={DisplayLabel.CheckIn} style={{ marginRight: "10px" }} onClick={async () => {
                     await commonPostMethod(`${SiteURL}/_api/web/GetFileByServerRelativeUrl('${item.ServerRelativeUrl}')/checkin(comment='${comment}',checkintype=0)`, context);
                     setAlertMsg(DisplayLabel.CheckInSuccess);
+                    setPopupType("checkin");
                     setIsPopupBoxVisible(true);
                     await getDocument(selectedFolderRef.current);
                 }} />);
@@ -665,7 +739,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             const data: IRolePermission[] = JSON.parse(tileData?.CustomPermission);
 
             for (let i = 0; i < data.length; i++) {
-                const filterData1 = data[i].UsersId.filter((u: any) => u.Id === UserID);
+                const filterData1 = data[i].UsersId.filter((u: any) => u.id === UserID);
                 if (filterData1.length > 0) {
                     filterData = filterData.concat(data[i]);
                 }
@@ -862,7 +936,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     useEffect(() => {
         setPanelForm(<>
             <div className="col-md-10">
-                <TextField value={comment} onChange={(_, val) => setComment(val || "")} />
+                <TextField value={comment} label={DisplayLabel?.Comments} onChange={(_, val) => setComment(val || "")} />
             </div>
         </>);
 
@@ -1455,7 +1529,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={message} />
             <ConfirmationDialog hideDialog={hideDialogCheckOut} closeDialog={closeDialogCheckOut} handleConfirm={handleConfirmCheckOut} msg={message} />
-            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} />
+            <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} type={popupType} />
             <PopupBox isPopupBoxVisible={isShowCommnPopupBoxVisible} hidePopup={hideCommonPopup} msg={alertMsg} type="warning" />
         </div>
     );

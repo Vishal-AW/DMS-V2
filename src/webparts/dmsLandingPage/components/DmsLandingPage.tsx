@@ -31,7 +31,7 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
   }
 
   private getAllData = async () => {
-    let data: any = await GetAllLabel(this.props.context.pageContext.web.absoluteUrl, this.props.context.spHttpClient, "DefaultText");
+    const data: any = await GetAllLabel(this.props.context.pageContext.web.absoluteUrl, this.props.context.spHttpClient, "DefaultText");
     localStorage.setItem("DisplayLabel", JSON.stringify(data));
   };
 

@@ -2,7 +2,7 @@
 import { GetListItem } from '../DAL/Commonfile';
 
 export function getAllButtons(WebUrl: string, spHttpClient: any) {
-  let filter = "Active eq 1";
+  const filter = "Active eq 1";
 
   return getMethod(WebUrl, spHttpClient, filter);
 }
@@ -11,7 +11,7 @@ export function getAllButtons(WebUrl: string, spHttpClient: any) {
 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
-  let option = {
+  const option = {
     select: "ID,Title,ButtonType,Sequence,Active,InternalName,ButtonDisplayName,Icons",
     orderby: "Sequence asc",
     filter: filter,

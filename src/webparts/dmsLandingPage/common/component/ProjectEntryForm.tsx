@@ -707,7 +707,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                         <div className="col-md-6">
                             <TextField
                                 value={folderName}
-                                label={DisplayLabel.FolderName}
+                                label={DisplayLabel.ProjectName}
                                 required
                                 onChange={(_, newValue) => {
                                     const validName = removeFolderSepcialCharacters(newValue);
@@ -880,7 +880,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                             createStructure ?
                                 <Field>
                                     <TextField
-                                        label={DisplayLabel.FolderName}
+                                        label={DisplayLabel.ParentFolder}
                                         value={TemFolderName}
                                         onChange={(ev, newValue) => setTemFolderName(newValue || "")}
                                         disabled={isDisabled || FormType === "EditForm"}
@@ -935,7 +935,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                     color: "#111827"
                                 }}
                             >
-                                <span>Folder Structure</span>
+                                <span>Preview {folderTemplate} Folder Structure</span>
                                 <Icon
                                     iconName={isFolderStructureExpanded ? "ChevronUp" : "ChevronDown"}
                                     style={{
@@ -946,7 +946,14 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                                 />
                             </button>
                             {isFolderStructureExpanded ? (
-                                <div style={{ padding: "0 16px 16px" }}>
+                                <div
+                                    style={{
+                                        padding: "0 16px 16px",
+                                        maxHeight: 320,
+                                        overflowY: "auto",
+                                        overflowX: "hidden"
+                                    }}
+                                >
                                     {previewRootName ? (
                                         <div
                                             style={{

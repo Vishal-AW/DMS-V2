@@ -5,11 +5,11 @@ import { ILabel } from "../Intrface/ILabel";
 
 
 export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, Language: string) {
-  let filter = "";
+  const filter = "";
 
   let DisplayLabel: ILabel;
 
-  let data = await getMethod(WebUrl, spHttpClient, filter).then(data => {
+  const data = await getMethod(WebUrl, spHttpClient, filter).then(data => {
 
     data = data.value;
 
@@ -221,6 +221,7 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
       CheckoutSuccess: getValue("CheckoutSuccess", data, Language),
       CheckInSuccess: getValue("CheckInSuccess", data, Language),
       Role: getValue("Role", data, Language),
+      ProjectName: getValue("ProjectName", data, Language)
     };
 
     // 
@@ -235,13 +236,9 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
 
 function getValue(Key: string, LabelData: any, Language: string) {
 
-  let Val: any = LabelData.filter((item: any) => item.Key === Key);
+  const Val: any = LabelData.filter((item: any) => item.Key === Key);
 
-  // let returnval :string = if(Val && Val.length > 0){ 
-  //                         Val[0].DefaultText
-  //                       };
-
-  let returnval: string = (Val && Val.length > 0) ? Val[0].DefaultText : "";
+  const returnval: string = (Val && Val.length > 0) ? Val[0].DefaultText : "";
 
   return returnval;
 
@@ -250,9 +247,8 @@ function getValue(Key: string, LabelData: any, Language: string) {
 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
-  let option = {
+  const option = {
     select: "ID,Key,DefaultText",
-    // expand:"CountryName",
     filter: filter,
     top: 5000,
     orderby: "Id desc"

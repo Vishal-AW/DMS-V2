@@ -107,12 +107,12 @@ const buildPermissionFilter = async (context: WebPartContext): Promise<string> =
 
 const buildNavSections = (menuData: any[]): NavSection[] => {
     const parents = menuData.filter(
-        (item) => item.ParentMenuIdId === null
+        (item) => item.ParentMenu === null
     );
 
     return parents.map((parent) => {
         const children = menuData.filter(
-            (child) => child.ParentMenuIdId === parent.Id
+            (child) => child.ParentMenu === parent.InternalMenuName
         );
 
         return {
@@ -142,7 +142,7 @@ export const loadMenuItems = async (context: WebPartContext) => {
             return;
         }
 
-        const url = `${webUrl}/_api/web/lists/getByTitle('GEN_Navigation')/items?$select=*,ParentMenuId/Id,ParentMenuId/MenuName,Permission/ID,IconClass&$expand=ParentMenuId,Permission&$orderby=OrderNo&$filter=Active eq '1' and (${permissionFilter})&$top=500`;
+        const url = `${webUrl}/_api/web/lists/getByTitle('GEN_Navigation')/items?$select=*,Permission/ID,IconClass&$expand=Permission&$orderby=OrderNo&$filter=Active eq '1' and (${permissionFilter} or PermissionId eq null)&$top=500`;
 
         const response: SPHttpClientResponse = await context.spHttpClient.get(
             url,
