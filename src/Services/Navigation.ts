@@ -112,7 +112,7 @@ const buildNavSections = (menuData: any[]): NavSection[] => {
 
     return parents.map((parent) => {
         const children = menuData.filter(
-            (child) => child.ParentMenu === parent.InternalMenuName
+            (child) => child.ParentMenu?.toLowerCase() === parent.InternalMenuName.toLowerCase()
         );
 
         return {

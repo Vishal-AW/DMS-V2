@@ -395,14 +395,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1px 12px 1px 0;
+  padding: 1px 8px 1px 0;
   cursor: pointer;
   transition: background-color 120ms ease;
   border-radius: 0;
+  gap: 4px;
+  position: relative;
 }
 
 .folder-tree-item:hover {
   background-color: #f5f4f3;
+}
+
+.folder-tree-item:hover .folder-tree-item-content {
+  padding-right: 34px;
 }
 
 .folder-tree-item-selected {
@@ -418,15 +424,16 @@ body {
   align-items: center;
   flex: 1;
   min-width: 0;
-  padding: 4px 0;
+  padding: 3px 0;
   line-height: 1.2;
+  gap: 6px;
+  padding-right: 8px;
 }
 
 .folder-tree-icon {
-  margin-right: 8px;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .folder-tree-icon-root {
@@ -449,33 +456,58 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
   color: #323130;
   font-weight: 500;
   flex: 1;
+  min-width: 0;
 }
 
 .folder-tree-count {
-  font-size: 11px;
+  font-size: 10px;
   color: #8a8886;
   background-color: #f0efed;
-  padding: 0 6px;
-  border-radius: 8px;
-  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  margin-left: 2px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 16px;
   flex-shrink: 0;
+}
+
+.folder-tree-actions-slot {
+  width: 28px;
+  min-width: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .folder-tree-actions {
   opacity: 0;
   transition: opacity 100ms ease;
+  width: 28px;
+  min-width: 28px;
+  height: 25px;
   flex-shrink: 0;
+  margin-left: 0;
+  pointer-events: none;
 }
 
 .folder-tree-item:hover .folder-tree-actions {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.folder-tree-item:hover .folder-tree-actions-slot {
+  pointer-events: auto;
 }
 
 /* Dashboard Header */

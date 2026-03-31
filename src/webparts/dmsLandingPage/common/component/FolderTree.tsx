@@ -1,13 +1,13 @@
 import * as React from "react";
-import { useState } from 'react';
-import { IconButton, IContextualMenuProps, TooltipHost } from '@fluentui/react';
+import { TooltipHost } from '@fluentui/react';
 import {
   Folder20Regular,
   Folder20Filled,
   FolderOpen20Filled,
   FolderArrowRight20Regular,
-  MoreHorizontalRegular,
-  ChevronRight24Regular
+  ChevronRight24Regular,
+  MoreHorizontal24Regular,
+  MoreHorizontalRegular
 } from '@fluentui/react-icons';
 import { Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
 import * as FluentIcons from "@fluentui/react-icons";
@@ -51,6 +51,8 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
     onSelect(folder);
   };
 
+  const leftIndent = 10 + Math.min(level, 6) * 14;
+
 
 
   const renderFolderIcon = () => {
@@ -83,7 +85,7 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
       >
         <div
           className="folder-tree-item-content"
-          style={{ paddingLeft: `${12 + level * 20}px` }}
+          style={{ paddingLeft: `${leftIndent}px` }}
           onClick={handleClick}
         >
           {renderFolderIcon()}
@@ -93,47 +95,48 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
               {folder.name}
             </TooltipHost>
           </span>
+          {onFolderAction && showButton && (
+            <div className="folder-tree-actions-slot">
+              <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                  <Button
+                    appearance="subtle"
+                    className="folder-tree-actions"
+                    icon={<MoreHorizontalRegular className="table-action-btn" />}
+                  />
+                </MenuTrigger>
 
+                <MenuPopover
+                  style={{
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                    padding: "15px"
+                  }}
+                >
+                  <MenuList>
+                    {buttons.map((e: any) => {
+                      // const IconComponent = FluentIcons[e.Icons as keyof typeof FluentIcons] as React.FC ?? <ChevronRight24Regular />;
+                      const IconComponent = (
+                        FluentIcons[e.Icons as keyof typeof FluentIcons] ??
+                        ChevronRight24Regular
+                      ) as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+                      return <MenuItem
+                        key={e?.key}
+                        icon={<IconComponent className="table-action-btn" />}
+                        onClick={() => onFolderAction(e?.key, folder)}
+                      >
+                        {e?.ButtonDisplayName}
+                      </MenuItem>;
+                    })}
+                  </MenuList>
+                </MenuPopover>
+              </Menu>
+            </div>
+          )}
           {hasChildren && (
             <span className="folder-tree-count">{folder.children?.length}</span>
           )}
         </div>
-        {onFolderAction && showButton && (
 
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Button
-                appearance="subtle"
-                className="folder-tree-actions"
-                icon={<MoreHorizontalRegular className="table-action-btn" />}
-              />
-            </MenuTrigger>
-
-            <MenuPopover
-              style={{
-                boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                padding: "15px"
-              }}
-            >
-              <MenuList>
-                {buttons.map((e: any) => {
-                  // const IconComponent = FluentIcons[e.Icons as keyof typeof FluentIcons] as React.FC ?? <ChevronRight24Regular />;
-                  const IconComponent = (
-                    FluentIcons[e.Icons as keyof typeof FluentIcons] ??
-                    ChevronRight24Regular
-                  ) as React.ComponentType<React.SVGProps<SVGSVGElement>>;
-                  return <MenuItem
-                    key={e?.key}
-                    icon={<IconComponent className="table-action-btn" />}
-                    onClick={() => onFolderAction(e?.key, folder)}
-                  >
-                    {e?.ButtonDisplayName}
-                  </MenuItem>;
-                })}
-              </MenuList>
-            </MenuPopover>
-          </Menu>
-        )}
       </div>
       {hasChildren && isExpanded && folder.children?.map((child) => (
         <FolderTreeItem
