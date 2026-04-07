@@ -46,21 +46,49 @@ const ReusableDataTable: React.FC<IReusableDataTableComponentProps> = ({
         []
     );
 
+    // useEffect(() => {
+    //     if (!searchText) setFilterData(rowData);
+    //     else if (searchText.trim()) {
+    //         const query = searchText.toLowerCase();
+    //         const result = rowData.filter((item) =>
+    //             Object.values(item).some(
+    //                 (value) =>
+    //                     value !== null &&
+    //                     value !== undefined &&
+    //                     value
+    //                         .toString()
+    //                         .toLowerCase()
+    //                         .includes(query)
+    //             )
+    //         );
+    //         setFilterData(result);
+    //     }
+    // }, [searchText, rowData]);
+
+
     useEffect(() => {
-        if (!searchText) setFilterData(rowData);
-        else if (searchText.trim()) {
+        if (!searchText) {
+            setFilterData(rowData);
+        } else if (searchText.trim()) {
             const query = searchText.toLowerCase();
+
             const result = rowData.filter((item) =>
-                Object.values(item).some(
-                    (value) =>
-                        value !== null &&
-                        value !== undefined &&
-                        value
-                            .toString()
-                            .toLowerCase()
-                            .includes(query)
-                )
+                Object.values(item).some((value) => {
+                    if (value === null || value === undefined) return false;
+
+                    // 🔥 Handle boolean specially
+                    if (typeof value === "boolean") {
+                        const display = value ? "active" : "inactive";
+                        return display.includes(query);
+                    }
+
+                    return value
+                        .toString()
+                        .toLowerCase()
+                        .includes(query);
+                })
             );
+
             setFilterData(result);
         }
     }, [searchText, rowData]);
@@ -93,7 +121,8 @@ const ReusableDataTable: React.FC<IReusableDataTableComponentProps> = ({
                 theme={agTheme}
                 defaultColDef={defaultColDef}
                 pagination={pagination}
-                paginationPageSize={10}
+                // paginationPageSize={10}
+                paginationAutoPageSize={true}
                 paginationPageSizeSelector={[10, 20, 50, 100]}
                 rowSelection="multiple"
                 onGridReady={onGridReady}

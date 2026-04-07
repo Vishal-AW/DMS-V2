@@ -20,6 +20,7 @@ import TileSetting from './pages/TileSetting';
 import TemplateMaster from './Masters/TemplateMaster';
 import FolderMaster from './Masters/FolderMaster';
 import ConfigMaster from './Masters/ConfigEntryForm';
+import Navigation from './Masters/Navigation';
 
 export default class DmsLandingPage extends React.Component<IDmsLandingPageProps, {}> {
   private toasterMountRef = React.createRef<HTMLDivElement>();
@@ -83,6 +84,14 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
                 element={
                   <MainLayout context={this.props.context}>
                     <ConfigMaster context={this.props.context} />
+                  </MainLayout>
+                }
+              />
+              <Route
+                path="/navigation"
+                element={
+                  <MainLayout context={this.props.context}>
+                    <Navigation context={this.props.context} />
                   </MainLayout>
                 }
               />

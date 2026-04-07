@@ -18,7 +18,9 @@ import {
   Filter20Regular,
   Person20Regular,
   TextT20Regular,
+  Search20Regular
 } from '@fluentui/react-icons';
+import { Button } from "@fluentui/react-components";
 import '../../components/styles/global.css';
 import { getListData } from '../../../../Services/GeneralDocument';
 import { getDataByLibraryName } from '../../../../Services/MasTileService';
@@ -93,6 +95,41 @@ export default function SearchFilters({
     }
     loadConfig();
   }, [libraryName]);
+
+  const escapeODataUrl = (url: string): string => {
+    return url.replace(/'/g, "''");
+  };
+
+  const getAllFolders = async (siteUrl: string, libraryName: string): Promise<any[]> => {
+    const safeLibrary = escapeODataUrl(libraryName);
+
+    const response = await fetch(
+      `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${safeLibrary}')/Folders?$filter=Name ne 'Forms'`,
+      {
+        headers: { Accept: "application/json;odata=nometadata" }
+      }
+    );
+
+    const data = await response.json();
+    return data.value || [];
+  };
+
+  const checkFolderHasDocuments = async (
+    siteUrl: string,
+    folderRelativeUrl: string
+  ): Promise<boolean> => {
+    const safeUrl = escapeODataUrl(folderRelativeUrl);
+
+    const response = await fetch(
+      `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('${safeUrl}')/Files?$top=1`,
+      {
+        headers: { Accept: "application/json;odata=nometadata" }
+      }
+    );
+
+    const data = await response.json();
+    return data.value && data.value.length > 0;
+  };
 
   const loadConfig = async () => {
     setConfigLoading(true);
@@ -212,6 +249,34 @@ export default function SearchFilters({
     });
   };
 
+  const handleContentSearch = async () => {
+    if (!searchQuery?.trim()) return;
+
+    const query = searchQuery.trim() || "*";
+
+    const allFolders = await getAllFolders(siteUrl, libraryName);
+    const foldersWithDocs: any[] = [];
+
+    for (const folder of allFolders) {
+      const hasDocs = await checkFolderHasDocuments(
+        siteUrl,
+        folder.ServerRelativeUrl
+      );
+
+      if (hasDocs) {
+        foldersWithDocs.push(folder);
+      }
+    }
+
+    if (foldersWithDocs.length > 0) {
+      const routePath = `${context.pageContext.web.absoluteUrl}/SitePages/Search.aspx?env=WebViewList&q=${encodeURIComponent(
+        query
+      )}&Library=${encodeURIComponent(libraryName)}`;
+
+      window.open(routePath, "_blank");
+    }
+  };
+
 
   const renderFilter = (filter: DynamicFilterConfig) => {
     const colType = filter.columnType;
@@ -271,7 +336,7 @@ export default function SearchFilters({
     }
 
     if (colType === 'Date and Time') {
-      // const existing = activeFilters.find(f => f.key === filter.key);
+
       const existing = activeFilters.find(f => f.key === filter.key) || { value: {} };
       return (
         <div className="filter-section-body">
@@ -335,7 +400,6 @@ export default function SearchFilters({
             onChange={(e) => {
               const date = e.target.value ? new Date(e.target.value) : null;
               if (date) {
-                // const fromDate = existing?.value?.from || null;
                 const fromDate = existing?.value?.from ?? null;
                 onFilterChange(
                   filter.key,
@@ -421,14 +485,22 @@ export default function SearchFilters({
         <span>Filters</span>
       </div>
 
-      <div className="search-bar">
+      <div className="search-bar" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         <SearchBox
           placeholder="Search documents..."
           value={searchQuery}
           onChange={(_, value) => onSearchChange(value || '')}
-          onSearch={onSearch}
+          onSearch={handleContentSearch}
           className="search-bar-input"
           data-testid="input-search"
+          styles={{
+            root: { flex: 1 },
+          }}
+        />
+        <Button
+          onClick={handleContentSearch}
+          icon={<Search20Regular />}
+          appearance='primary'
         />
       </div>
 

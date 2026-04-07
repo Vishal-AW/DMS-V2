@@ -49,8 +49,7 @@ export default function Search({ context }: SearchProps) {
   const libName: string = (location.state as any)?.libName
     || sessionStorage.getItem('LibName')
     || '';
-
-
+  const [tableSearchText, setTableSearchText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -234,6 +233,8 @@ export default function Search({ context }: SearchProps) {
     setActiveFilters([]);
   };
 
+
+
   return (
     <div className="search-page" data-testid="page-search">
 
@@ -336,10 +337,30 @@ export default function Search({ context }: SearchProps) {
               </MessageBar>
 
               <div style={{ padding: '20px' }}>
+                <div
+                  style={{
+                    padding: '0 0px 10px 20px',
+                    display: 'flex',
+                    justifyContent: 'flex-end'
+                  }}>
+                  <input
+                    type="text"
+                    placeholder="Search across all columns..."
+                    value={tableSearchText}
+                    onChange={(e) => setTableSearchText(e.target.value)}
+                    style={{
+                      width: '300px',
+                      padding: '8px',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
                 <ReactTableComponent
                   rowData={searchResults}
                   columnDefs={dynamicColumnDefs}
                   pagination={true}
+                  searchText={tableSearchText}
                 />
               </div>
             </>
