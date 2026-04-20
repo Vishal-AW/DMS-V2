@@ -7,21 +7,24 @@ import WorkspaceCard, { Workspace } from "../../common/component/WorkspaceCard";
 import { useNavigate } from "react-router-dom";
 import { SPHttpClient } from "@microsoft/sp-http-base";
 import SkeletonWidgets from "../../common/component/SkeletonWidgets";
+import { getTileAccessGroupName } from "../../../../Services/TileService";
 
 interface IDashboardProps {
     context: WebPartContext;
 }
 
-
 const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
+
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [tileData, setTileData] = useState<Workspace[]>([]);
     const [userRole, setUserRole] = useState<string>("");
     const [groupIds, setGroupIds] = useState<number[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [userGroups, setUserGroups] = useState<any[]>([]);
+
     const SITEURL = context.pageContext.web.absoluteUrl;
     const USERID = context.pageContext.legacyPageContext.userId;
-    const [loading, setLoading] = useState<boolean>(true);
 
     const handleWorkspaceClick = (workspace: Workspace) => {
         navigate(`/workspace/${workspace.ID}`);
@@ -46,29 +49,41 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
         const data = await response.json();
         const groups = data.Groups || [];
 
+        setUserGroups(groups); // ✅ ADD THIS
+        setGroupIds(groups.map((g: any) => g.Id));
+
         const isAdmin = groups.some((g: any) => g.Title === "ProjectAdmin");
         const isMember = groups.some((g: any) => g.Title === "Project Member");
-        setGroupIds(data.Groups?.map((g: any) => g.Id) || []);
+
         if (isAdmin) setUserRole("ProjectAdmin");
         else if (isMember) setUserRole("ProjectMember");
         else setUserRole("Guest");
+
     }, []);
 
+    const hasTilePermission = (tile: any) => {
+
+        if (userRole === "ProjectAdmin") return true;
+
+        if (tile.TileAdminId === USERID) return true;
+
+
+        const expectedGroupName = getTileAccessGroupName(tile.LibraryName);
+
+        const hasGroupAccess = userGroups.some(
+            (g: any) => g.Title === expectedGroupName
+        );
+
+        return hasGroupAccess;
+    };
+
     const getTiles = useCallback(async () => {
+
         if (!userRole) return;
 
         setLoading(true);
 
-        let filter = "Active eq 1";
-
-        if (userRole !== "ProjectAdmin") {
-            const groupFilter = groupIds
-                .map(id => `Permission/ID eq ${id}`)
-                .join(" or ");
-            filter += ` and (Permission/ID eq ${USERID} or TileAdmin/ID eq ${USERID} ${groupFilter ? `or ${groupFilter}` : ""} or Permission/Title eq 'Everyone except external users')`;
-        }
-
-        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Order0,icon,accentColor,Author/Title&$expand=Permission,Author&$filter=${filter}&$orderby=Order0 asc`;
+        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Permission/Title,TileAdmin/ID,Order0,icon,accentColor,Author/Title,LibraryName&$expand=Permission,TileAdmin,Author&$filter=Active eq 1&$orderby=Order0 asc`;
 
         const response = await context.spHttpClient.get(
             query,
@@ -89,9 +104,11 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
         const data = await response.json();
         const tiles: Workspace[] = data.value || [];
 
-        /* Check Library Permissions Properly */
+
+        const permittedTiles = tiles.filter(tile => hasTilePermission(tile));
+
         const permissionChecks = await Promise.all(
-            tiles.map(async (tile) => {
+            permittedTiles.map(async (tile) => {
                 const hasPermission = await checkLibraryPermission(tile.LibraryName);
                 return hasPermission ? tile : null;
             })
@@ -99,11 +116,13 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
         const filteredTiles = permissionChecks
             .filter(Boolean)
-            .sort((a: any, b: any) => a.Order0 - b.Order0);
+            .sort((a: any, b: any) => Number(a.Order0) - Number(b.Order0));
 
         setTileData(filteredTiles as Workspace[]);
         setLoading(false);
-    }, [userRole]);
+
+    }, [userRole, groupIds]);
+
 
     const checkLibraryPermission = async (libraryName: string) => {
         try {
@@ -115,6 +134,7 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
             );
 
             return response.ok;
+
         } catch {
             return false;
         }
@@ -126,7 +146,8 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
     useEffect(() => {
         if (userRole) getTiles();
-    }, [userRole]);
+    }, [userRole, groupIds]);
+
 
     const filteredWorkspaces = useMemo(() => {
         if (!searchQuery.trim()) return tileData;
@@ -136,32 +157,34 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
         return tileData.filter(ws =>
             Object.keys(ws).some(key => {
                 const value = (ws as any)[key];
+
                 return (
                     value !== null &&
                     value !== undefined &&
-                    value
-                        .toString()
-                        .toLowerCase()
-                        .includes(query)
+                    value.toString().toLowerCase().includes(query)
                 );
             })
         );
+
     }, [searchQuery, tileData]);
 
-    if (loading) return <div className="workspace-grid">
-        {
-            Array.from({ length: 6 }).map((_, index) => (
-                <SkeletonWidgets />
-            ))
-        }
-    </div>;
+    // ✅ LOADING UI
+    if (loading) return (
+        <div className="workspace-grid">
+            {Array.from({ length: 6 }).map((_, index) => (
+                <SkeletonWidgets key={index} />
+            ))}
+        </div>
+    );
 
-
+    // ✅ FINAL UI
     return (
         <div className="content-area-full" data-testid="page-dashboard">
+
             <div className="dashboard-header">
-                <h2 className="dashboard-title" data-testid="text-page-title">Department Workspaces</h2>
+                <h2 className="dashboard-title">Department Workspaces</h2>
             </div>
+
             <div className="dashboard-search">
                 <SearchBox
                     placeholder="Search workspaces..."
@@ -169,9 +192,9 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
                     onChange={(_, value) => setSearchQuery(value || '')}
                     onClear={() => setSearchQuery('')}
                     className="dashboard-search-box"
-                    data-testid="input-search-workspaces"
                 />
             </div>
+
             <div className="workspace-grid">
                 {filteredWorkspaces.length > 0 ? (
                     filteredWorkspaces.map(workspace => (
@@ -182,11 +205,12 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
                         />
                     ))
                 ) : (
-                    <div className="workspace-no-results" data-testid="text-no-workspaces">
+                    <div className="workspace-no-results">
                         No workspaces match your search.
                     </div>
                 )}
             </div>
+
         </div>
     );
 };

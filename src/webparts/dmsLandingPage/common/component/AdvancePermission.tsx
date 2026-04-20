@@ -298,7 +298,7 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
                             </div>
                         </div>
                         <div className="row">
-                            <PrimaryButton text={DisplayLabel.GrantPermissions} onClick={grantPermission} className="workspace-new-request-btn" />
+                            <PrimaryButton text={DisplayLabel.GrantPermissions} disabled={!hasUniquePermission} onClick={grantPermission} className="workspace-new-request-btn" />
                         </div>
 
                         <div className="row">

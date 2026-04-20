@@ -9,11 +9,22 @@ import {
     DirectionalHint,
     ChoiceGroup,
     DefaultButton,
+    Dialog,
+    DialogFooter,
     Dropdown,
+    IPersonaProps,
+    Label,
+    MessageBar,
+    MessageBarType,
+    NormalPeoplePicker,
     PrimaryButton,
+    Spinner,
+    SpinnerSize,
+    Stack,
     TextField,
     TooltipHost,
     Toggle,
+    ValidationState,
 } from '@fluentui/react';
 import {
     ChevronUp20Regular,
@@ -45,6 +56,16 @@ import { IColumnSchema } from "../../../../Intrface/IListSchema";
 import PageLoader from "../../common/component/PageLoader";
 import FieldError from "../../common/component/FieldError";
 import { getPrimaryActionButtonStyles, getSecondaryActionButtonStyles } from "../../common/component/buttonStyles";
+import {
+    createTileAccessGroup,
+    getTileAccessGroupMembers,
+    getSharePointRoleDefinitionId,
+    ITileAccessPrincipal,
+    resolveTileAccessPrincipals,
+    searchTileAccessPrincipals,
+    syncTileAccessGroupMembers,
+    TilePermissionLevel
+} from "../../../../Services/TileService";
 
 interface ITileFormProps {
     context: WebPartContext;
@@ -96,6 +117,12 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     const [isToggleDisabled, setIsToggleDisabled] = useState(false);
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [loaderMessage, setLoaderMessage] = useState("Loading tile form...");
+    const [formMessage, setFormMessage] = useState<{ type: MessageBarType; text: string; } | null>(null);
+    const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
+    const [isAccessDialogLoading, setIsAccessDialogLoading] = useState(false);
+    const [accessDialogMessage, setAccessDialogMessage] = useState("");
+    const [selectedAccessPrincipals, setSelectedAccessPrincipals] = useState<ITileAccessPrincipal[]>([]);
+    const [draftAccessPrincipals, setDraftAccessPrincipals] = useState<ITileAccessPrincipal[]>([]);
 
     const tileIconOptions = [
         { value: "folder", label: "Folder" },
@@ -192,18 +219,9 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
 
         setIsEditMode(true);
 
-        const permissionData = EditSettingData?.Permission || [];
-        const PermissionIds: number[] = permissionData.map((person: any) => person.Id);
-
-        const PermissionEmails = permissionData.map((p: any) => {
-            if (!p.Name) return "";
-
-            if (p.Name.includes("membership")) {
-                return p.Name.split('|').pop();
-            }
-
-            return p.Title;
-        });
+        const tileAccessMembers = await getTileAccessGroupMembers(context, EditSettingData?.LibraryName);
+        const PermissionIds: number[] = tileAccessMembers.map((person) => person.principalId);
+        const PermissionEmails = tileAccessMembers.map((person) => person.secondaryText || person.text || "");
         setAllButtonsWithPermissions(EditSettingData?.CustomPermission ? JSON.parse(EditSettingData?.CustomPermission) : []);
         setFormData((prevData) => ({
             ...prevData,
@@ -219,8 +237,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             icon: EditSettingData?.icon || "folder",
             accentColor: EditSettingData?.accentColor || "#0078d4",
             PermissionEmail: PermissionEmails,
-            PermissionIds: PermissionIds
+            PermissionIds: PermissionIds,
+            LibraryName: EditSettingData?.LibraryName,
         }));
+        syncAccessSelection(tileAccessMembers);
     };
 
 
@@ -287,6 +307,113 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         absoluteUrl: context.pageContext.web.absoluteUrl,
         msGraphClientFactory: context.msGraphClientFactory as any,
         spHttpClient: context.spHttpClient as any
+    };
+
+    const tileAccessPermissionLevel: TilePermissionLevel = "Contribute";
+
+    const syncAccessSelection = (principals: ITileAccessPrincipal[]) => {
+        const cleanPrincipals = principals.filter((principal) => !!principal?.principalId);
+        const ids = cleanPrincipals.map((principal) => principal.principalId);
+        const emails = cleanPrincipals.map((principal) => principal.secondaryText || principal.text || "");
+
+        setSelectedAccessPrincipals(cleanPrincipals);
+        setDraftAccessPrincipals(cleanPrincipals);
+        setFormData((prevValues) => ({
+            ...prevValues,
+            PermissionIds: ids,
+            PermissionEmail: emails
+        }));
+        setErrors((prevErrors) => ({ ...prevErrors, Permission: "" }));
+    };
+
+    const loadAccessPrincipals = async (principalIds: number[]) => {
+        if (!principalIds?.length) {
+            syncAccessSelection([]);
+            return;
+        }
+
+        setIsAccessDialogLoading(true);
+        setAccessDialogMessage("");
+
+        try {
+            const principals = await resolveTileAccessPrincipals(context, principalIds, selectedAccessPrincipals);
+            syncAccessSelection(principals);
+        } catch (error) {
+            console.error("Error while loading tile access principals:", error);
+            setAccessDialogMessage("We couldn't load the current access list. You can still search and add people again.");
+        } finally {
+            setIsAccessDialogLoading(false);
+        }
+    };
+
+    const openAccessDialog = async () => {
+        setIsAccessDialogOpen(true);
+        setDraftAccessPrincipals(selectedAccessPrincipals);
+
+        // if (formData?.TileName) {
+        //     setIsAccessDialogLoading(true);
+        //     setAccessDialogMessage("");
+
+        //     try {
+        //         const groupMembers = await getTileAccessGroupMembers(context, formData?.LibraryName);
+
+        //         if (groupMembers.length > 0) {
+        //             setDraftAccessPrincipals(groupMembers);
+        //         } else if (formData?.PermissionIds?.length) {
+        //             const principals = await resolveTileAccessPrincipals(
+        //                 context,
+        //                 formData.PermissionIds,
+        //                 selectedAccessPrincipals
+        //             );
+        //             setDraftAccessPrincipals(principals);
+        //         }
+        //     } catch (error) {
+        //         console.error("Error while loading group members into access dialog:", error);
+        //         setAccessDialogMessage("We couldn't load the current group members. You can still search and add people again.");
+        //     } finally {
+        //         setIsAccessDialogLoading(false);
+        //     }
+        // } else if (!selectedAccessPrincipals.length && formData?.PermissionIds?.length) {
+        //     await loadAccessPrincipals(formData.PermissionIds);
+        // }
+    };
+
+    const dismissAccessDialog = () => {
+        setIsAccessDialogOpen(false);
+        setAccessDialogMessage("");
+        setDraftAccessPrincipals(selectedAccessPrincipals);
+    };
+
+    const applyAccessDialogSelection = () => {
+        syncAccessSelection(draftAccessPrincipals);
+        setIsAccessDialogOpen(false);
+    };
+
+    const resolveAccessSuggestions = async (
+        filterText: string,
+        currentSelections?: IPersonaProps[]
+    ): Promise<ITileAccessPrincipal[]> => {
+        try {
+            const principals = await searchTileAccessPrincipals(context, filterText);
+            const selectedKeys = new Set((currentSelections || []).map((item) => item.key));
+
+            return principals.filter((principal) => !selectedKeys.has(principal.key));
+        } catch (error) {
+            console.error("Error while searching tile access principals:", error);
+            setAccessDialogMessage("We couldn't search people and groups right now. Please try again.");
+            return [];
+        }
+    };
+
+    const getAccessSummary = () => {
+        if (!selectedAccessPrincipals.length) {
+            return "";
+        }
+
+        return selectedAccessPrincipals
+            .map((principal) => principal.text || principal.secondaryText || "")
+            .filter(Boolean)
+            .join("; ");
     };
 
 
@@ -757,8 +884,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
 
 
     const saveData = async () => {
+        let shouldCloseEditor = true;
         try {
             setIsDisabled(true);
+            setFormMessage(null);
             setLoaderMessage("Saving tile form...");
             setIsPageLoading(true);
             // setShowLoader({ display: "block" });
@@ -779,7 +908,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 TileName: formData?.TileName,
                 icon: formData?.icon,
                 accentColor: formData?.accentColor,
-                PermissionId: { results: formData?.PermissionIds },
                 TileAdminId: formData?.TileAdminId,
                 AllowApprover: formData?.isAllowApprover,
                 Active: formData?.isTileStatus,
@@ -801,22 +929,46 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const LID = await SaveTileSetting(SiteURL, context.spHttpClient, option);
             if (LID != null) {
                 await TileLibrary(context, Internal, LID?.Id, ArchiveInternal, false, tableData, formData?.isArchiveAllowed);
+                const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+                    context,
+                    formData?.PermissionIds || [],
+                    selectedAccessPrincipals
+                );
+                const tileAccessGroup = await createTileAccessGroup(
+                    context,
+                    Internal,
+                    resolvedAccessPrincipals
+                );
+                permissionData.push({
+                    Type: "Group",
+                    IDs: tileAccessGroup.Id,
+                    RoleDefId: getSharePointRoleDefinitionId(tileAccessPermissionLevel)
+                });
                 await breakRoleInheritanceForLib(context, Internal, permissionData);
 
             }
         } catch (error) {
             console.error("Error during save operation:", error);
+            shouldCloseEditor = false;
+            setFormMessage({
+                type: MessageBarType.error,
+                text: error instanceof Error ? error.message : "We couldn't save the tile right now. Please try again."
+            });
         } finally {
             setIsDisabled(false);
             setIsPageLoading(false);
             setLoaderMessage("Loading tile form...");
-            setIsOpenEditor(false);
+            if (shouldCloseEditor) {
+                setIsOpenEditor(false);
+            }
         }
     };
 
     const UpdateData = async () => {
+        let shouldCloseEditor = true;
         try {
             setIsDisabled(true);
+            setFormMessage(null);
             setLoaderMessage("Updating tile form...");
             setIsPageLoading(true);
             let ArchiveInternal = "";
@@ -826,6 +978,22 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
             permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
 
+            const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+                context,
+                formData?.PermissionIds || [],
+                selectedAccessPrincipals
+            );
+            const tileAccessGroup = await syncTileAccessGroupMembers(
+                context,
+                formData?.LibraryName,
+                resolvedAccessPrincipals
+            );
+            permissionData.push({
+                Type: "Group",
+                IDs: tileAccessGroup.Id,
+                RoleDefId: getSharePointRoleDefinitionId(tileAccessPermissionLevel)
+            });
+
             grantPermissionsForLib(context, Internal, permissionData);
 
 
@@ -834,7 +1002,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 TileName: formData?.TileName,
                 icon: formData?.icon,
                 accentColor: formData?.accentColor,
-                PermissionId: { results: formData?.PermissionIds },
                 TileAdminId: formData?.TileAdminId,
                 AllowApprover: formData?.isAllowApprover,
                 Active: formData?.isTileStatus,
@@ -880,12 +1047,19 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         }
         catch (error) {
             console.error("Error during save operation:", error);
+            shouldCloseEditor = false;
+            setFormMessage({
+                type: MessageBarType.error,
+                text: error instanceof Error ? error.message : "We couldn't update the tile right now. Please try again."
+            });
         }
         finally {
             setIsDisabled(false);
             setIsPageLoading(false);
             setLoaderMessage("Loading tile form...");
-            setIsOpenEditor(false);
+            if (shouldCloseEditor) {
+                setIsOpenEditor(false);
+            }
         }
 
     };
@@ -991,6 +1165,15 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                             data-testid="container-edit-tile-panel"
                             style={{ position: "relative" }}
                         >
+                            {formMessage && (
+                                <MessageBar
+                                    messageBarType={formMessage.type}
+                                    onDismiss={() => setFormMessage(null)}
+                                    styles={{ root: { marginBottom: 16 } }}
+                                >
+                                    {formMessage.text}
+                                </MessageBar>
+                            )}
                             <div className="tile-panel-section">
                                 <div
                                     className="tile-panel-section-header"
@@ -1078,26 +1261,26 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                             </div>
                                         </div>
                                         <div className="tile-form-field">
-                                            <label className="tile-form-label">{DisplayLabel.AccessToTile}<span className="tile-form-required">*</span></label>
-                                            <PeoplePicker
-                                                context={peoplePickerContext}
-                                                personSelectionLimit={20}
-                                                showtooltip={true}
-                                                showHiddenInUI={false}
-                                                ensureUser={true}
-                                                principalTypes={[PrincipalType.User, PrincipalType.DistributionList, PrincipalType.SecurityGroup, PrincipalType.SharePointGroup]}
-                                                onChange={(users: any[]) => {
-                                                    const ids = users.map((user: any) => user.id || user.Id);
-                                                    const emails = users.map((user: any) => user.secondaryText.toLowerCase() === "tenantallusers" ? user.text : user.secondaryText);
-
-                                                    setFormData((prevValues) => ({
-                                                        ...prevValues,
-                                                        PermissionIds: ids,
-                                                        PermissionEmail: emails
-                                                    }));
-                                                }}
-                                                defaultSelectedUsers={formData?.PermissionEmail}
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+                                                <label className="tile-form-label" style={{ marginBottom: 0 }}>
+                                                    {DisplayLabel.AccessToTile}<span className="tile-form-required">*</span>
+                                                </label>
+                                                <DefaultButton
+                                                    text="Manage Access"
+                                                    onClick={openAccessDialog}
+                                                    disabled={isDisabled || isPageLoading}
+                                                />
+                                            </div>
+                                            <TextField
+                                                multiline
+                                                readOnly
+                                                value={getAccessSummary()}
+                                                placeholder="No users or groups selected."
+                                                rows={Math.max(3, Math.min(selectedAccessPrincipals.length || 1, 6))}
                                             />
+                                            <div style={{ fontSize: 12, color: "#605e5c", marginTop: 6 }}>
+                                                {selectedAccessPrincipals.length} principal{selectedAccessPrincipals.length === 1 ? "" : "s"} selected
+                                            </div>
                                             <FieldError message={errors.Permission} />
                                         </div>
                                         <div className="grid-3">
@@ -1351,6 +1534,61 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                     </div>
                 </div>
             </div>
+            <Dialog
+                hidden={!isAccessDialogOpen}
+                onDismiss={dismissAccessDialog}
+                dialogContentProps={{
+                    title: "Manage Tile Access",
+                    subText: "Search for users or groups and apply them to the AccessToTile field."
+                }}
+                modalProps={{ isBlocking: false }}
+            >
+                <Stack tokens={{ childrenGap: 12 }}>
+                    {accessDialogMessage && (
+                        <MessageBar messageBarType={MessageBarType.warning}>
+                            {accessDialogMessage}
+                        </MessageBar>
+                    )}
+                    <Label required>Select users and groups</Label>
+                    {isAccessDialogLoading ? (
+                        <Spinner size={SpinnerSize.medium} label="Loading current access..." />
+                    ) : (
+                        <NormalPeoplePicker
+                            onResolveSuggestions={resolveAccessSuggestions}
+                            onEmptyInputFocus={(currentSelections) => resolveAccessSuggestions("", currentSelections)}
+                            getTextFromItem={(item) => item.text || item.secondaryText || ""}
+                            pickerSuggestionsProps={{
+                                suggestionsHeaderText: "Suggested people and groups",
+                                noResultsFoundText: "No matching users or groups were found."
+                            }}
+                            selectedItems={draftAccessPrincipals}
+                            onChange={(items) => {
+                                setDraftAccessPrincipals((items || []) as unknown as ITileAccessPrincipal[]);
+                                setAccessDialogMessage("");
+                            }}
+                            inputProps={{ placeholder: "Type a name or email address" }}
+                            itemLimit={1500}
+                            onValidateInput={() => ValidationState.valid}
+                        />
+                    )}
+                    <TextField
+                        label="Selected access"
+                        multiline
+                        readOnly
+                        value={
+                            draftAccessPrincipals
+                                .map((principal) => principal.text || principal.secondaryText || "")
+                                .filter(Boolean)
+                                .join("; ")
+                        }
+                        rows={Math.max(3, Math.min(draftAccessPrincipals.length || 1, 6))}
+                    />
+                </Stack>
+                <DialogFooter>
+                    <PrimaryButton onClick={applyAccessDialogSelection} text="Apply" disabled={isAccessDialogLoading} />
+                    <DefaultButton onClick={dismissAccessDialog} text="Cancel" />
+                </DialogFooter>
+            </Dialog>
         </>
     );
 };
