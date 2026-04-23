@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import { spfi, SPFI, SPFx } from "@pnp/sp";
 import "@pnp/sp/site-users/web";
