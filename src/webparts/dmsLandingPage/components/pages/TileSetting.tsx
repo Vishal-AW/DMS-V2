@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import ReusableDataTable from "../ResuableComponents/ReusableDataTable";
 import { ILabel } from "../../../../Intrface/ILabel";
 import { SearchBox } from "@fluentui/react";
-import { getTileAllData } from "../../../../Services/MasTileService";
+import { getTileAllData, getTilesByAdminAndAuthor } from "../../../../Services/MasTileService";
 import { Badge, Button } from "@fluentui/react-components";
 import { Add20Regular, Edit24Regular } from "@fluentui/react-icons";
 import { spfi, SPFx } from "@pnp/sp";
@@ -33,7 +33,7 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
     }, [isOpenEditor]);
 
     const fetchTileData = async () => {
-        let FetchallTileData: any = await getTileAllData(SiteURL, context.spHttpClient);
+        let FetchallTileData: any = await getTilesByAdminAndAuthor(SiteURL, context.spHttpClient, context.pageContext.legacyPageContext.userId);
         let TilesData = FetchallTileData.value;
         setRowData(TilesData);
         setIsLoading(false);

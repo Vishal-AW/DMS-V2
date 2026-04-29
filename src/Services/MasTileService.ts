@@ -28,6 +28,12 @@ export function getDataByLibraryName(WebUrl: string, spHttpClient: any, name: an
 }
 
 
+export function getTilesByAdminAndAuthor(WebUrl: string, spHttpClient: any, ID: number) {
+  let filter = `TileAdmin/Id eq ${ID} or Author/Id eq ${ID}`;
+
+  return getMethod(WebUrl, spHttpClient, filter);
+}
+
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
   let option = {
