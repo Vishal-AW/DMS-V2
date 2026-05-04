@@ -38,12 +38,12 @@ export default class DmsLandingPageWebPart extends BaseClientSideWebPart<IDmsLan
   }
 
   protected onInit(): Promise<void> {
-    const url = new URL(window.location.href);
+    // const url = new URL(window.location.href);
 
-    if (!url.searchParams.get("env")) {
-      url.searchParams.set("env", "WebViewList");
-      window.location.href = url.toString();
-    }
+    // if (!url.searchParams.get("env")) {
+    //   url.searchParams.set("env", "WebViewList");
+    //   window.location.href = url.toString();
+    // }
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
     });
