@@ -987,7 +987,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             return;
         }
 
-        const users = [selectedFolder?.ProjectmanagerId, selectedFolder?.PublisherId, ...admin];
+        // const users = [selectedFolder?.ProjectmanagerId, selectedFolder?.PublisherId, ...admin, tileData?.TileAdminId];
+
+        const users = [
+            { id: selectedFolder?.ProjectmanagerId, type: 'FolderAccess' },
+            { id: selectedFolder?.PublisherId, type: 'FolderAccess' },
+            ...admin.map((id: any) => ({ id, type: 'Admin' })),
+            ...(tileData?.TileAdminId
+                ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
+                : []),
+        ];
         const siteRelative = context.pageContext.web.serverRelativeUrl;
 
 
@@ -995,9 +1004,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         FolderStructure(context, `${urlAfterSite}/${folderName}`, users, tileData.LibraryName, tileData.AllowChildInheritance).then(async (response) => {
             const sp = spfi().using(SPFx(context));
-            const folderMetadata = await sp.web
-                .getFolderByServerRelativePath(selectedFolder?.path)
-                .listItemAllFields();
+            const folderMetadata = await sp.web.getFolderByServerRelativePath(selectedFolder?.path).listItemAllFields();
             const folderData = JSON.parse(JSON.stringify(folderMetadata, (key, value) => (value === null || (Array.isArray(value) && value.length === 0)) ? undefined : value));
             let obj: any = {
                 ...folderData

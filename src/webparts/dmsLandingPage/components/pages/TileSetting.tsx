@@ -14,6 +14,7 @@ import "@pnp/sp/items";
 import { format } from "date-fns";
 import TileForm from "./TileForm";
 import PageLoader from "../../common/component/PageLoader";
+import { isMember } from "../../../../DAL/Commonfile";
 interface ITileSettingProps {
     context: WebPartContext;
 }
@@ -33,8 +34,14 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
     }, [isOpenEditor]);
 
     const fetchTileData = async () => {
-        let FetchallTileData: any = await getTilesByAdminAndAuthor(SiteURL, context.spHttpClient, context.pageContext.legacyPageContext.userId);
-        let TilesData = FetchallTileData.value;
+        const isMembers = await isMember(context, "ProjectAdmin");
+        let FetchallTileData: any = [];
+        if (isMembers) {
+            FetchallTileData = await getTileAllData(SiteURL, context.spHttpClient);
+        } else {
+            FetchallTileData = await getTilesByAdminAndAuthor(SiteURL, context.spHttpClient, context.pageContext.legacyPageContext.userId);
+        }
+        const TilesData = FetchallTileData.value;
         setRowData(TilesData);
         setIsLoading(false);
     };

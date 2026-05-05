@@ -29,7 +29,7 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 //     });
 // };
 
-export const FolderStructure = async (context: WebPartContext, FolderPath: string, uid: number[], LibraryName: string, ChildFolderRoleInheritance: boolean) => {
+export const FolderStructure = async (context: WebPartContext, FolderPath: string, uid: any[], LibraryName: string, ChildFolderRoleInheritance: boolean) => {
 
     const folderUrl = `${context.pageContext.web.absoluteUrl}/${FolderPath}`;
     return await context.spHttpClient.post(
