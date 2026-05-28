@@ -41,9 +41,6 @@ import {
 import { ILabel } from "../../../../Intrface/ILabel";
 import Select, { CSSObjectWithLabel } from "react-select";
 import { getConfigActive } from "../../../../Services/ConfigService";
-import { getRoles } from "../../../../Services/Role";
-import { getAllButtons } from "../../../../Services/Buttons";
-import { IButtonsProps, IRolePermission } from "../../../../Intrface/IButtonInterface";
 import { format } from "date-fns";
 import { getActiveRedundancyDays } from "../../../../Services/ArchiveRedundancyDaysService";
 import { getUserIdFromLoginName, uuidv4 } from "../../../../DAL/Commonfile";
@@ -78,7 +75,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
     const SiteURL = context.pageContext.web.absoluteUrl;
     const refrenceNOData = `${format(new Date(), 'yyyy')}-00001`;
-    const [allButtonsWithPermissions, setAllButtonsWithPermissions] = useState<IRolePermission[]>([]);
     const [fieldData, setFieldData] = useState<any[]>([]);
     const [isEditMode, setIsEditMode] = useState(false);
     const [formData, setFormData] = useState<Record<string, any>>({
@@ -103,16 +99,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
     const [refFormatData, setRefFormatData] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, any>>({});
     const [refExample, setRefExample] = useState<string>(refrenceNOData);
-    const [roles, setRoles] = useState<any[]>([]);
-    const [allButtons, setAllButtons] = useState<IButtonsProps[]>([]);
-    const [groupByButtons, setGroupByButtons] = useState<any[]>([]);
     const [customSeparators, setCustomSeparators] = useState<{ [key: number]: string; }>({});
     const [redundancyData, setRedundancyData] = useState([]);
     const [tableData, setTableData] = useState<any[]>([]);
     const [admin, setAdmin] = useState<any[]>([]);
     const [isDisabled, setIsDisabled] = useState<boolean>(false);
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(['tileDetails', 'fields', 'referenceNo', 'archive', 'buttons'])
+        new Set(['tileDetails', 'fields', 'referenceNo', 'archive'])
     );
     const [isToggleDisabled, setIsToggleDisabled] = useState(false);
     const [isPageLoading, setIsPageLoading] = useState(true);
@@ -162,8 +155,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const redundancyOptions = await RedundancyDaysData();
             await Promise.all([
                 fetchFieldConfig(),
-                getAllRoles(),
-                getAllButton(),
                 getAdmin()
             ]);
             if (tileID > 0) {
@@ -222,7 +213,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         const tileAccessMembers = await getTileAccessGroupMembers(context, EditSettingData?.LibraryName);
         const PermissionIds: number[] = tileAccessMembers.map((person) => person.principalId);
         const PermissionEmails = tileAccessMembers.map((person) => person.secondaryText || person.text || "");
-        setAllButtonsWithPermissions(EditSettingData?.CustomPermission ? JSON.parse(EditSettingData?.CustomPermission) : []);
         setFormData((prevData) => ({
             ...prevData,
             TileName: EditSettingData?.TileName,
@@ -254,53 +244,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         setFieldData(options);
     };
 
-    const getAllRoles = () => {
-        return getRoles(SiteURL, context.spHttpClient).then((response: any) => {
-            const roleData = response.value;
-            setRoles(roleData);
-        });
-    };
-    const getAllButton = () => {
-        return getAllButtons(SiteURL, context.spHttpClient).then((response: any) => {
-            const buttonData = response.value;
-            const buttonsList: IButtonsProps[] = buttonData.map(convertToButtonProps);
-            const grouped = buttonsList.reduce((acc: any, item: any) => {
-                (acc[item.ButtonType] = acc[item.ButtonType] || []).push(item);
-                return acc;
-            }, {} as { [key: string]: any[]; });
 
-            setGroupByButtons(grouped);
-            setAllButtons(buttonsList);
-        });
-    };
-
-    const convertToButtonProps = (backendData: any) => (
-        {
-            Id: backendData.Id,
-            ButtonDisplayName: backendData.ButtonDisplayName,
-            ButtonType: backendData.ButtonType,
-            Title: backendData.Title,
-            key: backendData.InternalName,
-            value: false,
-            Active: backendData.Active,
-            InternalName: backendData.InternalName,
-        }
-    );
-    useEffect(() => {
-        if (allButtons.length > 0 && roles.length > 0) {
-            bindAllButtons();
-        }
-    }, [allButtons, roles]);
-
-    const bindAllButtons = () => {
-        let buttonObj: IRolePermission = { Role: "", Permission: [], UsersId: [] };
-        const roleD = roles.map((role: any) => {
-
-            buttonObj = { Role: role.Title, Permission: allButtons, UsersId: [] };
-            return buttonObj;
-        });
-        setAllButtonsWithPermissions(roleD);
-    };
 
 
     const peoplePickerContext: IPeoplePickerContext = {
@@ -501,39 +445,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         generateFormula(updatedRefData, formData?.prefix, formData?.separator, formData?.increment);
     };
 
-    const grantButtonPermission = (role: string, permission: any) => {
-        setAllButtonsWithPermissions((prev: IRolePermission[]) =>
-            prev.map((r) =>
-                r.Role === role
-                    ? {
-                        ...r,
-                        UsersId: permission,
-                    }
-                    : r
-            )
-        );
-    };
 
-    const handleCheckboxChangeButton = (role: string, key: Number, val: boolean) => {
-        setAllButtonsWithPermissions((prev: IRolePermission[]) =>
-            prev.map((r) =>
-                r.Role === role
-                    ? {
-                        ...r,
-                        Permission: r.Permission.map((p: any) =>
-                            p.Id === key ? { ...p, value: val } : p
-                        ),
-                    }
-                    : r
-            )
-        );
-    };
-
-    const bindPermission = (role: string) => {
-        const foundRole = allButtonsWithPermissions.find((r) => r.Role === role);
-        const userEMail = foundRole ? foundRole.UsersId.map((user: any) => (user.secondaryText || user.loginName || user.email)) : [];
-        return userEMail;
-    };
 
     const generateFormula = (
         refData: string[],
@@ -923,7 +835,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 RetentionDays: formData?.RedundancyData?.label === null ? null : parseInt(formData?.RedundancyData?.label),
                 ArchiveVersionCount: formData?.ArchiveVersions === null ? null : parseInt(formData?.ArchiveVersions),
                 LibraryName: Internal,
-                CustomPermission: JSON.stringify(allButtonsWithPermissions),
             };
 
             const LID = await SaveTileSetting(SiteURL, context.spHttpClient, option);
@@ -1012,7 +923,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 Separator: formData?.separator,
                 DynamicControl: JSON.stringify(tableData),
                 IsArchiveRequired: formData?.isArchiveAllowed,
-                CustomPermission: JSON.stringify(allButtonsWithPermissions),
             };
 
             await UpdateTileSetting(SiteURL, context.spHttpClient, option, tileID);
@@ -1089,37 +999,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         setAllLibColumn(response.d.results);
     };
 
-    const isAllSelected = (roleTitle: string) => {
-        const roleData = allButtonsWithPermissions.find(r => r.Role === roleTitle);
 
-        if (!roleData) return false;
-
-        return Object.values(groupByButtons)
-            .flat()
-            .every((item: any) =>
-                roleData.Permission?.some((p: any) => p.Id === item.Id && p.value)
-            );
-    };
-
-    const handleSelectAll = (roleTitle: string, isChecked?: boolean) => {
-        setAllButtonsWithPermissions((prev: any[]) => {
-            return prev.map(role => {
-                if (role.Role !== roleTitle) return role;
-
-                const updatedPermissions = Object.values(groupByButtons)
-                    .flat()
-                    .map((item: any) => ({
-                        ...item,
-                        value: isChecked
-                    }));
-
-                return {
-                    ...role,
-                    Permission: updatedPermissions
-                };
-            });
-        });
-    };
 
     return (
         <>
@@ -1332,100 +1212,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                 )}
                             </div>
 
-                            <div className="tile-panel-section">
-                                <div
-                                    className="tile-panel-section-header"
-                                    onClick={() => toggleSection('buttons')}
-                                    data-testid="toggle-section-fields"
-                                >
-                                    <span className="tile-panel-section-title">{DisplayLabel?.Permission}</span>
-                                    {expandedSections.has('buttons') ? <ChevronUp20Regular /> : <ChevronDown20Regular />}
-                                </div>
-                                {expandedSections.has('buttons') && (
-                                    <div className="tile-panel-section-content">
-                                        <table className="fluent-table">
-                                            <thead>
-                                                <tr>
-                                                    <th></th>
-                                                    <th>{DisplayLabel?.Role}</th>
-                                                    {roles && roles.map((role: any) => (<th>{role.Title}</th>))}
-                                                </tr>
-                                                <tr>
-                                                    <td></td>
-                                                    <td></td>
-                                                    {roles && roles.map((role: any) => (
-                                                        <td>
-                                                            <PeoplePicker context={peoplePickerContext}
-                                                                personSelectionLimit={20}
-                                                                showtooltip={true}
-                                                                required={true}
-                                                                errorMessage={errors?.AccessTileUserErr}
-                                                                ensureUser={true}
-                                                                onChange={async (items: any[]) => {
-                                                                    grantButtonPermission(role.Title, items);
-                                                                }}
-                                                                showHiddenInUI={false}
-                                                                principalTypes={[PrincipalType.User, PrincipalType.SharePointGroup, PrincipalType.SecurityGroup]}
-                                                                defaultSelectedUsers={isEditMode ? bindPermission(role.Title) : undefined}
-                                                                styles={{ root: { order: -1 } }}
-                                                            />
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            </thead>
 
-                                            <tbody>
-                                                <tr>
-                                                    <td>Select All</td>
-                                                    <td></td>
-                                                    {roles && roles.map((role: any) => (
-                                                        <td>
-                                                            <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                                                                <Checkbox
-                                                                    checked={isAllSelected(role.Title)}
-                                                                    onChange={(_, val) => handleSelectAll(role.Title, !!val)}
-                                                                />
-                                                            </div>
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                                {Object.keys(groupByButtons).map((group: any) => (
-                                                    <React.Fragment key={group}>
-                                                        {groupByButtons[group].map((item: any, index: number) => (
-                                                            <tr key={item.Id} style={{ borderBottom: "1px solid #eee" }}>
-                                                                {index === 0 && <td rowSpan={groupByButtons[group].length}> {group} </td>}
-                                                                <td style={{ padding: "8px 12px" }}>{item.Title}</td>
-                                                                {roles.map((role: any) => {
-                                                                    const foundRole = allButtonsWithPermissions.find(
-                                                                        (r) => r.Role === role.Title
-                                                                    );
-                                                                    const foundPerm = foundRole?.Permission?.find(
-                                                                        (p: any) => p.Id === item.Id
-                                                                    );
-
-                                                                    return (
-                                                                        <td key={`${role.Id}_${item.Id}`}>
-                                                                            <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                                                                                <Checkbox
-                                                                                    checked={!!foundPerm?.value}
-                                                                                    onChange={(_, val) =>
-                                                                                        handleCheckboxChangeButton(role.Title, item.Id, !!val)
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                        </td>
-                                                                    );
-                                                                })}
-                                                            </tr>
-                                                        ))}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
 
                             <div className="tile-panel-section">
                                 <div

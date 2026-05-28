@@ -20,6 +20,7 @@ import TileSetting from './pages/TileSetting';
 import TemplateMaster from './Masters/TemplateMaster';
 import FolderMaster from './Masters/FolderMaster';
 import ConfigMaster from './Masters/ConfigEntryForm';
+import ButtonPermissionsManager from './pages/ButtonPermissionsManager';
 
 export default class DmsLandingPage extends React.Component<IDmsLandingPageProps, {}> {
   private toasterMountRef = React.createRef<HTMLDivElement>();
@@ -83,6 +84,13 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
                 element={
                   <MainLayout context={this.props.context}>
                     <ConfigMaster context={this.props.context} />
+                  </MainLayout>
+                }
+              />
+              <Route path="/button-permissions"
+                element={
+                  <MainLayout context={this.props.context}>
+                    <ButtonPermissionsManager context={this.props.context} />
                   </MainLayout>
                 }
               />

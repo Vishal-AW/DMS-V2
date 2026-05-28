@@ -722,51 +722,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
     const getUserGroups = async () => {
-        let allGroupCurrentUser: number[] = [];
-        let filterData: any[] = [];
-
         try {
-
-            const groupsResponse: SPHttpClientResponse = await context.spHttpClient.get(`${SiteURL}/_api/web/GetUserById(${UserID})/Groups`, SPHttpClient.configurations.v1);
-
-            const groupsData = await groupsResponse.json();
-            allGroupCurrentUser = groupsData.value.map((g: any) => g.Id);
-
             const buttonsResponse = await getAllButtons(SiteURL, context.spHttpClient);
             const allButtons: IButtonsProps[] = await buttonsResponse.value;
 
+            const unique = allButtons.map((btn) => ({
+                ...btn,
+                key: btn.InternalName,
+                Icons: btn.Icons
+            })).filter((el, index, self) => index === self.findIndex((p) => p.Title === el.Title));
 
-            const data: IRolePermission[] = JSON.parse(tileData?.CustomPermission);
-
-            for (let i = 0; i < data.length; i++) {
-                const filterData1 = data[i].UsersId.filter((u: any) => u.id === UserID);
-                if (filterData1.length > 0) {
-                    filterData = filterData.concat(data[i]);
-                }
-
-                const filterData2 = data[i].UsersId.filter((u: any) => allGroupCurrentUser.includes(Number(u)));
-                if (filterData2.length > 0) {
-                    filterData = filterData.concat(data[i]);
-                }
-            }
-
-            let filterData3: any[] = [];
-
-            if (tileData.TileAdminId === UserID) {
-                filterData3 = allButtons.map((btn) => ({
-                    ...btn,
-                    key: btn.InternalName
-                }));
-            } else {
-                filterData.forEach((el) => {
-                    allButtons.forEach((btn) => {
-                        const match = el.Permission.filter((perm: any) => perm.value && btn.Id === perm.Id);
-                        filterData3 = filterData3.concat([{ ...match[0], Icons: btn.Icons }]);
-                    });
-                });
-            }
-
-            const unique = filterData3.filter((el, index, self) => index === self.findIndex((p) => p.Title === el.Title));
             setButtons(unique);
             console.log('All Buttons:', unique);
         } catch (err) {
@@ -1297,7 +1262,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             </div>
                             <div className="workspace-content-actions">
                                 {tables === "" ? <>
-                                    {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) && (isValidUser || tileData?.TileAdminId === UserID || hasPermission) ?
+                                    {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
                                         <Menu>
                                             <MenuTrigger disableButtonEnhancement>
                                                 <Button
@@ -1354,7 +1319,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
                                         : <></>}
-                                    {files.length === 0 && (hasPermission) ?
+                                    {files.length === 0 ?
                                         <PrimaryButton
                                             onClick={() => { setIsOpenFolderPanel(true); setFolderName(""); setFolderNameErr(""); }}
                                             className="workspace-new-folder-btn"
