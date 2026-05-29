@@ -241,7 +241,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 case "Multiple Select":
                     return (
                         <Field key={index}>
-                            <Label required={item.IsRequired} >{item.Title}</Label>
+                            <Label style={{ paddingTop: "10px", fontWeight: 500 }} required={item.IsRequired} >{item.Title}</Label>
                             <Select
                                 options={options[item.InternalTitleName]}
                                 required={item.IsRequired}
@@ -319,14 +319,34 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                     return (
                         //<div className={dynamicControl.length > 5 ? styles.col6 : styles.col12} key={index}>
                         <Field key={index}>
-                            <label >{item.Title}{item.IsRequired ? <span style={{ color: "red" }}>*</span> : <></>}</label>
-                            <DatePicker
+                            <label style={{ paddingTop: "10px", fontWeight: 500 }} >{item.Title}{item.IsRequired ? <span style={{ color: "red" }}>*</span> : <></>}</label>
+                            {/* <DatePicker
                                 componentRef={(input: any) => (inputRefs.current[item.InternalTitleName] = input)}
                                 onSelectDate={(date: Date | null | undefined) => handleInputChange(item.InternalTitleName, date)}
                                 className={meargestyles.control}
                                 value={dynamicValues[item.InternalTitleName] || ""}
                                 disabled={isDisabled}
                                 formatDate={(date) => date ? format(new Date(date), "dd/MM/yyyy") : ''}
+                            /> */}
+
+                            <TextField
+                                componentRef={(input: any) =>
+                                    (inputRefs.current[item.InternalTitleName] = input)
+                                }
+                                type="date"
+                                className={meargestyles.control}
+                                value={
+                                    dynamicValues[item.InternalTitleName]
+                                        ? format(
+                                            new Date(dynamicValues[item.InternalTitleName]),
+                                            "yyyy-MM-dd"
+                                        )
+                                        : ""
+                                }
+                                disabled={isDisabled}
+                                onChange={(e, newValue) =>
+                                    handleInputChange(item.InternalTitleName, newValue)
+                                }
                             />
                             <FieldError message={dynamicValuesErr[item.InternalTitleName]} />
                         </Field>
@@ -514,6 +534,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
             obj.PublisherAllow = true;
             obj.PublisherId = filterPublisher.Id;
             obj.PublisherEmail = filterPublisher.Email;
+            obj.AllowApprover = isApprovalRequired;
         }
 
         updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, id, LibraryDetails.LibraryName).then((response) => {

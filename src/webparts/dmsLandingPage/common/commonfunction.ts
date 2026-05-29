@@ -63,6 +63,15 @@ export const buildFolderHierarchy = (
         }
     });
 
+    const sortChildren = (nodes: any[]) => {
+        nodes.sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        nodes.forEach(node => {
+            if (node.children.length > 0) {
+                sortChildren(node.children);
+            }
+        });
+    };
+
     const markLastLevel = (nodes: any[]) => {
         nodes.forEach(node => {
             if (node.children.length === 0) {
@@ -74,6 +83,7 @@ export const buildFolderHierarchy = (
     };
 
     markLastLevel(tree);
+    sortChildren(tree);
     return tree;
 };
 

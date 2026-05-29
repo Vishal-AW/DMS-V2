@@ -1195,15 +1195,17 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 headerName: DisplayLabel.FileName,
                 filter: true,
                 sortable: true,
-                field: "Name",
+                // field: "Name",
+                field: "name", // FIXED
                 maxWidth: 400,
                 minWidth: 400,
                 cellRenderer: (item: any) => <a href="javascript:void()" onClick={() => handleFolderSelect(item?.data)} style={{ color: "rgb(0, 158, 247)" }}>{item?.data?.name}</a>
             },
             {
                 headerName: DisplayLabel.LastModified,
-                filter: false,
+                //filter: false,
                 resizable: false,
+                filter: "agDateColumnFilter",
                 maxWidth: 80,
                 valueGetter: (params: any) => format(params?.data?.Modified, "dd-MM-yyyy hh:mm a")
             },

@@ -374,20 +374,42 @@ export default function ConfigMaster({ context }: IConfigMaster): JSX.Element {
     const validation = () => {
         let isValidForm = true;
 
+         const Fields = FieldName.trim().toLowerCase();
+
+        if (
+            !Fields ||
+            FieldName !== FieldName?.trim()
+        ) {
+            setFieldNameErr("Spaces are not allowed at starting or ending");
+            inputRefs.current["FieldName"]?.focus();
+            isValidForm = false;
+            return;
+        }
+        if (/[*|\":<>[\]{}`\\()'!%;@#&$]/.test(FieldName)) {
+            setFieldNameErr(DisplayLabel?.SpecialCharacterNotAllowed as string);
+            isValidForm = false;
+            return;
+        }
         if (FieldName === "" || FieldName === undefined || FieldName === null) {
             setFieldNameErr(DisplayLabel?.ThisFieldisRequired as string);
             inputRefs.current["FieldName"]?.focus();
             isValidForm = false;
             return;
         }
-        const isDuplicate = MainTableSetdata.some(
-            (Data) => Data.Title.toLowerCase() === FieldName.toLowerCase().trim()
-        );
-        if (/[*|\":<>[\]{}`\\()'!%;@#&$]/.test(FieldName)) {
+        else if (Fields !== Fields?.trim()) {
+              // Starting or ending space validation
             setFieldNameErr(DisplayLabel?.SpecialCharacterNotAllowed as string);
+            inputRefs.current["FieldName"]?.focus();
             isValidForm = false;
             return;
         }
+    
+
+
+        const isDuplicate = MainTableSetdata.some(
+            (Data) => Data.Title.toLowerCase() === FieldName.toLowerCase().trim()
+        );
+    
         if (isDuplicate && !isEditMode) {
             setFieldNameErr(DisplayLabel?.ColumnNameIsAlreadyExist as string);
             isValidForm = false;

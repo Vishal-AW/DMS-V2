@@ -352,8 +352,10 @@ export async function checkPermissions(context: any, folderPath: string): Promis
         // const url = `${context.pageContext.web.absoluteUrl}/_api/web/DoesUserHavePermissions?high=${permissionMaskHigh}&low=${permissionMaskLow}`;
 
         const normalizedFolderPath = normalizeFolderServerRelativeUrl(context, folderPath);
-        const url = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${normalizedFolderPath}')/ListItemAllFields/effectiveBasePermissions`;
+       // const url = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${normalizedFolderPath}')/ListItemAllFields/effectiveBasePermissions`;
 
+       const url = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${normalizedFolderPath}')/ListItemAllFields?$select=EffectiveBasePermissions`;
+       
         const response: SPHttpClientResponse = await context.spHttpClient.get(
             url,
             SPHttpClient.configurations.v1,

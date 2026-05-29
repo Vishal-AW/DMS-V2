@@ -637,6 +637,11 @@ export default function Approvals({ context }: IApprovalsProps) {
                     disabled
                     data-testid="toggle-meta-approval-flow"
                   /> */}
+                  <Toggle
+                    checked={metadataDoc.AllowApprover}
+                    disabled
+                    data-testid="toggle-meta-approval-flow"
+                  />
                 </div>
               </div>
             </div>
