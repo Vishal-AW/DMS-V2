@@ -6,6 +6,7 @@ import {
   Search20Regular
 } from '@fluentui/react-icons';
 import FolderTree, { FolderNode } from './FolderTree';
+import { IDmsButton } from "../../components/pages/buttonPermissionHelper";
 
 interface SidebarProps {
   folders: FolderNode[];
@@ -22,6 +23,7 @@ interface SidebarProps {
   onAdvancedSearchClick?: () => void;
   LibDetails: any;
   buttons: any;
+  permittedButtons?: IDmsButton[];
   expandedFolders: any;
 }
 
@@ -40,59 +42,68 @@ const Sidebar = ({
   LibDetails,
   archiveCount,
   buttons,
+  permittedButtons = [],
   expandedFolders
 }: SidebarProps) => {
+  const isButtonPermitted = (internalName: string) => {
+    return permittedButtons.some(btn => btn.InternalName === internalName);
+  };
+
   return (
     <div className="sidebar1" data-testid="container-sidebar">
       <div className="sidebar-quick-links">
 
-        {
-          LibDetails?.IsArchiveRequired ?
-            <div
-              className="sidebar-quick-link"
-              onClick={onArchiveClick}
-              data-testid="link-recycle-bin"
-              role="button"
-              tabIndex={0}
-            >
-              <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
-              <span>Archive({archiveCount})</span>
-            </div>
-            :
-            <div
-              className="sidebar-quick-link"
-              onClick={onRecycleBinClick}
-              data-testid="link-recycle-bin"
-              role="button"
-              tabIndex={0}
-            >
-              <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
-              <span>Recycle Bin ({recycleBinCount})</span>
-            </div>
-        }
+        {isButtonPermitted("Archive") && LibDetails?.IsArchiveRequired && (
+          <div
+            className="sidebar-quick-link"
+            onClick={onArchiveClick}
+            data-testid="link-recycle-bin"
+            role="button"
+            tabIndex={0}
+          >
+            <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
+            <span>Archive({archiveCount})</span>
+          </div>
+        )}
 
+        {isButtonPermitted("RecycleBin") && !LibDetails?.IsArchiveRequired && (
+          <div
+            className="sidebar-quick-link"
+            onClick={onRecycleBinClick}
+            data-testid="link-recycle-bin"
+            role="button"
+            tabIndex={0}
+          >
+            <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
+            <span>Recycle Bin ({recycleBinCount})</span>
+          </div>
+        )}
 
+        {isButtonPermitted("Approval") && (
+          <div
+            className="sidebar-quick-link"
+            onClick={onApprovalClick}
+            data-testid="link-approval"
+            role="button"
+            tabIndex={0}
+          >
+            <CheckmarkCircle20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-green" />
+            <span>Approval ({approvalCount})</span>
+          </div>
+        )}
 
-        <div
-          className="sidebar-quick-link"
-          onClick={onApprovalClick}
-          data-testid="link-approval"
-          role="button"
-          tabIndex={0}
-        >
-          <CheckmarkCircle20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-green" />
-          <span>Approval ({approvalCount})</span>
-        </div>
-        <div
-          className="sidebar-quick-link"
-          onClick={onAdvancedSearchClick}
-          data-testid="link-advanced-search"
-          role="button"
-          tabIndex={0}
-        >
-          <Search20Regular className="sidebar-quick-link-icon" />
-          <span>Advanced Search</span>
-        </div>
+        {isButtonPermitted("AdvancedSearch") && (
+          <div
+            className="sidebar-quick-link"
+            onClick={onAdvancedSearchClick}
+            data-testid="link-advanced-search"
+            role="button"
+            tabIndex={0}
+          >
+            <Search20Regular className="sidebar-quick-link-icon" />
+            <span>Advanced Search</span>
+          </div>
+        )}
       </div>
 
       <div className="sidebar-divider" />

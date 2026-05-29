@@ -3,19 +3,20 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize } from '@fluentui/react';
+import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize, ActionButton } from '@fluentui/react';
 import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular } from '@fluentui/react-icons';
 import Sidebar from "../../common/component/Sidebar";
 import { FolderNode } from "../../common/component/FolderTree";
 import { buildBreadcrumbPath, buildFolderHierarchy, buildLibraryRootPath, checkButtons, checkExtension, fileTypeConfig, getAllDocuments, getOpenAppURL } from "../../common/commonfunction";
 import ReusableDataTable from "../ResuableComponents/ReusableDataTable";
-import { spfi } from "@pnp/sp";
-import { SPFx } from "@pnp/sp/presets/all";
+import { spfi, PermissionKind } from "@pnp/sp/presets/all";
+import { SPFx } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import "@pnp/sp/files";
 import "@pnp/sp/folders";
+import "@pnp/sp/security";
 import { ILabel } from "../../../../Intrface/ILabel";
 import { SPHttpClientResponse, SPHttpClient } from '@microsoft/sp-http';
 import * as FluentIcons from "@fluentui/react-icons";
@@ -48,6 +49,8 @@ import ProjectEntryForm from "../../common/component/ProjectEntryForm";
 import UploadFiles from "../../common/component/UploadFile";
 import ApprovalFlow from "../../common/component/ApprovalFlow";
 import PageLoader from "../../common/component/PageLoader";
+import { getPermittedButtons } from "./ButtonsService";
+import { IDmsButton } from "./buttonPermissionHelper";
 
 
 
@@ -107,6 +110,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [approvalData, setApprovalData] = useState<any>([]);
     const [archiveData, setArchiveData] = useState<any>([]);
     const [projectUpdateData, setProjectUpdateData] = useState<any>({});
+    const [permittedButtons, setPermittedButtons] = useState<IDmsButton[]>([]);
+    const [userPerms, setUserPerms] = useState({
+        FullControl: false,
+        Contribute: false,
+        Edit: false,
+        Read: false
+    });
+    const buttonsCache = useRef<any[] | null>(null);
     const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [isRestrictedView, setIsRestrictedView] = useState(false);
     const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
@@ -119,8 +130,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
     useEffect(() => {
-        fetchTileData();
-        getAdmin();
+        void fetchTileData();
+        void getAdmin();
     }, []);
 
     const fetchTileData = async () => {
@@ -132,11 +143,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     useEffect(() => {
         if (tileData) {
             setIsWorkspaceLoading(true);
+            getPermittedButtons(context, tileData.LibraryName).then(setPermittedButtons);
             Promise.all([
                 fetchFolder(),
                 getDeletedData(),
                 getArchiveFile(),
-                getUserGroups()
             ]).finally(() => setIsWorkspaceLoading(false));
         }
     }, [tileData]);
@@ -145,6 +156,12 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         if (!tileData?.LibraryName) return;
         getPendingApprovalData();
     }, [isOpenUploadPanel, tileData]);
+
+    useEffect(() => {
+        if (selectedFolder?.path) {
+            void fetchButtonsAndPermissions(selectedFolder.path);
+        }
+    }, [selectedFolder?.path]);
 
     useEffect(() => {
         selectedFolderRef.current = selectedFolder;
@@ -721,27 +738,60 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
 
-    const getUserGroups = async () => {
+    const fetchButtonsAndPermissions = useCallback(async (targetPath: string) => {
         try {
-            const buttonsResponse = await getAllButtons(SiteURL, context.spHttpClient);
-            const allButtons: IButtonsProps[] = await buttonsResponse.value;
+            const sp = spfi().using(SPFx(context));
 
-            const unique = allButtons.map((btn) => ({
-                ...btn,
-                key: btn.InternalName,
-                Icons: btn.Icons
-            })).filter((el, index, self) => index === self.findIndex((p) => p.Title === el.Title));
+            // Determine if the target path is the root of the library
+            const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
+            const isRoot = targetPath.toLowerCase() === rootPath.toLowerCase();
 
-            setButtons(unique);
-            console.log('All Buttons:', unique);
+            // Parallel fetch of buttons and current effective permissions
+            const [btnsRes, perms] = await Promise.all([
+                buttonsCache.current
+                    ? Promise.resolve(buttonsCache.current)
+                    : sp.web.lists.getByTitle("DMS_Buttons").items
+                        .filter("Active eq 1")
+                        .select("Title", "InternalName", "ButtonType", "ButtonDisplayName", "Icons", "Sequence", "FullControl", "Contribute", "EditPermission", "ReadPermission")
+                        .orderBy("Sequence", true)(),
+                isRoot
+                    ? sp.web.lists.getByTitle(tileData?.LibraryName).getCurrentUserEffectivePermissions()
+                    : sp.web.getFolderByServerRelativePath(targetPath).getItem().then(item => item.getCurrentUserEffectivePermissions())
+            ]);
+
+            if (!buttonsCache.current) buttonsCache.current = btnsRes;
+
+            const isFullControl = sp.web.hasPermissions(perms, PermissionKind.ManagePermissions);
+            const isEdit = sp.web.hasPermissions(perms, PermissionKind.EditListItems);
+            const isContribute = sp.web.hasPermissions(perms, PermissionKind.AddListItems);
+            const isRead = sp.web.hasPermissions(perms, PermissionKind.ViewListItems);
+
+            // Strictly Hierarchical Resolution: Set only the highest permission tier to true
+            setUserPerms({
+                FullControl: isFullControl,
+                Edit: isEdit && !isFullControl,
+                Contribute: isContribute && !isEdit && !isFullControl,
+                Read: isRead && !isContribute && !isEdit && !isFullControl
+            });
+
+            setButtons(btnsRes.map((btn: any) => ({ ...btn, key: btn.InternalName })));
         } catch (err) {
-            console.error('Error in getUserGroups:', err);
+            console.error('Error in fetchButtonsAndPermissions:', err);
         }
-    };
+    }, [context]);
 
+    const visibleButtons = useMemo(() => {
+        return buttons.filter(btn => {
+            if (userPerms.FullControl) return true; // Full Control sees all
+            if (userPerms.Edit && (btn.EditPermission || btn.Contribute || btn.ReadPermission)) return true;
+            if (userPerms.Contribute && (btn.Contribute || btn.ReadPermission)) return true;
+            if (userPerms.Read && btn.ReadPermission) return true;
+            return false;
+        }).sort((a, b) => (a.Sequence || 0) - (b.Sequence || 0));
+    }, [buttons, userPerms]);
 
     const createMenuProps = (item: any) => {
-        return buttons.filter((btn) => btn.ButtonType === "Document")
+        return visibleButtons.filter((btn) => btn.ButtonType === "Document")
             .filter((btn) => {
                 switch (btn.key) {
                     case "OpenInApp":
@@ -759,13 +809,34 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         return checkButtons(btn.key);
                 }
             })
-            .map((btn) => ({
+            .map((btn: any) => ({
                 key: btn.key,
                 text: btn.ButtonDisplayName,
                 Icons: btn?.Icons
             }));
     };
 
+    const handleButtonClick = (internalName: string) => {
+        switch (internalName) {
+            case "NewRequest":
+                projectCreation();
+                break;
+            case "NewFolder":
+                setIsOpenFolderPanel(true);
+                setFolderName("");
+                setFolderNameErr("");
+                break;
+            case "Upload":
+                setFileType("upload");
+                setIsOpenUploadPanel(true);
+                break;
+            case "AdvancedSearch":
+                navigate('/Search', { state: { from: `/workspace/${workspaceId}`, libName: tileData?.LibraryName } });
+                break;
+            default:
+                console.log("Action triggered:", internalName);
+        }
+    };
 
     const getStatusStyles = (status: any) => {
         switch (status) {
@@ -1237,7 +1308,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     onArchiveClick={() => { setTables("Archive"); }}
                     LibDetails={tileData}
                     archiveCount={archiveData.length}
-                    buttons={buttons.filter((btn) => btn.ButtonType === "Folder")}
+                    buttons={visibleButtons.filter((btn) => btn.ButtonType === "Folder")}
+                    permittedButtons={permittedButtons}
                     expandedFolders={expandedFolders}
                 />
 

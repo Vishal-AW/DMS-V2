@@ -4,6 +4,8 @@ import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 import "@pnp/sp/batching";
+import { PermissionKind } from "@pnp/sp/security";
+import { isButtonPermitted, IDmsButton } from "./buttonPermissionHelper";
 
 export const getAllButtonsAdmin = async (context: WebPartContext) => {
     const sp = spfi().using(SPFx(context));
@@ -33,10 +35,40 @@ export const updateButtonsBatch = async (context: WebPartContext, items: any[]) 
             Icons: item.Icons,
             FullControl: item.FullControl,
             Contribute: item.Contribute,
-            Edit: item.EditPermission,
-            Read: item.ReadPermission,
+            EditPermission: item.Edit,
+            ReadPermission: item.Read,
         });
     });
 
     return await execute();
+};
+
+export const getPermittedButtons = async (context: WebPartContext, libraryName?: string): Promise<IDmsButton[]> => {
+    const sp = spfi().using(SPFx(context));
+
+    // 1. Fetch all active buttons from DMS_Buttons list
+    const allButtons = await sp.web.lists
+        .getByTitle('DMS_Buttons')
+        .items
+        .filter('Active eq 1')
+        .select('Title', 'InternalName', 'ButtonType', 'ButtonDisplayName', 'Icons', 'Sequence', 'FullControl', 'Contribute', 'EditPermission', 'ReadPermission')
+        .orderBy('Sequence')();
+
+    // 2. Get current user effective permissions
+    const userPerms = libraryName
+        ? await sp.web.lists.getByTitle(libraryName).getCurrentUserEffectivePermissions()
+        : await sp.web.getCurrentUserEffectivePermissions();
+
+    // 3. Resolve user permission level
+    const hasFullControl = sp.web.hasPermissions(userPerms, PermissionKind.ManagePermissions);
+    const hasContribute = sp.web.hasPermissions(userPerms, PermissionKind.AddListItems);
+    const hasEdit = sp.web.hasPermissions(userPerms, PermissionKind.EditListItems);
+    const hasRead = sp.web.hasPermissions(userPerms, PermissionKind.ViewListItems);
+
+    // 4. Filter buttons based on permission level
+    return allButtons.filter(btn =>
+        isButtonPermitted(btn, {
+            hasFullControl, hasContribute, hasEdit, hasRead
+        })
+    );
 };

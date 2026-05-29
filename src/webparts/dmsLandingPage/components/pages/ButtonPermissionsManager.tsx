@@ -139,8 +139,8 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                 Icons: item.Icons || '',
                 FullControl: !!item.FullControl,
                 Contribute: !!item.Contribute,
-                Edit: !!item.Edit,
-                Read: !!item.Read,
+                Edit: !!item.EditPermission,
+                Read: !!item.ReadPermission,
                 _dirty: false,
                 _saving: false,
             }));

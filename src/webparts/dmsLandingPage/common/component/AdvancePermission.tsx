@@ -50,6 +50,7 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
     const permissionDetails: Record<string, string> = {
         "1073741829": DisplayLabel.FullControlAccessDec,
         "1073741830": DisplayLabel.EditAccessDec,
+        "1073741827": DisplayLabel.ContributeAccessDec,
         "1073741826": DisplayLabel.ReadAccessDec,
     };
 
@@ -187,9 +188,10 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
         }
     };
 
-    const otions = [
+    const permissionOptions = [
         { value: "1073741829", label: DisplayLabel.FullControlAccess },
         { value: "1073741830", label: DisplayLabel.EditAccess },
+        { value: "1073741827", label: DisplayLabel.ContributeAccess },
         { value: "1073741826", label: DisplayLabel.ReadAccess },
     ];
 
@@ -277,8 +279,8 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
                             <Field label={DisplayLabel?.SelectPermissionLevel} required>
                                 <Select
                                     required
-                                    options={otions}
-                                    value={otions.find((item: any) => item.value === option) || null}
+                                    options={permissionOptions}
+                                    value={permissionOptions.find((item: any) => item.value === option) || null}
                                     onChange={(opt: any) => {
                                         setOption(opt?.value as string ?? null);
                                         setSelectedPermissionError("");
