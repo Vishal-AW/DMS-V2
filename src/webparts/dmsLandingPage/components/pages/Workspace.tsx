@@ -1017,8 +1017,21 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
         if (!selectedFolder) return;
 
-        const isDuplicate = selectedFolder.children.filter((el: any) => el.Name === folderName);
-        if (isDuplicate.length > 0) {
+       // const isDuplicate = selectedFolder.children.filter((el: any) => el.Name === folderName);
+      
+        // if (isDuplicate.length > 0) {
+        //     setFolderNameErr(DisplayLabel.FolderAlreadyExist);
+        //     return;
+        // }
+
+        const isDuplicate = selectedFolder.children
+        .flat(Infinity)
+        .some(
+            (el: any) =>
+            el?.name?.trim().toLowerCase() === folderName.trim().toLowerCase()
+        );
+
+        if (isDuplicate) {
             setFolderNameErr(DisplayLabel.FolderAlreadyExist);
             return;
         }

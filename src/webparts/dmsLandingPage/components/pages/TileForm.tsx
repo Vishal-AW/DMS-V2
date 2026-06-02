@@ -741,11 +741,17 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         let isValidForm = true;
         const internalName = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
         const isDuplicate = allTiles.filter((item: any) => item.LibraryName === internalName);
+        const isDuplicateDisplayName = allTiles.filter((item: any) => item.TileName === internalName);
+
         if (formData?.TileName === "" || formData?.TileName === undefined || formData?.TileName === null) {
             setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.ThisFieldisRequired as string }));
             isValidForm = false;
         }
         else if (isDuplicate.length > 0 && !isEditMode) {
+            setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.TileNameAlreadyExist as string }));
+            isValidForm = false;
+        }
+        else if (isEditMode && isDuplicateDisplayName.length > 0) {
             setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.TileNameAlreadyExist as string }));
             isValidForm = false;
         }
@@ -908,9 +914,26 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
             permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
 
-            const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+            const permissionIds = formData?.PermissionIds || [];
+
+             // Add Tile Admin if not already present
+            if (
+                formData?.TileAdminId &&
+                !permissionIds.includes(formData.TileAdminId)
+            ) {
+                permissionIds.push(formData.TileAdminId);
+            }
+
+
+            // const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+            //     context,
+            //     formData?.PermissionIds || [],
+            //     selectedAccessPrincipals
+            // );
+
+             const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
                 context,
-                formData?.PermissionIds || [],
+                permissionIds,
                 selectedAccessPrincipals
             );
             const tileAccessGroup = await syncTileAccessGroupMembers(
