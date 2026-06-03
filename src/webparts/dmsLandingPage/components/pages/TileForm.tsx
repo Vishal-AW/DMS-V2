@@ -741,7 +741,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         let isValidForm = true;
         const internalName = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
         const isDuplicate = allTiles.filter((item: any) => item.LibraryName === internalName);
-        const isDuplicateDisplayName = allTiles.filter((item: any) => item.TileName === internalName);
+       // const isDuplicateDisplayName = allTiles.filter((item: any) => item.TileName === internalName);
 
         if (formData?.TileName === "" || formData?.TileName === undefined || formData?.TileName === null) {
             setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.ThisFieldisRequired as string }));
@@ -751,10 +751,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.TileNameAlreadyExist as string }));
             isValidForm = false;
         }
-        else if (isEditMode && isDuplicateDisplayName.length > 0) {
-            setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.TileNameAlreadyExist as string }));
-            isValidForm = false;
-        }
+        // else if (isEditMode && isDuplicateDisplayName.length > 0) {
+        //     setErrors(prevData => ({ ...prevData, TileName: DisplayLabel?.TileNameAlreadyExist as string }));
+        //     isValidForm = false;
+        // }
         else if (formData?.PermissionIds?.length === 0 || formData?.PermissionIds === undefined) {
             setErrors(prevData => ({ ...prevData, Permission: DisplayLabel?.ThisFieldisRequired as string }));
             isValidForm = false;

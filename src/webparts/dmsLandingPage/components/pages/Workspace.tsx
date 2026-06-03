@@ -128,6 +128,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const selectedFolderRef = useRef<any | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
+    
+    const canCreateRequest = useMemo(() => {
+        return isValidUser || tileData?.TileAdminId === UserID;
+    }, [isValidUser, tileData, UserID]);
+
+    //Added New
+    const [canShowButtons, setCanShowButtons] = useState(false);
 
     useEffect(() => {
         void fetchTileData();
@@ -157,11 +164,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         getPendingApprovalData();
     }, [isOpenUploadPanel, tileData]);
 
+    // useEffect(() => {
+    //     if (selectedFolder?.path) {
+            
+    //         void fetchButtonsAndPermissions(selectedFolder.path);
+    //     }
+    // }, [selectedFolder?.path]);
+
+    //Added New
     useEffect(() => {
-        if (selectedFolder?.path) {
+        if (selectedFolder?.path && tileData?.LibraryName) {
             void fetchButtonsAndPermissions(selectedFolder.path);
         }
-    }, [selectedFolder?.path]);
+    }, [selectedFolder?.path, tileData?.LibraryName]);
 
     useEffect(() => {
         selectedFolderRef.current = selectedFolder;
@@ -253,12 +268,29 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setDeletedData(deletedData.value);
     };
 
+    // const handleFolderSelect = async (folder: FolderNode) => {
+    //    // setFiles([]);
+    //     const isSameFolder = selectedFolderRef.current?.path === folder.path;
+    //     selectedFolderRef.current = folder;
+    //     setSelectedFolder(folder);
+    //     // await fetchButtonsAndPermissions(folder.path);//new added
+    //     expandParentFolders(folder);
+    //     if (isSameFolder) {
+    //         await getDocument(folder);
+    //     }
+    // };
+
     const handleFolderSelect = async (folder: FolderNode) => {
-        setFiles([]);
         const isSameFolder = selectedFolderRef.current?.path === folder.path;
+
         selectedFolderRef.current = folder;
         setSelectedFolder(folder);
-        expandParentFolders(folder);
+        // setButtons([]); // clear previous folder buttons
+
+         fetchButtonsAndPermissions(folder.path); // no await
+
+         expandParentFolders(folder);
+
         if (isSameFolder) {
             await getDocument(folder);
         }
@@ -675,7 +707,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 return <div className="col-md-6">
                                     <label>{el.Title}</label>
                                     {filterObj.ColumnType === "Date and Time" ? <TextField
-                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(item.ListItemAllFields[el.InternalTitleName], "DD/MM/YYYY") : ""}
+                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(
+                                            new Date(item.ListItemAllFields[el.InternalTitleName]),
+                                            "dd/MM/yyyy"
+                                        ) : ""}
                                         disabled={true}
                                     /> : <TextField
                                         value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? (el.ColumnType === "Person or Group" ? item.ListItemAllFields[el.InternalTitleName].Title : item.ListItemAllFields[el.InternalTitleName]) : ""}
@@ -740,6 +775,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     const fetchButtonsAndPermissions = useCallback(async (targetPath: string) => {
         try {
+            //added new
+            // setButtons([]);
+            //   setUserPerms({
+            //         FullControl: false,
+            //         Edit: false,
+            //         Contribute: false,
+            //         Read: false
+            //     });
+
             const sp = spfi().using(SPFx(context));
 
             // Determine if the target path is the root of the library
@@ -766,6 +810,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             const isContribute = sp.web.hasPermissions(perms, PermissionKind.AddListItems);
             const isRead = sp.web.hasPermissions(perms, PermissionKind.ViewListItems);
 
+            setCanShowButtons(
+                isFullControl || isEdit || isContribute
+            );
+
             // Strictly Hierarchical Resolution: Set only the highest permission tier to true
             setUserPerms({
                 FullControl: isFullControl,
@@ -778,7 +826,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         } catch (err) {
             console.error('Error in fetchButtonsAndPermissions:', err);
         }
-    }, [context]);
+    }, [context,tileData]);
 
     const visibleButtons = useMemo(() => {
         return buttons.filter(btn => {
@@ -794,6 +842,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return visibleButtons.filter((btn) => btn.ButtonType === "Document")
             .filter((btn) => {
                 switch (btn.key) {
+                    case "Delete":
+                       return !tileData?.IsArchiveRequired;
                     case "OpenInApp":
                         const isCheck = checkExtension(item.data.Name);
                         return isCheck;
@@ -1185,13 +1235,22 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
+    // const expandParentFolders = (folder: any) => {
+    //     setExpandedFolders(prev => {
+    //         if (prev.includes(folder?.id)) {
+    //             return prev.filter(id => id !== folder?.id);
+    //         } else {
+    //             return [...prev, folder?.id];
+    //         }
+    //     });
+    // };
+
     const expandParentFolders = (folder: any) => {
         setExpandedFolders(prev => {
-            if (prev.includes(folder?.id)) {
-                return prev.filter(id => id !== folder?.id);
-            } else {
-                return [...prev, folder?.id];
+            if (prev.includes(folder.id)) {
+                return prev;
             }
+            return [...prev, folder.id];
         });
     };
 
@@ -1298,14 +1357,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     </span>
                 </div>
                 <div className="workspace-topbar-actions">
-                    <DefaultButton
-                        className="workspace-new-request-btn"
-                        onClick={projectCreation}
-                        data-testid="button-new-request"
-                    >
-                        <Add20Regular className="workspace-btn-icon" />
-                        <span>New Request</span>
-                    </DefaultButton>
+                      {canCreateRequest && (
+                        <DefaultButton
+                            className="workspace-new-request-btn"
+                            onClick={projectCreation}
+                            data-testid="button-new-request"
+                        >
+                            <Add20Regular className="workspace-btn-icon" />
+                            <span>New Request</span>
+                        </DefaultButton>
+                      )}
                 </div>
             </div>
 
@@ -1348,76 +1409,83 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 ))}
                             </div>
                             <div className="workspace-content-actions">
-                                {tables === "" ? <>
-                                    {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
-                                        <Menu>
-                                            <MenuTrigger disableButtonEnhancement>
-                                                <Button
-                                                    appearance="subtle"
-                                                    iconPosition="after"
-                                                    icon={<ChevronDown24Regular className="table-action-btn" />}
-                                                    className="workspace-upload-btn"
-                                                ><span>Create or Upload</span></Button>
-                                            </MenuTrigger>
+                             {canShowButtons && (
+                                <>
+                                    {tables === "" ? <>
+                                        {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
+                                            <Menu>
+                                                <MenuTrigger disableButtonEnhancement>
+                                                    <Button
+                                                        appearance="subtle"
+                                                        iconPosition="after"
+                                                        icon={<ChevronDown24Regular className="table-action-btn" />}
+                                                        className="workspace-upload-btn"
+                                                    ><span>Create or Upload</span></Button>
+                                                </MenuTrigger>
 
-                                            <MenuPopover
-                                                style={{
-                                                    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                                                    padding: "15px"
-                                                }}
+                                                <MenuPopover
+                                                    style={{
+                                                        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                                                        padding: "15px"
+                                                    }}
+                                                >
+                                                    <MenuList>
+                                                        <MenuItem
+                                                            key="folder"
+                                                            icon={<ArrowUpload20Regular style={{ color: "#0078D4" }} />}
+                                                            onClick={() => {
+                                                                setFileType("upload");
+                                                                setIsOpenUploadPanel(true);
+                                                            }}
+                                                        >
+                                                            Files Upload
+                                                        </MenuItem>
+                                                        <MenuItem
+                                                            key="word"
+                                                            icon={<Icon iconName="WordDocument" style={{ color: "#2B579A", fontSize: 20 }} />}
+                                                            onClick={() => {
+                                                                setFileType("docx");
+                                                                setIsOpenUploadPanel(true);
+                                                            }}
+                                                        >
+                                                            Word Document
+                                                        </MenuItem>
+                                                        <MenuItem
+                                                            key="excel"
+                                                            icon={<Icon iconName="ExcelDocument" style={{ color: "#217346", fontSize: 20 }} />}
+
+                                                            onClick={() => {
+                                                                setFileType("xlsx");
+                                                                setIsOpenUploadPanel(true);
+                                                            }}
+                                                        >
+                                                            Excel Document
+                                                        </MenuItem>
+                                                    </MenuList>
+                                                </MenuPopover>
+                                            </Menu>
+                                            // <DefaultButton text="Create or Upload" menuProps={uploadMenuProps} styles={{ root: { marginRight: 8 } }} />
+
+
+
+                                            : <></>}
+                                        {files.length === 0 ?
+                                            <PrimaryButton
+                                                onClick={() => { setIsOpenFolderPanel(true); setFolderName(""); setFolderNameErr(""); }}
+                                                className="workspace-new-folder-btn"
+                                                data-testid="button-new-folder"
                                             >
-                                                <MenuList>
-                                                    <MenuItem
-                                                        key="folder"
-                                                        icon={<ArrowUpload20Regular style={{ color: "#0078D4" }} />}
-                                                        onClick={() => {
-                                                            setFileType("upload");
-                                                            setIsOpenUploadPanel(true);
-                                                        }}
-                                                    >
-                                                        Files Upload
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        key="word"
-                                                        icon={<Icon iconName="WordDocument" style={{ color: "#2B579A", fontSize: 20 }} />}
-                                                        onClick={() => {
-                                                            setFileType("docx");
-                                                            setIsOpenUploadPanel(true);
-                                                        }}
-                                                    >
-                                                        Word Document
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        key="excel"
-                                                        icon={<Icon iconName="ExcelDocument" style={{ color: "#217346", fontSize: 20 }} />}
+                                                <FolderAdd20Regular className="workspace-btn-icon" />
+                                                <span>{DisplayLabel.NewFolder} </span>
+                                            </PrimaryButton> : <></>}
+                                    </> : <> </>
+                                    }
 
-                                                        onClick={() => {
-                                                            setFileType("xlsx");
-                                                            setIsOpenUploadPanel(true);
-                                                        }}
-                                                    >
-                                                        Excel Document
-                                                    </MenuItem>
-                                                </MenuList>
-                                            </MenuPopover>
-                                        </Menu>
-                                        // <DefaultButton text="Create or Upload" menuProps={uploadMenuProps} styles={{ root: { marginRight: 8 } }} />
+                                
+                                </>
+                             )} 
 
-
-
-                                        : <></>}
-                                    {files.length === 0 ?
-                                        <PrimaryButton
-                                            onClick={() => { setIsOpenFolderPanel(true); setFolderName(""); setFolderNameErr(""); }}
-                                            className="workspace-new-folder-btn"
-                                            data-testid="button-new-folder"
-                                        >
-                                            <FolderAdd20Regular className="workspace-btn-icon" />
-                                            <span>{DisplayLabel.NewFolder} </span>
-                                        </PrimaryButton> : <></>}
-                                </> : <> </>
-                                }
-
+                               
 
                                 {selectedFolder?.children.length !== 0 && (
                                     <Menu>
