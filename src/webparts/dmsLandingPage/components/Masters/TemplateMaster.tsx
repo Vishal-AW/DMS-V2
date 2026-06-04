@@ -116,10 +116,22 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
 
         const name = Template.trim().toLowerCase();
 
+        
+        if (name !== name?.trim()) {
+              // Starting or ending space validation
+            setTemplateErr("Spaces are not allowed at starting or ending");
+            return false;
+        }
         if (!name) {
             setTemplateErr("Template Name is required");
             return false;
         }
+          // Special character validation
+        else if (!/^[a-zA-Z0-9 ]+$/.test(name)) {
+             setTemplateErr("Special characters are not allowed");
+            return false;
+        }
+
 
         // Duplicate validation
         const isDuplicate = tableData.some((item: any) =>

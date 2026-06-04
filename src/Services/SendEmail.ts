@@ -13,7 +13,10 @@ export async function TileSendMail(context: WebPartContext, docinfo: any) {
         MailBody += "I kindly request your approval for the document, <b>" + docinfo.DocName + "</b>. ";
         MailBody += "Please review the content at your convenience and let us know if any revisions or adjustments are required.";
     }
-    else if (docinfo.Status === "PendingWithPM" || docinfo.Status === "Published") {
+    else if (docinfo.Status === "PendingWithPM" ) {
+        MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and pending with PM.";
+    }
+    else if (docinfo.Status === "Published") {
         MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and published.";
     }
     else if (docinfo.Status === "Rejected") {

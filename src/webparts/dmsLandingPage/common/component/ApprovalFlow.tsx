@@ -63,6 +63,61 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
     // const truncateText = (text: string, maxLength: number) => {
     //     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
     // };
+
+    
+    const archiveColumns: any= [
+        {
+            headerName: "Sr.No",
+            width: 100,
+            valueGetter: (params: any) => params.node.rowIndex + 1
+        },
+       {
+            headerName: "Name",
+            field: "ActualName",
+            width: 300,
+            valueGetter: (params: any) =>
+                params.data?.ActualName || "",
+            cellRenderer: (params: any) => {
+                return (
+                    <a
+                        style={{
+                            color: "#009ef7",
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            wordBreak: "break-word"
+                        }}
+                        onClick={() => {
+                            if (params.data?.File?.LinkingUrl === "") {
+                                window.open(params.data?.File?.ServerRelativeUrl, "_blank");
+                            } else {
+                                window.open(params.data?.File?.LinkingUrl, "_blank");
+                            }
+                        }}
+                    >
+                        {params.data?.ActualName}
+                    </a>
+                );
+            }
+        },
+        {
+            headerName: "Folder Path",
+            field: "FileDirRef",
+            flex: 1
+        },
+        {
+            headerName: "Submitted By",
+            flex: 1,
+            valueGetter: (params: any) =>
+                params.data?.Author?.Title || ""
+        },
+        {
+            headerName: "Status",
+            flex: 1,
+            valueGetter: (params: any) =>
+                params.data?.DisplayStatus || ""
+        }
+    ];
+
     const columns: any = [
         {
             Header: DisplayLabel.FileName, accessor: "Name", Cell: ({ row }: { row: any; }) => <a style={{
@@ -270,7 +325,20 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
 
     return (
         <>
-            <ReusableDataTable rowData={files} columnDefs={columns} />
+            {/* <ReusableDataTable rowData={files} columnDefs={columns} /> */}
+              {
+            action === "Archive" ? (
+                <ReusableDataTable
+                    rowData={files || []}
+                    columnDefs={archiveColumns}
+                />
+            ) : (
+                <ReusableDataTable
+                    rowData={files || []}
+                    columnDefs={columns}
+                />
+            )
+        }
 
             <Panel
                 headerText={DisplayLabel.Approval}

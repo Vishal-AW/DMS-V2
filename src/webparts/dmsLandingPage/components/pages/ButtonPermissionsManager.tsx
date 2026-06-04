@@ -79,15 +79,16 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
     const filtered = COMMON_ICONS.filter(n => n.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div className="bpm-icon-picker" style={{ position: 'relative' }}>
-            <div className="bpm-icon-preview" onClick={() => setOpen(o => !o)} title="Change icon">
+        <div className="bpm-icon-picker" style={{ position: 'relative', width: 2 }}>
+            <div className="bpm-icon-preview" onClick={() => setOpen(o => !o)} title="Change icon"    >
                 <DynamicIcon name={value} size={18} />
-                <span className="bpm-icon-name">{value || '—'}</span>
-                <FluentIcons.ChevronDown16Regular style={{ marginLeft: 4, color: '#605e5c' }} />
+                <span></span>
+                {/* <span className="bpm-icon-name">{value || '—'}</span> */}
+                <FluentIcons.ChevronDown16Regular style={{ marginLeft: 30, color: '#605e5c' }} />
             </div>
             {open && (
                 <div className="bpm-icon-dropdown">
-                    <input
+                    <input 
                         className="bpm-icon-search"
                         placeholder="Search icon..."
                         value={search}

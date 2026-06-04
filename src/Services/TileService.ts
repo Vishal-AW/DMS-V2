@@ -256,6 +256,16 @@ export const createTileAccessGroup = async (
     await group.setUserAsOwner(currentUserId);
   }
 
+      // Then update group settings
+  await group.update({
+    AllowMembersEditMembership: true,
+    OnlyAllowMembersViewMembership: false,
+    AllowRequestToJoinLeave: false,
+    AutoAcceptRequestToJoinLeave: false,
+  });
+
+
+  
   for (const principal of principals) {
     if (!principal.loginName) {
       continue;

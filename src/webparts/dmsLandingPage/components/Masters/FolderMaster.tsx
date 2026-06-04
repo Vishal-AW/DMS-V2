@@ -204,11 +204,17 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
         clearErrors();
         let isValid = true;
 
+         const Folder = FolderName.trim().toLowerCase();
+
         if (!FolderName.trim()) {
             setNameError("This field is required");
             isValid = false;
         }
-
+        
+        if (!/^[a-zA-Z0-9 ]+$/.test(Folder)) {
+             setNameError("Special characters are not allowed");
+            return false;
+        }
         if (!TemplateNameId) {
             setTemplateError("This field is required");
             isValid = false;
