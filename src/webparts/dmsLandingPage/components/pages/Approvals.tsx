@@ -523,7 +523,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                 </div>
               </div>
               <div className="meta-panel-quick-actions">
-                <button
+                {/* <button
                   className="meta-panel-quick-btn"
                   onClick={() => {
                     if (metadataDoc?.File?.LinkingUrl === "")
@@ -535,7 +535,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                 >
                   <Eye20Regular className="meta-panel-quick-icon" />
                   <span>View Document</span>
-                </button>
+                </button> */}
                 <button
                   className="meta-panel-quick-btn"
                   onClick={() => {

@@ -7,10 +7,19 @@ import "@pnp/sp/batching";
 import { PermissionKind } from "@pnp/sp/security";
 import { isButtonPermitted, IDmsButton } from "./buttonPermissionHelper";
 
+// export const getAllButtonsAdmin = async (context: WebPartContext) => {
+//     const sp = spfi().using(SPFx(context));
+//     return await sp.web.lists.getByTitle("DMS_Buttons").items
+//         .select("*")
+//         .orderBy("Sequence", true)();
+// };
+
+//Set to get only active buttons
 export const getAllButtonsAdmin = async (context: WebPartContext) => {
     const sp = spfi().using(SPFx(context));
     return await sp.web.lists.getByTitle("DMS_Buttons").items
         .select("*")
+        .filter("Active eq 1")
         .orderBy("Sequence", true)();
 };
 

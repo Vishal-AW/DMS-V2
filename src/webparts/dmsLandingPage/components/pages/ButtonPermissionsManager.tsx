@@ -41,10 +41,10 @@ interface IButtonPermissionsManagerProps {
 }
 
 const PERMISSION_COLS: { key: keyof IButtonRow; label: string; color: string; }[] = [
-    { key: 'FullControl', label: 'Full Control', color: '#d13438' },
-    { key: 'Contribute', label: 'Contribute', color: '#0078d4' },
-    { key: 'Edit', label: 'Edit', color: '#107c10' },
-    { key: 'Read', label: 'Read', color: '#8764b8' },
+    { key: 'FullControl', label: 'FULL CONTROL', color: '#d13438' },
+    { key: 'Contribute', label: 'CONTRIBUTE', color: '#0078d4' },
+    { key: 'Edit', label: 'EDIT', color: '#107c10' },
+    { key: 'Read', label: 'READ', color: '#8764b8' },
 ];
 
 const BUTTON_TYPES = ['Document', 'Folder', 'Page', 'Other'];
@@ -145,6 +145,26 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                 _dirty: false,
                 _saving: false,
             }));
+
+            //   const items: IButtonRow[] = (res || [])
+            //     .filter((item: any) => item.Active === true)
+            //     .map((item: any) => ({
+            //         ID: item.ID,
+            //         Title: item.Title || '',
+            //         InternalName: item.InternalName || '',
+            //         Active: !!item.Active,
+            //         Sequence: item.Sequence ?? 0,
+            //         ButtonType: item.ButtonType || '',
+            //         ButtonDisplayName: item.ButtonDisplayName || '',
+            //         Icons: item.Icons || '',
+            //         FullControl: !!item.FullControl,
+            //         Contribute: !!item.Contribute,
+            //         Edit: !!item.EditPermission,
+            //         Read: !!item.ReadPermission,
+            //         _dirty: false,
+            //         _saving: false,
+            //     }));
+
             setRows(items);
         } catch (err) {
             console.error(err);
@@ -217,6 +237,13 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
         const matchesType = filterType === 'All' || r.ButtonType === filterType;
         return matchesSearch && matchesType;
     });
+
+    const toggleAllColumn = (key: keyof IButtonRow, checked: boolean) => {
+        const visibleIds = new Set(filteredRows.map(r => r.ID));
+        setRows(prev => prev.map(r => 
+            visibleIds.has(r.ID) ? { ...r, [key]: checked, _dirty: true } : r
+        ));
+    };
 
     const dirtyCount = rows.filter(r => r._dirty).length;
 
@@ -310,26 +337,63 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                 <table className="bpm-table">
                     <thead>
                         <tr>
-                            <th className="bpm-th bpm-th-seq">Seq.</th>
-                            <th className="bpm-th">Title</th>
-                            <th className="bpm-th">Display Name</th>
-                            <th className="bpm-th bpm-th-icon">Icon</th>
-                            <th className="bpm-th bpm-th-toggle">Active</th>
+                            <th rowSpan={2} className="bpm-th bpm-th-seq" style={{ verticalAlign: 'top', paddingTop: '12px' }}>SR.NO</th>
+                            <th rowSpan={2} className="bpm-th" style={{ verticalAlign: 'top', paddingTop: '12px' }}>TITLE</th>
+                            <th rowSpan={2} className="bpm-th" style={{ verticalAlign: 'top', paddingTop: '12px' }}>DISPLAY NAME</th>
+                            <th rowSpan={2} className="bpm-th bpm-th-icon" style={{ verticalAlign: 'top', paddingTop: '12px' }}>ICON</th>
+                            <th rowSpan={2} className="bpm-th bpm-th-toggle" style={{ verticalAlign: 'top', paddingTop: '12px' }}>ACTIVE</th>
                             {/* Permission matrix columns */}
                             {PERMISSION_COLS.map(col => (
-                                <th key={col.key as string} className="bpm-th bpm-th-perm" style={{ '--perm-color': col.color } as React.CSSProperties}>
+                                <th 
+                                    key={col.key as string} 
+                                    className="bpm-th bpm-th-perm" 
+                                    style={{ '--perm-color': col.color, borderBottom: 'none', paddingBottom: 0, textAlign: 'center', verticalAlign: 'top', paddingTop: '12px' } as React.CSSProperties}
+                                >
                                     <span className="bpm-perm-label" style={{ color: col.color }}>{col.label}</span>
                                 </th>
                             ))}
-                            <th className="bpm-th bpm-th-action">Action</th>
+                            <th rowSpan={2} className="bpm-th bpm-th-action" style={{ verticalAlign: 'top', paddingTop: '12px' }}>ACTION</th>
+                        </tr>
+                        <tr>
+                            {/* Secondary header row for Select All checkboxes */}
+                            {PERMISSION_COLS.map(col => {
+                                const isAllChecked = filteredRows.length > 0 && filteredRows.every(r => !!r[col.key]);
+                                return (
+                                    <th key={`select-all-${col.key as string}`} className="bpm-th bpm-th-perm" style={{ '--perm-color': col.color, borderTop: 'none', paddingTop: 4 } as React.CSSProperties}>
+                                        <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
+                                            <Checkbox
+                                                checked={isAllChecked}
+                                                onChange={(_, checked) => toggleAllColumn(col.key, !!checked)}
+                                                styles={{
+                                                    checkbox: {
+                                                        borderColor: isAllChecked ? col.color : '#c8c6c4',
+                                                        background: isAllChecked ? col.color : 'transparent',
+                                                        width: 16,
+                                                        height: 16
+                                                    },
+                                                    checkmark: { color: '#fff', fontSize: 10 }
+                                                }}
+                                            />
+                                        </div>
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
                     <tbody>
                         {filteredRows.length === 0 && (
                             <tr>
-                                <td colSpan={10} className="bpm-empty-row">
+                                {/* <td colSpan={10} className="bpm-empty-row">
                                     <FluentIcons.DocumentSearch24Regular style={{ color: '#c8c6c4', marginBottom: 6 }} />
                                     <span>No buttons match your search.</span>
+                                </td> */}
+                                 <td colSpan={10}>
+                                    <div className="bpm-empty-row">
+                                        <FluentIcons.DocumentSearch24Regular
+                                            style={{ color: '#c8c6c4' }}
+                                        />
+                                        <span>No buttons match your search.</span>
+                                    </div>
                                 </td>
                             </tr>
                         )}

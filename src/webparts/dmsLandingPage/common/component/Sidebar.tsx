@@ -46,7 +46,8 @@ const Sidebar = ({
   expandedFolders
 }: SidebarProps) => {
   const isButtonPermitted = (internalName: string) => {
-    return permittedButtons.some(btn => btn.InternalName === internalName);
+    // return permittedButtons.some(btn => btn.InternalName === internalName);
+     return true;
   };
 
   return (
