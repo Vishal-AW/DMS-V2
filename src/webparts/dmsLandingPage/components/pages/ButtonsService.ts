@@ -33,8 +33,8 @@ export const updateButtonsBatch = async (context: WebPartContext, items: any[]) 
     const [batchedSP, execute] = sp.web.batched();
     const list = batchedSP.lists.getByTitle("DMS_Buttons");
 
-    items.forEach(item => {
-        list.items.getById(item.ID).update({
+    items.forEach(async item => {
+        await list.items.getById(item.ID).update({
             Title: item.Title,
             InternalName: item.InternalName,
             Active: item.Active,
