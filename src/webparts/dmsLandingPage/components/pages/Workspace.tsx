@@ -133,6 +133,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return isValidUser || tileData?.TileAdminId === UserID;
     }, [isValidUser, tileData, UserID]);
 
+     const ShowHideDeleteOption = useMemo(() => {
+        return isValidUser || tileData?.TileAdminId === UserID;
+    }, [isValidUser, tileData, UserID]);
+
     //Added New
     const [canShowButtons, setCanShowButtons] = useState(false);
 
@@ -842,8 +846,18 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return visibleButtons.filter((btn) => btn.ButtonType === "Document")
             .filter((btn) => {
                 switch (btn.key) {
-                    case "Delete":
-                       return !tileData?.IsArchiveRequired;
+                    // case "Delete":
+                    //    return !tileData?.IsArchiveRequired;
+
+                  case "Delete":
+                    return (
+                        !tileData?.IsArchiveRequired &&
+                        (
+                            canCreateRequest ||
+                            tileData?.AuthorId === UserID
+                        )
+                    );
+
                     case "OpenInApp":
                         const isCheck = checkExtension(item.data.Name);
                         return isCheck;

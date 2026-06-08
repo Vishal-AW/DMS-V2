@@ -60,7 +60,7 @@ export const getPermittedButtons = async (context: WebPartContext, libraryName?:
         .getByTitle('DMS_Buttons')
         .items
         .filter('Active eq 1')
-        .select('Title', 'InternalName', 'ButtonType', 'ButtonDisplayName', 'Icons', 'Sequence', 'FullControl', 'Contribute', 'EditPermission', 'ReadPermission')
+        .select('Title', 'InternalName', 'ButtonType', 'ButtonDisplayName', 'Icons', 'Sequence', 'FullControl', 'Contribute', 'EditPermission', 'ReadPermission','IsSetReadInactive')
         .orderBy('Sequence')();
 
     // 2. Get current user effective permissions
@@ -81,3 +81,4 @@ export const getPermittedButtons = async (context: WebPartContext, libraryName?:
         })
     );
 };
+

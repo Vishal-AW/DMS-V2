@@ -9,7 +9,8 @@ import {
     DefaultButton,
     PrimaryButton,
     Toggle,
-    FontIcon
+    FontIcon,
+    Icon
 } from "@fluentui/react";
 import { Badge, Field } from "@fluentui/react-components";
 import { WebPartContext } from "@microsoft/sp-webpart-base";
@@ -62,6 +63,10 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
     const [isPopupVisible, setIsPopupVisible] = useState(false);
     const [alertMsg, setAlertMsg] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+
+    //Added for showing Template Structure
+    const [isFolderStructureExpanded, setIsFolderStructureExpanded] = useState(false);
+    
 
     useEffect(() => {
         Promise.all([fetchData(), fetchTemplates()]).finally(() => setIsLoading(false));
@@ -388,6 +393,8 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
         return <PageLoader message="Loading folder master..." minHeight="72vh" />;
     }
 
+
+
     return (
 
         <div>
@@ -526,6 +533,10 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
                         onChange={(_, val) => setActive(!!val)}
                     />
                 </Field>
+
+            
+
+                
             </Panel>
 
             <PopupBox
