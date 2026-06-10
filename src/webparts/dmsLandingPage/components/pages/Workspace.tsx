@@ -380,7 +380,12 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             case 'bmp':
                 return <img src={`${filePath}`} alt={DisplayLabel.Preview} />;
             case 'pdf':
-                return <iframe src={`${filePath}`} style={{ width: "100%", height: "80vh" }}></iframe>;
+                //  return <iframe src={`${filePath}`} style={{ width: "100%", height: "80vh" }}></iframe>;
+                return <iframe 
+                    src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                    style={{ width: "100%", height: "80vh" }} 
+                ></iframe>;
+                 
         }
     };
 
