@@ -61,12 +61,38 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
     }, []);
 
+    const normalizeIds = (value: any): number[] => {
+        if (!value) return [];
+
+        if (Array.isArray(value)) return value.map(Number);
+
+        if (typeof value === "number") return [value];
+
+        if (typeof value === "string") {
+            return value
+                .split(",")
+                .map(v => Number(v.trim()))
+                .filter(v => !isNaN(v));
+        }
+
+        if (typeof value === "object" && value.Id) {
+            return [value.Id];
+        }
+
+        return [];
+    };
+
     const hasTilePermission = (tile: any) => {
 
         if (userRole === "ProjectAdmin") return true;
 
-        if (tile.TileAdminId === USERID) return true;
+        //use for single use
+        // if (tile.TileAdminId === USERID) return true;
+        //if ((tile?.TileAdminId || []).includes(USERID)) return true;
 
+         const adminIds = normalizeIds(tile?.TileAdminId);
+
+        if (adminIds.includes(Number(USERID))) return true;
 
         const expectedGroupName = getTileAccessGroupName(tile.LibraryName);
 

@@ -210,26 +210,72 @@ export const addFieldsToDefaultView = async (
     }
 };
 
+//Comment by rupali original code
+// const createList = async (context: WebPartContext, listData: IListSchema[], TileLID: number, isArchive: boolean) => {
+
+//     const sp = spfi().using(SPFx(context));
+//     for (const listDef of listData) {
+//         const listEnsureResult = await sp.web.lists.ensure(listDef.title, "Project Documents Library", listDef.templateType);
+//         const list = listEnsureResult.list;
+//         const listData = await list.select("Id")();
+//         const obj = { LibGuidName: listData?.Id };
+//         isArchive ? "" : await UpdateTileSetting(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, TileLID);
+//         const viewFields: string[] = [];
+//         for (const col of listDef.columns) {
+//             await createColumn(list, col, context);
+//             viewFields.push(col.name);
+//         }
+//         await addFieldsToDefaultView(list, viewFields);
+//     }
+// };
+
+const columnsToIndex = ["FSObjType", "FileLeafRef", "FileDirRef", "Modified", "Created"];
 
 const createList = async (context: WebPartContext, listData: IListSchema[], TileLID: number, isArchive: boolean) => {
 
     const sp = spfi().using(SPFx(context));
+
     for (const listDef of listData) {
         const listEnsureResult = await sp.web.lists.ensure(listDef.title, "Project Documents Library", listDef.templateType);
         const list = listEnsureResult.list;
-        const listData = await list.select("Id")();
-        const obj = { LibGuidName: listData?.Id };
+
+        // Index built-in threshold columns right after list is ensured
+        for (const colName of columnsToIndex) {
+            try {
+                await list.fields
+                    .getByInternalNameOrTitle(colName)
+                    .update({ Indexed: true });
+                console.log(`Indexed: ${colName}`);
+            } catch (err) {
+                console.warn(`Skipped indexing ${colName}:`, err);
+            }
+        }
+
+        const listInfo = await list.select("Id")();
+        const obj = { LibGuidName: listInfo?.Id };
         isArchive ? "" : await UpdateTileSetting(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, TileLID);
+
         const viewFields: string[] = [];
         for (const col of listDef.columns) {
             await createColumn(list, col, context);
             viewFields.push(col.name);
+
+            // Also index custom columns marked as indexed in schema
+            if (col.indexed) {
+                try {
+                    await list.fields
+                        .getByInternalNameOrTitle(col.name)
+                        .update({ Indexed: true });
+                    console.log(`Indexed custom column: ${col.name}`);
+                } catch (err) {
+                    console.warn(`Could not index custom column ${col.name}:`, err);
+                }
+            }
         }
+
         await addFieldsToDefaultView(list, viewFields);
     }
 };
-
-
 
 
 export async function GetListData(context: WebPartContext, query: string) {

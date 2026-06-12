@@ -6,7 +6,7 @@ import "@pnp/sp/site-groups/web";
 import "@pnp/sp/security/web";
 import { IPersonaProps } from "@fluentui/react";
 
-export type TilePermissionLevel = "Read" | "Contribute";
+export type TilePermissionLevel = "Read" | "Contribute" | "FullControl";
 
 export interface ITileAccessPrincipal extends IPersonaProps {
   principalId: number;
@@ -17,6 +17,7 @@ export interface ITileAccessPrincipal extends IPersonaProps {
 const SHAREPOINT_ROLE_IDS: Record<TilePermissionLevel, number> = {
   Read: 1073741826,
   Contribute: 1073741827,
+  FullControl: 1073741829,
 };
 
 const USER_PRINCIPAL_TYPES = new Set<number>([1, 4, 8]);
@@ -101,6 +102,8 @@ export const getSharePointRoleDefinitionId = (permissionLevel: TilePermissionLev
 
 export const getTileAccessGroupName = (tileName: string): string => `Tile - ${tileName?.trim()}`;
 
+export const getTileAccessGroupNameAdmin = (tileName: string): string => `TileAdmin - ${tileName?.trim()}`;
+
 export const getCurrentUserGroupTitles = async (
   context: WebPartContext,
   useCache = true
@@ -140,6 +143,10 @@ export const getCurrentUserGroupTitles = async (
 
 export const userHasAccessToTile = (tileName: string, groupTitles: Set<string>): boolean =>
   groupTitles.has(getTileAccessGroupName(tileName).toLowerCase());
+
+//Admin Tile
+export const userHasAccessToTileAdmin = (tileName: string, groupTitles: Set<string>): boolean =>
+  groupTitles.has(getTileAccessGroupNameAdmin(tileName).toLowerCase());
 
 export const searchTileAccessPrincipals = async (
   context: WebPartContext,
@@ -281,6 +288,77 @@ export const createTileAccessGroup = async (
   return groupInfo;
 };
 
+//To create admin group
+export const createTileAdminGroup = async (
+  context: WebPartContext,
+  tileName: string,
+  principals: ITileAccessPrincipal[]
+): Promise<{ Id: number; Title: string; LoginName: string }> => {
+
+  const sp = createSp(context);
+  //const groupName = `${tileName}_Admins`;
+   const groupName = getTileAccessGroupNameAdmin(tileName);
+
+  let groupInfo: { Id: number; Title: string; LoginName: string };
+
+  try {
+    const existingGroup = await sp.web.siteGroups.getByName(groupName)();
+    return {
+      Id: existingGroup.Id,
+      Title: existingGroup.Title,
+      LoginName: existingGroup.LoginName
+    };
+  } catch (error) {
+
+    const errorMessage = error instanceof Error ? error.message : "";
+    const errorStatus =
+      (error as any)?.status ||
+      (error as any)?.data?.response?.status;
+
+    const isMissingGroupError =
+      errorStatus === 404 ||
+      errorMessage.includes("does not exist") ||
+      errorMessage.includes("404");
+
+    if (!isMissingGroupError) {
+      throw error;
+    }
+
+    groupInfo = await sp.web.siteGroups.add({
+      Title: groupName,
+      Description: `Admin group for tile "${tileName}"`,
+      AllowMembersEditMembership: true,
+      AllowRequestToJoinLeave: false,
+      AutoAcceptRequestToJoinLeave: false,
+      OnlyAllowMembersViewMembership: false,
+    });
+  }
+
+  const group = sp.web.siteGroups.getById(groupInfo.Id);
+
+  const currentUserId = context.pageContext.legacyPageContext.userId;
+
+  if (currentUserId) {
+    await group.setUserAsOwner(currentUserId);
+  }
+
+  for (const principal of principals) {
+    if (!principal.loginName) continue;
+
+    try {
+      await group.users.add(principal.loginName);
+    } catch (error) {
+      console.warn(
+        `Unable to add ${principal.loginName} to ${groupName}`,
+        error
+      );
+    }
+  }
+
+  return groupInfo;
+};
+
+
 export const syncTileAccessGroupMembers = async (
   context: WebPartContext,
   tileName: string,
@@ -349,6 +427,96 @@ export const getTileAccessGroupMembers = async (
 ): Promise<ITileAccessPrincipal[]> => {
   const sp = createSp(context);
   const groupName = getTileAccessGroupName(tileName);
+
+  try {
+    const members = await sp.web.siteGroups.getByName(groupName).users
+      .select("Id", "Title", "Email", "LoginName", "PrincipalType")();
+
+    return sortPrincipals((members || []).map(toUserPrincipal));
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "";
+    const errorStatus = (error as any)?.status || (error as any)?.data?.response?.status;
+    const isMissingGroupError =
+      errorStatus === 404 ||
+      errorMessage.includes("does not exist") ||
+      errorMessage.includes("404");
+
+    if (isMissingGroupError) {
+      return [];
+    }
+
+    throw error;
+  }
+};
+
+export const syncTileAdminGroupMembers = async (
+  context: WebPartContext,
+  tileName: string,
+  principals: ITileAccessPrincipal[]
+): Promise<{ Id: number; Title: string; LoginName: string; }> => {
+  const sp = createSp(context);
+  const groupName = getTileAccessGroupNameAdmin(tileName);
+  const desiredPrincipals = sortPrincipals(
+    principals.filter((principal) => !!principal?.loginName)
+  );
+
+  let groupInfo: { Id: number; Title: string; LoginName: string; };
+
+  try {
+    groupInfo = await sp.web.siteGroups.getByName(groupName)();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "";
+    const errorStatus = (error as any)?.status || (error as any)?.data?.response?.status;
+    const isMissingGroupError =
+      errorStatus === 404 ||
+      errorMessage.includes("does not exist") ||
+      errorMessage.includes("404");
+
+    if (!isMissingGroupError) {
+      throw error;
+    }
+
+    return createTileAccessGroup(context, tileName, desiredPrincipals);
+  }
+
+  const group = sp.web.siteGroups.getById(groupInfo.Id);
+  const existingMembers = await getTileAccessGroupMembersforAdmin(context, tileName);
+  const existingLoginNames = new Set(
+    existingMembers.map((member) => member.loginName.toLowerCase())
+  );
+  const desiredLoginNames = new Set(
+    desiredPrincipals.map((member) => member.loginName.toLowerCase())
+  );
+
+  for (const principal of desiredPrincipals) {
+    if (!existingLoginNames.has(principal.loginName.toLowerCase())) {
+      try {
+        await group.users.add(principal.loginName);
+      } catch (error) {
+        console.warn(`Unable to add ${principal.loginName} to ${groupName}.`, error);
+      }
+    }
+  }
+
+  for (const member of existingMembers) {
+    if (!desiredLoginNames.has(member.loginName.toLowerCase())) {
+      try {
+        await group.users.removeById(member.principalId);
+      } catch (error) {
+        console.warn(`Unable to remove ${member.loginName} from ${groupName}.`, error);
+      }
+    }
+  }
+
+  return groupInfo;
+};
+
+export const getTileAccessGroupMembersforAdmin = async (
+  context: WebPartContext,
+  tileName: string
+): Promise<ITileAccessPrincipal[]> => {
+  const sp = createSp(context);
+  const groupName = getTileAccessGroupNameAdmin(tileName);
 
   try {
     const members = await sp.web.siteGroups.getByName(groupName).users

@@ -128,14 +128,37 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const selectedFolderRef = useRef<any | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
+    const [isIndexing, setIsIndexing] = React.useState(false);
+    const [indexStatus, setIndexStatus] = React.useState("");
     
-    const canCreateRequest = useMemo(() => {
-        return isValidUser || tileData?.TileAdminId === UserID;
-    }, [isValidUser, tileData, UserID]);
+    // const canCreateRequest = useMemo(() => {
+    //     return isValidUser || tileData?.TileAdminId === UserID;
+    // }, [isValidUser, tileData, UserID]);
 
-     const ShowHideDeleteOption = useMemo(() => {
-        return isValidUser || tileData?.TileAdminId === UserID;
-    }, [isValidUser, tileData, UserID]);
+    //  const ShowHideDeleteOption = useMemo(() => {
+    //     return isValidUser || tileData?.TileAdminId === UserID;
+    // }, [isValidUser, tileData, UserID]);
+
+    const canCreateRequest = useMemo(() => {
+        const tileAdminIds = Array.isArray(tileData?.TileAdminId)
+            ? tileData.TileAdminId
+            : tileData?.TileAdminId
+                ? [tileData.TileAdminId]
+                : [];
+
+        return isValidUser || tileAdminIds.includes(UserID);
+    }, [isValidUser, tileData?.TileAdminId, UserID]);
+
+
+    const ShowHideDeleteOption = useMemo(() => {
+        const tileAdminIds = Array.isArray(tileData?.TileAdminId)
+            ? tileData.TileAdminId
+            : tileData?.TileAdminId
+                ? [tileData.TileAdminId]
+                : [];
+
+        return isValidUser || tileAdminIds.includes(UserID);
+    }, [isValidUser, tileData?.TileAdminId, UserID]);
 
     //Added New
     const [canShowButtons, setCanShowButtons] = useState(false);
@@ -228,32 +251,104 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
+    // const fetchFolder = async () => {
+    //     const sp = spfi().using(SPFx(context));
+
+    //     const allFolders: any[] = [];
+
+    //     const items = await sp.web.lists
+    //         .getByTitle(tileData?.LibraryName)
+    //         .items
+    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
+    //         .filter("FSObjType eq 1")
+    //         .top(5000);
+
+    //     for await (const batch of items) {
+    //         allFolders.push(...batch);
+    //     }
+
+    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
+    //     const folder = buildFolderHierarchy(allFolders, rootPath);
+    //     const folderObj = {
+    //         id: 0,
+    //         name: tileData?.LibraryName,
+    //         path: rootPath,
+    //         children: [...folder]
+    //     };
+    //     const nextFolders = [folderObj];
+    //     const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+    //     setFolders(nextFolders);
+    //     expandParentFolders(folderObj);
+    //     setSelectedFolder(preservedFolder);
+    // };
+
+//  
+
+    //original code
+    //  const fetchFolder = async () => {
+    //     const sp = spfi().using(SPFx(context));
+
+    //     const allFolders: any[] = [];
+
+    //     const items = await sp.web.lists
+    //         .getByTitle(tileData?.LibraryName)
+    //         .items
+    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
+    //         //.filter("FSObjType eq 1")
+    //         .top(5000);
+
+    //     for await (const batch of items) {
+    //         allFolders.push(...batch);
+    //     }
+
+    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
+    //     const folder = buildFolderHierarchy(allFolders, rootPath);
+    //     const folderObj = {
+    //         id: 0,
+    //         name: tileData?.LibraryName,
+    //         path: rootPath,
+    //         children: [...folder]
+    //     };
+    //     const nextFolders = [folderObj];
+    //     const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+    //     setFolders(nextFolders);
+    //     expandParentFolders(folderObj);
+    //     setSelectedFolder(preservedFolder);
+    // };
+
     const fetchFolder = async () => {
         const sp = spfi().using(SPFx(context));
-
-        const allFolders: any[] = [];
+        const allItems: any[] = [];
 
         const items = await sp.web.lists
             .getByTitle(tileData?.LibraryName)
             .items
             .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
-            .filter("FSObjType eq 1")
+            // ❌ No server filter — avoids threshold error
             .top(5000);
 
         for await (const batch of items) {
-            allFolders.push(...batch);
+            allItems.push(...batch);
         }
 
+        // Filter folders client-side before building tree
+        const allFolders = allItems.filter(
+            (item) => item.FSObjType === 1 || item.FSObjType === "1"
+        );
+
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
-        const folder = buildFolderHierarchy(allFolders, rootPath);
+        const folder = buildFolderHierarchy(allFolders, rootPath); // only folders passed
         const folderObj = {
             id: 0,
             name: tileData?.LibraryName,
             path: rootPath,
             children: [...folder]
         };
+
         const nextFolders = [folderObj];
-        const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+        const preservedFolder =
+            findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+
         setFolders(nextFolders);
         expandParentFolders(folderObj);
         setSelectedFolder(preservedFolder);
@@ -770,15 +865,27 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         getDocument();
     }, [isOpenUploadPanel]);
 
+    //original code 
+    // const getDocument = async (folderNode?: FolderNode | null) => {
+    //     const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
+    //     if (!folderToLoad) return [];
+    //     if (folderToLoad.isLastLevel) {
+    //         const files = await getAllDocuments(context, folderToLoad.path);
+    //         setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
+    //     } else {
+    //         setFiles([]);
+    //     }
+    // };
+
     const getDocument = async (folderNode?: FolderNode | null) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
-        if (folderToLoad.isLastLevel) {
-            const files = await getAllDocuments(context, folderToLoad.path);
-            setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
-        } else {
-            setFiles([]);
-        }
+
+        const files = await getAllDocuments(context, folderToLoad.path);
+
+        console.log("Files:", files);
+
+        setFiles(files);
     };
 
 
@@ -1111,9 +1218,18 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             { id: selectedFolder?.ProjectmanagerId, type: 'FolderAccess' },
             { id: selectedFolder?.PublisherId, type: 'FolderAccess' },
             ...admin.map((id: any) => ({ id, type: 'Admin' })),
-            ...(tileData?.TileAdminId
-                ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
-                : []),
+            ...(Array.isArray(tileData?.TileAdminId)
+                ? tileData.TileAdminId
+                : tileData?.TileAdminId
+                    ? [tileData.TileAdminId]
+                    : []
+            ).map((id: number) => ({
+                id,
+                type: "TileAdmin"
+            })),
+            // ...(tileData?.TileAdminId
+            //     ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
+            //     : []),
         ];
         const siteRelative = context.pageContext.web.serverRelativeUrl;
 
@@ -1254,24 +1370,25 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
-    // const expandParentFolders = (folder: any) => {
-    //     setExpandedFolders(prev => {
-    //         if (prev.includes(folder?.id)) {
-    //             return prev.filter(id => id !== folder?.id);
-    //         } else {
-    //             return [...prev, folder?.id];
-    //         }
-    //     });
-    // };
-
     const expandParentFolders = (folder: any) => {
         setExpandedFolders(prev => {
-            if (prev.includes(folder.id)) {
-                return prev;
+            if (prev.includes(folder?.id)) {
+                return prev.filter(id => id !== folder?.id);
+            } else {
+                return [...prev, folder?.id];
             }
-            return [...prev, folder.id];
         });
     };
+
+    //comment by rupali
+    // const expandParentFolders = (folder: any) => {
+    //     setExpandedFolders(prev => {
+    //         if (prev.includes(folder.id)) {
+    //             return prev;
+    //         }
+    //         return [...prev, folder.id];
+    //     });
+    // };
 
     const foldersColumn = React.useMemo(() => {
         return [
@@ -1358,6 +1475,40 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return <div className="workspace-page"><PageLoader message="Loading workspace..." minHeight="72vh" /></div>;
     }
 
+
+
+    const handleIndexLibrary =async()=>{
+        const libraryTitle = "SecretarialLegal"; // replace with your library name
+        const columnsToIndex = ["FSObjType", "FileLeafRef", "FileDirRef", "Modified", "Created"];
+        
+        setIsIndexing(true);
+        setIndexStatus("");
+
+         const sp = spfi().using(SPFx(context)); // use your existing context
+        let successCount = 0;
+        try {
+            const list = sp.web.lists.getByTitle(libraryTitle);
+            for (const colName of columnsToIndex) {
+                try {
+                    await list.fields
+                        .getByInternalNameOrTitle(colName)
+                        .update({ Indexed: true });
+                    successCount++;
+                } catch {
+                    console.warn(`Skipped: ${colName}`);
+                }
+            }
+            setIndexStatus(`${successCount}/${columnsToIndex.length} columns indexed.`);
+        } catch (err) {
+            setIndexStatus("❌ Error: Library not found.");
+            console.error(err);
+        } finally {
+            setIsIndexing(false);
+        }
+        //alert("Hi");
+    }
+   
+
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
             <div className="workspace-topbar">
@@ -1387,6 +1538,22 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         </DefaultButton>
                       )}
                 </div>
+
+                <div className="workspace-topbar-actions">
+                      {canCreateRequest && (
+                        <DefaultButton
+                            className="workspace-new-request-btn"
+                            onClick={handleIndexLibrary}
+                            data-testid="button-new-request"
+                        >
+                            <Add20Regular className="workspace-btn-icon" />
+                            <span>Create Index</span>
+                        </DefaultButton>
+                      )}
+                </div>
+           
+
+
             </div>
 
             <div className="workspace-body">

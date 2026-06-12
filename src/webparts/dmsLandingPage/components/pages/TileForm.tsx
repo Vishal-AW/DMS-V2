@@ -61,7 +61,9 @@ import {
     resolveTileAccessPrincipals,
     searchTileAccessPrincipals,
     syncTileAccessGroupMembers,
-    TilePermissionLevel
+    TilePermissionLevel,
+    createTileAdminGroup,
+    syncTileAdminGroupMembers
 } from "../../../../Services/TileService";
 
 interface ITileFormProps {
@@ -130,6 +132,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         archive: <Archive24Regular />,
         team: <People24Regular />
     };
+    const sp = spfi().using(SPFx(context));
 
     const RedundancyDaysData = async () => {
         const ActiveRedundancyDaysData: any = await getActiveRedundancyDays(SiteURL, context.spHttpClient);
@@ -171,7 +174,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         const GetEditData = await getDataById(SiteURL, context.spHttpClient, tileID);
         const EditSettingData = GetEditData.value[0];
 
-        const TileAdminData: any = EditSettingData?.TileAdmin ? ([EditSettingData?.TileAdmin.EMail]) : [];
+         //old admin logic
+        // const TileAdminData: any = EditSettingData?.TileAdmin ? ([EditSettingData?.TileAdmin.EMail]) : [];
+        const TileAdminData: string[] =
+              EditSettingData?.TileAdmin?.map((user: any) => user.EMail) || [];
+
+        const TileAdminIds =
+        EditSettingData?.TileAdmin?.map((user: any) => user.Id) || [];
 
         getAllColumns(EditSettingData?.LibraryName);
 
@@ -216,7 +225,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         setFormData((prevData) => ({
             ...prevData,
             TileName: EditSettingData?.TileName,
-            TileAdminId: EditSettingData?.TileAdmin?.Id,
+            TileAdminId: TileAdminIds,
+            //EditSettingData?.TileAdmin?.Id,
             TileAdminEmail: TileAdminData,
             isTileStatus: EditSettingData?.Active,
             isAllowApprover: EditSettingData?.AllowApprover,
@@ -760,8 +770,16 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             isValidForm = false;
         }
 
-        else if (formData?.TileAdminId === "" || formData?.TileAdminId === undefined) {
-            setErrors(prevData => ({ ...prevData, TileAdmin: DisplayLabel?.ThisFieldisRequired as string }));
+        // else if (formData?.TileAdminId === "" || formData?.TileAdminId === undefined) {
+        //     setErrors(prevData => ({ ...prevData, TileAdmin: DisplayLabel?.ThisFieldisRequired as string }));
+        //     isValidForm = false;
+        // }
+
+        else if (!formData?.TileAdminId?.length) {
+            setErrors(prevData => ({
+                ...prevData,
+                TileAdmin: DisplayLabel?.ThisFieldisRequired as string
+            }));
             isValidForm = false;
         }
 
@@ -816,29 +834,59 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 ArchiveInternal = formData?.Archive?.replace(/[^a-zA-Z0-9]/g, '');
             }
 
+            //Single Tile Amin Logic Start
+            // const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
+            // permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
 
-            const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
-            permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
+            // const principalIds = selectedAccessPrincipals.map(
+            //    (p: any) => p.principalId
+            // );
+            // if (
+            //     formData?.TileAdminId &&
+            //     !principalIds.includes(formData.TileAdminId)
+            // ) {
+            //     principalIds.push(formData.TileAdminId);
+            // }
+            //Single Tile Amin Logic End
+
+            const permissionData = formData?.PermissionIds.map((el: any) => ({
+                Type: "User",
+                IDs: el
+            }));
+
+            // Add all Tile Admins
+            formData?.TileAdminId?.forEach((id: number) => {
+                permissionData.push({
+                    Type: "Admin",
+                    IDs: id
+                });
+            });
+
+            // Add current admin
+            permissionData.push({
+                Type: "Admin",
+                IDs: admin[0]
+            });
 
             const principalIds = selectedAccessPrincipals.map(
-               (p: any) => p.principalId
+                (p:any)=>p.principalId
             );
 
-            // Add Tile Admin if not already present
-            if (
-                formData?.TileAdminId &&
-                !principalIds.includes(formData.TileAdminId)
-            ) {
-                principalIds.push(formData.TileAdminId);
-            }
-
+            // Add all Tile Admins if not already present
+            formData?.TileAdminId?.forEach((id:Number)=>{
+                if(!principalIds.includes(id)){
+                  principalIds.push(id);
+                }
+            })
 
             let option = {
                 __metadata: { type: "SP.Data.DMS_x005f_Mas_x005f_TileListItem" },
                 TileName: formData?.TileName,
                 icon: formData?.icon,
                 accentColor: formData?.accentColor,
-                TileAdminId: formData?.TileAdminId,
+                TileAdminId:{results: formData.TileAdminId},
+                //{results: [formData?.TileAdminId]},
+                //formData?.TileAdminId,
                 AllowApprover: formData?.isAllowApprover,
                 Active: formData?.isTileStatus,
                 IsDynamicReference: formData?.isDynamicReference,
@@ -864,6 +912,33 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 //     selectedAccessPrincipals
                 // );
 
+                //For Admin 
+                // ✅ Resolve TileAdminId independently (not from selectedAccessPrincipals)
+                const adminPrincipals: ITileAccessPrincipal[] = await Promise.all(
+                    (formData?.TileAdminId || []).map(async (userId: number) => {
+                        const user = await sp.web.getUserById(userId)();
+                        return {
+                            principalId: userId,
+                            loginName: user.LoginName,
+                            displayName: user.Title,
+                            principalType: PrincipalType.User,  // ✅ added missing field
+                        };
+                    })
+                );
+
+                // Create Admin group
+                const adminGroup = await createTileAdminGroup(
+                    context,
+                    Internal,
+                    adminPrincipals
+                );
+
+                permissionData.push({
+                    Type: "Group",
+                    IDs: adminGroup.Id,
+                    RoleDefId: 1073741829   // Full Control
+                });
+
                 const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
                     context,
                     principalIds,
@@ -875,6 +950,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                     Internal,
                     resolvedAccessPrincipals
                 );
+                
                 permissionData.push({
                     Type: "Group",
                     IDs: tileAccessGroup.Id,
@@ -911,29 +987,89 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
             createAndUpdateColumn(Internal);
 
-            const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
-            permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
+            // const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
+            // permissionData.push({ Type: "Admin", IDs: formData?.TileAdminId }, { Type: "Admin", IDs: admin[0] });
 
             const permissionIds = formData?.PermissionIds || [];
 
              // Add Tile Admin if not already present
-            if (
-                formData?.TileAdminId &&
-                !permissionIds.includes(formData.TileAdminId)
-            ) {
-                permissionIds.push(formData.TileAdminId);
-            }
+             //Single TileAdmin logic
+            // if (
+            //     formData?.TileAdminId &&
+            //     !permissionIds.includes(formData.TileAdminId)
+            // ) {
+            //     permissionIds.push(formData.TileAdminId);
+            // }
 
 
-            // const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
-            //     context,
-            //     formData?.PermissionIds || [],
-            //     selectedAccessPrincipals
-            // );
+            const backendPermissionIds = formData?.PermissionIds || [];
+            // const selectedAccessIds =
+            //     selectedAccessPrincipals?.map((p: any) => p.principalId) || [];
 
-             const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+            const tileAdminIds = formData?.TileAdminId || [];
+
+            /* =========================
+            1. Build Permission Data
+            ========================= */
+
+            const permissionData = [
+                ...backendPermissionIds.map((id: number) => ({
+                    Type: "User",
+                    IDs: id
+                })),
+                ...tileAdminIds.map((id: number) => ({
+                    Type: "Admin",
+                    IDs: id
+                }))
+            ];
+
+            //Resolve Tile Admin Group
+           
+
+            const adminPrincipals: ITileAccessPrincipal[] = await Promise.all(
+                tileAdminIds.map(async (userId: number) => {
+                    const user = await sp.web.getUserById(userId)();
+
+                    return {
+                        principalId: userId,
+                        loginName: user.LoginName,
+                        displayName: user.Title,
+                        principalType: PrincipalType.User
+                    };
+                })
+            );
+
+            const resolvedAdminPrincipals = await resolveTileAccessPrincipals(
                 context,
-                permissionIds,
+                tileAdminIds,
+                adminPrincipals
+            );
+
+            const tileAdminGroup = await syncTileAdminGroupMembers(
+                context,
+                formData?.LibraryName,
+                resolvedAdminPrincipals
+            );
+
+            permissionData.push({
+                Type: "Group",
+                IDs: tileAdminGroup.Id,
+                RoleDefId: 1073741829 // Full Control
+            });
+                    
+
+            //ACCESS GROUP LOGIC
+            const selectedIds =
+                selectedAccessPrincipals?.map((p: any) => p.principalId) || [];
+
+            const backendIds = formData?.PermissionIds || [];
+
+            const combinedPermissionIds = Array.from(
+                new Set([...backendIds, ...selectedIds])
+            );
+            const resolvedAccessPrincipals = await resolveTileAccessPrincipals(
+                context,
+                combinedPermissionIds,
                 selectedAccessPrincipals
             );
             const tileAccessGroup = await syncTileAccessGroupMembers(
@@ -955,7 +1091,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                 TileName: formData?.TileName,
                 icon: formData?.icon,
                 accentColor: formData?.accentColor,
-                TileAdminId: formData?.TileAdminId,
+                //TileAdminId: formData?.TileAdminId,
+                TileAdminId:{results: formData.TileAdminId},
                 AllowApprover: formData?.isAllowApprover,
                 Active: formData?.isTileStatus,
                 IsDynamicReference: formData?.isDynamicReference,
@@ -1123,17 +1260,24 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                 <label className="tile-form-label">{DisplayLabel.TileAdmin1}<span className="tile-form-required">*</span></label>
                                                 <PeoplePicker
                                                     context={peoplePickerContext}
-                                                    personSelectionLimit={1}
+                                                    personSelectionLimit={5}
                                                     showtooltip={true}
                                                     showHiddenInUI={false}
                                                     ensureUser={true}
                                                     principalTypes={[PrincipalType.User]}
                                                     onChange={(users: any[]) => {
-                                                        setFormData((prevValues) => ({
-                                                            ...prevValues,
-                                                            TileAdminId: users[0]?.id,
-                                                            TileAdminEmail: users[0]?.email
-                                                        }));
+                                                        // setFormData((prevValues) => ({
+                                                        //     ...prevValues,
+                                                        //     TileAdminId: users[0]?.id,
+                                                        //     TileAdminEmail: users[0]?.email
+                                                        // }));
+
+                                                          setFormData((prevValues) => ({
+                                                                ...prevValues,
+                                                                TileAdminId: users.map(user => user.id),
+                                                                //TileAdminEmails: users.map(user => user.email)
+                                                                TileAdminEmail: users.map(user => user.secondaryText)
+                                                            }));
 
                                                     }}
                                                     defaultSelectedUsers={formData?.TileAdminEmail}

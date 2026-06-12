@@ -5,6 +5,7 @@ export interface IColumnSchema {
     LookupField?: string;
     DefaultValue?: string;
     choices?: string[];
+    indexed?: boolean;   //used for indexing here
 }
 
 export interface IListSchema {
