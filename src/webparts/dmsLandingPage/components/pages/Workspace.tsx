@@ -128,37 +128,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const selectedFolderRef = useRef<any | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
-    const [isIndexing, setIsIndexing] = React.useState(false);
-    const [indexStatus, setIndexStatus] = React.useState("");
     
-    // const canCreateRequest = useMemo(() => {
-    //     return isValidUser || tileData?.TileAdminId === UserID;
-    // }, [isValidUser, tileData, UserID]);
-
-    //  const ShowHideDeleteOption = useMemo(() => {
-    //     return isValidUser || tileData?.TileAdminId === UserID;
-    // }, [isValidUser, tileData, UserID]);
-
     const canCreateRequest = useMemo(() => {
-        const tileAdminIds = Array.isArray(tileData?.TileAdminId)
-            ? tileData.TileAdminId
-            : tileData?.TileAdminId
-                ? [tileData.TileAdminId]
-                : [];
+        return isValidUser || tileData?.TileAdminId === UserID;
+    }, [isValidUser, tileData, UserID]);
 
-        return isValidUser || tileAdminIds.includes(UserID);
-    }, [isValidUser, tileData?.TileAdminId, UserID]);
-
-
-    const ShowHideDeleteOption = useMemo(() => {
-        const tileAdminIds = Array.isArray(tileData?.TileAdminId)
-            ? tileData.TileAdminId
-            : tileData?.TileAdminId
-                ? [tileData.TileAdminId]
-                : [];
-
-        return isValidUser || tileAdminIds.includes(UserID);
-    }, [isValidUser, tileData?.TileAdminId, UserID]);
+     const ShowHideDeleteOption = useMemo(() => {
+        return isValidUser || tileData?.TileAdminId === UserID;
+    }, [isValidUser, tileData, UserID]);
 
     //Added New
     const [canShowButtons, setCanShowButtons] = useState(false);
@@ -250,7 +227,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
-
+   //Original Code
     // const fetchFolder = async () => {
     //     const sp = spfi().using(SPFx(context));
 
@@ -261,40 +238,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //         .items
     //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
     //         .filter("FSObjType eq 1")
-    //         .top(5000);
-
-    //     for await (const batch of items) {
-    //         allFolders.push(...batch);
-    //     }
-
-    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
-    //     const folder = buildFolderHierarchy(allFolders, rootPath);
-    //     const folderObj = {
-    //         id: 0,
-    //         name: tileData?.LibraryName,
-    //         path: rootPath,
-    //         children: [...folder]
-    //     };
-    //     const nextFolders = [folderObj];
-    //     const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
-    //     setFolders(nextFolders);
-    //     expandParentFolders(folderObj);
-    //     setSelectedFolder(preservedFolder);
-    // };
-
-//  
-
-    //original code
-    //  const fetchFolder = async () => {
-    //     const sp = spfi().using(SPFx(context));
-
-    //     const allFolders: any[] = [];
-
-    //     const items = await sp.web.lists
-    //         .getByTitle(tileData?.LibraryName)
-    //         .items
-    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
-    //         //.filter("FSObjType eq 1")
     //         .top(5000);
 
     //     for await (const batch of items) {
@@ -354,7 +297,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setSelectedFolder(preservedFolder);
     };
 
-
     const getAdmin = async () => {
         const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
         setAdmin(data.value.map((el: any) => (el.GroupNameId)));
@@ -395,6 +337,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
+  
     const getPendingApprovalData = async () => {
         if (!tileData?.LibraryName) return;
         const pendingApprovalData = await getApprovalData(context, tileData.LibraryName, UserEmailID);
@@ -865,7 +808,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         getDocument();
     }, [isOpenUploadPanel]);
 
-    //original code 
+    //Original Code
     // const getDocument = async (folderNode?: FolderNode | null) => {
     //     const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
     //     if (!folderToLoad) return [];
@@ -877,7 +820,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     }
     // };
 
-    const getDocument = async (folderNode?: FolderNode | null) => {
+     const getDocument = async (folderNode?: FolderNode | null) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
 
@@ -1218,18 +1161,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             { id: selectedFolder?.ProjectmanagerId, type: 'FolderAccess' },
             { id: selectedFolder?.PublisherId, type: 'FolderAccess' },
             ...admin.map((id: any) => ({ id, type: 'Admin' })),
-            ...(Array.isArray(tileData?.TileAdminId)
-                ? tileData.TileAdminId
-                : tileData?.TileAdminId
-                    ? [tileData.TileAdminId]
-                    : []
-            ).map((id: number) => ({
-                id,
-                type: "TileAdmin"
-            })),
-            // ...(tileData?.TileAdminId
-            //     ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
-            //     : []),
+            ...(tileData?.TileAdminId
+                ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
+                : []),
         ];
         const siteRelative = context.pageContext.web.serverRelativeUrl;
 
@@ -1380,7 +1314,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         });
     };
 
-    //comment by rupali
+
     // const expandParentFolders = (folder: any) => {
     //     setExpandedFolders(prev => {
     //         if (prev.includes(folder.id)) {
@@ -1475,40 +1409,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return <div className="workspace-page"><PageLoader message="Loading workspace..." minHeight="72vh" /></div>;
     }
 
-
-
-    const handleIndexLibrary =async()=>{
-        const libraryTitle = "SecretarialLegal"; // replace with your library name
-        const columnsToIndex = ["FSObjType", "FileLeafRef", "FileDirRef", "Modified", "Created"];
-        
-        setIsIndexing(true);
-        setIndexStatus("");
-
-         const sp = spfi().using(SPFx(context)); // use your existing context
-        let successCount = 0;
-        try {
-            const list = sp.web.lists.getByTitle(libraryTitle);
-            for (const colName of columnsToIndex) {
-                try {
-                    await list.fields
-                        .getByInternalNameOrTitle(colName)
-                        .update({ Indexed: true });
-                    successCount++;
-                } catch {
-                    console.warn(`Skipped: ${colName}`);
-                }
-            }
-            setIndexStatus(`${successCount}/${columnsToIndex.length} columns indexed.`);
-        } catch (err) {
-            setIndexStatus("❌ Error: Library not found.");
-            console.error(err);
-        } finally {
-            setIsIndexing(false);
-        }
-        //alert("Hi");
-    }
-   
-
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
             <div className="workspace-topbar">
@@ -1538,22 +1438,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         </DefaultButton>
                       )}
                 </div>
-
-                <div className="workspace-topbar-actions">
-                      {canCreateRequest && (
-                        <DefaultButton
-                            className="workspace-new-request-btn"
-                            onClick={handleIndexLibrary}
-                            data-testid="button-new-request"
-                        >
-                            <Add20Regular className="workspace-btn-icon" />
-                            <span>Create Index</span>
-                        </DefaultButton>
-                      )}
-                </div>
-           
-
-
             </div>
 
             <div className="workspace-body">
