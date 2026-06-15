@@ -227,38 +227,75 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
+   //Original Code
+    // const fetchFolder = async () => {
+    //     const sp = spfi().using(SPFx(context));
+
+    //     const allFolders: any[] = [];
+
+    //     const items = await sp.web.lists
+    //         .getByTitle(tileData?.LibraryName)
+    //         .items
+    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
+    //         .filter("FSObjType eq 1")
+    //         .top(5000);
+
+    //     for await (const batch of items) {
+    //         allFolders.push(...batch);
+    //     }
+
+    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
+    //     const folder = buildFolderHierarchy(allFolders, rootPath);
+    //     const folderObj = {
+    //         id: 0,
+    //         name: tileData?.LibraryName,
+    //         path: rootPath,
+    //         children: [...folder]
+    //     };
+    //     const nextFolders = [folderObj];
+    //     const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+    //     setFolders(nextFolders);
+    //     expandParentFolders(folderObj);
+    //     setSelectedFolder(preservedFolder);
+    // };
 
     const fetchFolder = async () => {
         const sp = spfi().using(SPFx(context));
-
-        const allFolders: any[] = [];
+        const allItems: any[] = [];
 
         const items = await sp.web.lists
             .getByTitle(tileData?.LibraryName)
             .items
             .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
-            .filter("FSObjType eq 1")
+            // ❌ No server filter — avoids threshold error
             .top(5000);
 
         for await (const batch of items) {
-            allFolders.push(...batch);
+            allItems.push(...batch);
         }
 
+        // Filter folders client-side before building tree
+        const allFolders = allItems.filter(
+            (item) => item.FSObjType === 1 || item.FSObjType === "1"
+        );
+
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
-        const folder = buildFolderHierarchy(allFolders, rootPath);
+        const folder = buildFolderHierarchy(allFolders, rootPath); // only folders passed
         const folderObj = {
             id: 0,
             name: tileData?.LibraryName,
             path: rootPath,
             children: [...folder]
         };
+
         const nextFolders = [folderObj];
-        const preservedFolder = findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+        const preservedFolder =
+            findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+
         setFolders(nextFolders);
         expandParentFolders(folderObj);
         setSelectedFolder(preservedFolder);
     };
-
 
     const getAdmin = async () => {
         const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
@@ -300,6 +337,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
+  
     const getPendingApprovalData = async () => {
         if (!tileData?.LibraryName) return;
         const pendingApprovalData = await getApprovalData(context, tileData.LibraryName, UserEmailID);
@@ -770,15 +808,27 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         getDocument();
     }, [isOpenUploadPanel]);
 
-    const getDocument = async (folderNode?: FolderNode | null) => {
+    //Original Code
+    // const getDocument = async (folderNode?: FolderNode | null) => {
+    //     const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
+    //     if (!folderToLoad) return [];
+    //     if (folderToLoad.isLastLevel) {
+    //         const files = await getAllDocuments(context, folderToLoad.path);
+    //         setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
+    //     } else {
+    //         setFiles([]);
+    //     }
+    // };
+
+     const getDocument = async (folderNode?: FolderNode | null) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
-        if (folderToLoad.isLastLevel) {
-            const files = await getAllDocuments(context, folderToLoad.path);
-            setFiles(files.filter((el: any) => (el.ListItemAllFields.Active && (el.ListItemAllFields.InternalStatus === "Published" || el.ListItemAllFields.AuthorId === UserID))) || []);
-        } else {
-            setFiles([]);
-        }
+
+        const files = await getAllDocuments(context, folderToLoad.path);
+
+        console.log("Files:", files);
+
+        setFiles(files);
     };
 
 
@@ -1254,24 +1304,25 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
-    // const expandParentFolders = (folder: any) => {
-    //     setExpandedFolders(prev => {
-    //         if (prev.includes(folder?.id)) {
-    //             return prev.filter(id => id !== folder?.id);
-    //         } else {
-    //             return [...prev, folder?.id];
-    //         }
-    //     });
-    // };
-
     const expandParentFolders = (folder: any) => {
         setExpandedFolders(prev => {
-            if (prev.includes(folder.id)) {
-                return prev;
+            if (prev.includes(folder?.id)) {
+                return prev.filter(id => id !== folder?.id);
+            } else {
+                return [...prev, folder?.id];
             }
-            return [...prev, folder.id];
         });
     };
+
+
+    // const expandParentFolders = (folder: any) => {
+    //     setExpandedFolders(prev => {
+    //         if (prev.includes(folder.id)) {
+    //             return prev;
+    //         }
+    //         return [...prev, folder.id];
+    //     });
+    // };
 
     const foldersColumn = React.useMemo(() => {
         return [
