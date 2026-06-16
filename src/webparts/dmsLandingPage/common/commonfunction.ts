@@ -31,6 +31,7 @@ export function buildBreadcrumbPath(folder: any, allFolders: any[]): any[] {
     findPath(allFolders, folder.id);
     return path;
 }
+
 export const buildFolderHierarchy = (
     folders: any[],
     libraryRoot: string
