@@ -122,9 +122,26 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
 
     };
 
-    const filteredData = tableData.filter((item) =>
-        item.FolderName?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    // const filteredData = tableData.filter((item) =>
+    //     item.FolderName?.toLowerCase().includes(searchText.toLowerCase())
+    // );
+
+    // const filteredData = tableData.filter((item: any) =>
+    //     JSON.stringify(item)
+    //         .toLowerCase()
+    //         .includes(searchText.toLowerCase())
+    // );
+
+    const filteredData = tableData.filter((item: any) => {
+        const search = searchText.trim().toLowerCase();
+
+        return (
+            item.FolderName?.toLowerCase().includes(search) ||
+            item.TemplateName?.Name?.toLowerCase().includes(search) ||
+            item.ParentFolderId?.FolderName?.toLowerCase().includes(search) ||
+            (item.Active ? "active" : "inactive").includes(search)
+        );
+    });
 
     const clearFields = () => {
 
