@@ -42,7 +42,8 @@ export const buildFolderHierarchy = (
         const name = folder.FileRef.split("/").pop() || "";
 
         map.set(folder.FileRef, {
-            id: folder.Id,
+            // id: folder.Id,
+            id: folder.ID,
             name,
             path: folder.FileRef,
             children: [],

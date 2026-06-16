@@ -259,7 +259,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setSelectedFolder(preservedFolder);
     // };
 
-    const fetchFolder = async () => {
+     const fetchFolder = async () => {
         const sp = spfi().using(SPFx(context));
         const allItems: any[] = [];
 
@@ -296,6 +296,45 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         expandParentFolders(folderObj);
         setSelectedFolder(preservedFolder);
     };
+	
+
+    // const fetchFolder = async () => {
+    //     const sp = spfi().using(SPFx(context));
+    //     const allItems: any[] = [];
+
+    //     const items = await sp.web.lists
+    //         .getByTitle(tileData?.LibraryName)
+    //         .items
+    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
+    //         // ❌ No server filter — avoids threshold error
+    //         .top(5000);
+
+    //     for await (const batch of items) {
+    //         allItems.push(...batch);
+    //     }
+
+    //     // Filter folders client-side before building tree
+    //     const allFolders = allItems.filter(
+    //         (item) => item.FSObjType === 1 || item.FSObjType === "1"
+    //     );
+
+    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
+    //     const folder = buildFolderHierarchy(allFolders, rootPath); // only folders passed
+    //     const folderObj = {
+    //         id: 0,
+    //         name: tileData?.LibraryName,
+    //         path: rootPath,
+    //         children: [...folder]
+    //     };
+
+    //     const nextFolders = [folderObj];
+    //     const preservedFolder =
+    //         findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+
+    //     setFolders(nextFolders);
+    //     expandParentFolders(folderObj);
+    //     setSelectedFolder(preservedFolder);
+    // };
 
     const getAdmin = async () => {
         const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
@@ -1304,25 +1343,25 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
-    // const expandParentFolders = (folder: any) => {
-    //     setExpandedFolders(prev => {
-    //         if (prev.includes(folder?.id)) {
-    //             return prev.filter(id => id !== folder?.id);
-    //         } else {
-    //             return [...prev, folder?.id];
-    //         }
-    //     });
-    // };
-
-
     const expandParentFolders = (folder: any) => {
         setExpandedFolders(prev => {
-            if (prev.includes(folder.id)) {
-                return prev;
+            if (prev.includes(folder?.id)) {
+                return prev.filter(id => id !== folder?.id);
+            } else {
+                return [...prev, folder?.id];
             }
-            return [...prev, folder.id];
         });
     };
+
+
+    // const expandParentFolders = (folder: any) => {
+    //     setExpandedFolders(prev => {
+    //         if (prev.includes(folder.id)) {
+    //             return prev;
+    //         }
+    //         return [...prev, folder.id];
+    //     });
+    // };
 
     const foldersColumn = React.useMemo(() => {
         return [
