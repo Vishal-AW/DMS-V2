@@ -46,6 +46,7 @@ export interface IProjectEntryProps {
     folderObject: any;
     folderPath: string;
     ChildFolderRoleInheritance: boolean;
+    onFolderCreated?: () => Promise<void>; // NEW
 }
 
 
@@ -58,7 +59,8 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     FormType,
     folderObject,
     folderPath,
-    ChildFolderRoleInheritance
+    ChildFolderRoleInheritance,
+    onFolderCreated // NEW
 }) => {
     const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
     const [folderName, setFolderName] = useState<string>("");
@@ -548,44 +550,126 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
         });
     };
 
-    const createFolderStructure = async (users: any) => {
-        //  const filterFolders = folderStructure.filter((el: any) => el.TemplateName.Name === folderTemplate);
+    // const createFolderStructure = async (users: any) => {
+    //     //  const filterFolders = folderStructure.filter((el: any) => el.TemplateName.Name === folderTemplate);
+    //     const filterFolders = folderStructure.filter(
+    //         (el: any) => el.TemplateName?.Name === folderTemplate
+    //     );
+    //     const firstlevel = getFirstLevel(filterFolders);
+    //     let count = 0;
+    //     const Updatedfolderpath = TemFolderName ? `${folderName}/${TemFolderName}` : folderName;
+    //     firstlevel.map(async (folder: any) => {
+    //         const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`, users, LibraryDetails.LibraryName, true);
+    //         await updateFolderMetaData(response);
+    //         const ChildLevel = getEqualToData(filterFolders, folder.Id);
+    //         await createChildFolder(ChildLevel, folder.FolderName, users);
+    //         count++;
+    //         if (firstlevel.length === count) {
+    //             dismissPanel(false);
+    //             setShowLoader(false);
+    //             setAlertMsg(DisplayLabel.SubmitMsg);
+    //             setPopupType("insert");
+    //             setIsPopupBoxVisible(true);
+    //         }
+    //     });
+    // };
+
+    // const createChildFolder = async (folder: any, Name: any, users: any) => {
+    //     const basePath = TemFolderName ? `${folderName}/${TemFolderName}` : folderName;
+    //     folder.map(async (folder: any) => {
+    //         const ChildLevel = getEqualToData(folderStructure, folder.Id);
+    //         if (ChildLevel.length > 0) {
+    //             const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folder.FolderName}`, users, LibraryDetails.LibraryName, ChildFolderRoleInheritance);
+    //             await updateFolderMetaData(response);
+    //             await createChildFolder(ChildLevel, `${Name}/${folder.FolderName}`, users);
+    //         }
+    //         else {
+    //             const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folder.FolderName}`, users, LibraryDetails.LibraryName, ChildFolderRoleInheritance);
+    //             await updateFolderMetaData(response);
+    //         }
+    //     });
+    // };
+
+   
+    //New Code 
+
+     const createFolderStructure = async (users: any) => {
         const filterFolders = folderStructure.filter(
             (el: any) => el.TemplateName?.Name === folderTemplate
         );
+
         const firstlevel = getFirstLevel(filterFolders);
-        let count = 0;
-        const Updatedfolderpath = TemFolderName ? `${folderName}/${TemFolderName}` : folderName;
-        firstlevel.map(async (folder: any) => {
-            const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`, users, LibraryDetails.LibraryName, true);
+
+        const Updatedfolderpath = TemFolderName
+            ? `${folderName}/${TemFolderName}`
+            : folderName;
+
+        for (const folder of firstlevel) {
+
+            const response = await FolderStructure(
+                context,
+                `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`,
+                users,
+                LibraryDetails.LibraryName,
+                true
+            );
+
             await updateFolderMetaData(response);
+
             const ChildLevel = getEqualToData(filterFolders, folder.Id);
-            await createChildFolder(ChildLevel, folder.FolderName, users);
-            count++;
-            if (firstlevel.length === count) {
-                dismissPanel(false);
-                setShowLoader(false);
-                setAlertMsg(DisplayLabel.SubmitMsg);
-                setPopupType("insert");
-                setIsPopupBoxVisible(true);
-            }
-        });
+
+            await createChildFolder(
+                ChildLevel,
+                folder.FolderName,
+                users
+            );
+        }
+
+        //added new
+        await onFolderCreated?.();
+        dismissPanel(false);
+
+        setShowLoader(false);
+        setAlertMsg(DisplayLabel.SubmitMsg);
+        setPopupType("insert");
+        setIsPopupBoxVisible(true);
     };
 
-    const createChildFolder = async (folder: any, Name: any, users: any) => {
-        const basePath = TemFolderName ? `${folderName}/${TemFolderName}` : folderName;
-        folder.map(async (folder: any) => {
-            const ChildLevel = getEqualToData(folderStructure, folder.Id);
+    const createChildFolder = async (
+        folder: any,
+        Name: any,
+        users: any
+    ) => {
+
+        const basePath = TemFolderName
+            ? `${folderName}/${TemFolderName}`
+            : folderName;
+
+        for (const folderItem of folder) {
+
+            const ChildLevel = getEqualToData(
+                folderStructure,
+                folderItem.Id
+            );
+
+            const response = await FolderStructure(
+                context,
+                `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folderItem.FolderName}`,
+                users,
+                LibraryDetails.LibraryName,
+                ChildFolderRoleInheritance
+            );
+
+            await updateFolderMetaData(response);
+
             if (ChildLevel.length > 0) {
-                const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folder.FolderName}`, users, LibraryDetails.LibraryName, ChildFolderRoleInheritance);
-                await updateFolderMetaData(response);
-                await createChildFolder(ChildLevel, `${Name}/${folder.FolderName}`, users);
+                await createChildFolder(
+                    ChildLevel,
+                    `${Name}/${folderItem.FolderName}`,
+                    users
+                );
             }
-            else {
-                const response = await FolderStructure(context, `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folder.FolderName}`, users, LibraryDetails.LibraryName, ChildFolderRoleInheritance);
-                await updateFolderMetaData(response);
-            }
-        });
+        }
     };
 
     function getFirstLevel(item: any) {

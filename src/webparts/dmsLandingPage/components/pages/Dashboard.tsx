@@ -168,7 +168,7 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
     }, [searchQuery, tileData]);
 
-    // ✅ LOADING UI
+    // LOADING UI
     if (loading) return (
         <div className="workspace-grid">
             {Array.from({ length: 6 }).map((_, index) => (
@@ -177,7 +177,7 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
         </div>
     );
 
-    // ✅ FINAL UI
+    // FINAL UI
     return (
         <div className="content-area-full" data-testid="page-dashboard">
 

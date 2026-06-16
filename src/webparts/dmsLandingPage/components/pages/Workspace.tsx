@@ -1304,25 +1304,25 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         );
     };
 
-    const expandParentFolders = (folder: any) => {
-        setExpandedFolders(prev => {
-            if (prev.includes(folder?.id)) {
-                return prev.filter(id => id !== folder?.id);
-            } else {
-                return [...prev, folder?.id];
-            }
-        });
-    };
-
-
     // const expandParentFolders = (folder: any) => {
     //     setExpandedFolders(prev => {
-    //         if (prev.includes(folder.id)) {
-    //             return prev;
+    //         if (prev.includes(folder?.id)) {
+    //             return prev.filter(id => id !== folder?.id);
+    //         } else {
+    //             return [...prev, folder?.id];
     //         }
-    //         return [...prev, folder.id];
     //     });
     // };
+
+
+    const expandParentFolders = (folder: any) => {
+        setExpandedFolders(prev => {
+            if (prev.includes(folder.id)) {
+                return prev;
+            }
+            return [...prev, folder.id];
+        });
+    };
 
     const foldersColumn = React.useMemo(() => {
         return [
@@ -1721,7 +1721,22 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
             <AdvancePermission isOpen={isPanelOpen} context={context} folderId={itemId} LibraryName={tileData?.LibraryName} dismissPanel={onDismiss} />
-            {tileData && <ProjectEntryForm isOpen={isCreateProjectPopupOpen} dismissPanel={dissmissProjectCreationPanel} context={context} LibraryDetails={tileData} admin={admin} FormType={formType} folderObject={projectUpdateData} folderPath={selectedFolder?.path} ChildFolderRoleInheritance={tileData?.AllowChildInheritance} />}
+            {/* {tileData && <ProjectEntryForm isOpen={isCreateProjectPopupOpen} dismissPanel={dissmissProjectCreationPanel} context={context} LibraryDetails={tileData} admin={admin} FormType={formType} folderObject={projectUpdateData} folderPath={selectedFolder?.path} ChildFolderRoleInheritance={tileData?.AllowChildInheritance} />} */}
+            
+             {tileData && 
+                 <ProjectEntryForm
+                    isOpen={isCreateProjectPopupOpen}
+                    dismissPanel={dissmissProjectCreationPanel}
+                    context={context}
+                    LibraryDetails={tileData}
+                    admin={admin}
+                    FormType={formType}
+                    folderObject={projectUpdateData}
+                    folderPath={selectedFolder?.path}
+                    ChildFolderRoleInheritance={tileData?.AllowChildInheritance}
+                    onFolderCreated={fetchFolder}   // NEW
+                />
+             }
             <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
 
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={message} />

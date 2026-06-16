@@ -343,7 +343,14 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
 
         {
             headerName: "Template",
-            valueGetter: (params: any) => params.data.TemplateName?.Name
+            // valueGetter: (params: any) => params.data.TemplateName?.Name
+               field: "TemplateName.Name",
+                filter: "agTextColumnFilter",
+                filterParams: {
+                    filterOptions: ["contains", "equals", "notEqual", "startsWith", "endsWith"],
+                    defaultOption: "contains",
+                    caseSensitive: false,
+                },
         },
 
         {
