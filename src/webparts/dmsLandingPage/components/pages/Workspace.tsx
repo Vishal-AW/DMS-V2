@@ -297,11 +297,27 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setSelectedFolder(preservedFolder);
     };
 
+    // const getAdmin = async () => {
+    //     const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
+    //     setAdmin(data.value.map((el: any) => (el.GroupNameId)));
+    //     const isMembers = await isMember(context, "ProjectAdmin");
+    //     setIsValidUser(isMembers.value.length > 0);
+    // };
+
     const getAdmin = async () => {
-        const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
-        setAdmin(data.value.map((el: any) => (el.GroupNameId)));
+        const data = await getListData(
+            `${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`,
+            context
+        );
+
+        setAdmin(data.value.map((el: any) => el.GroupNameId));
         const isMembers = await isMember(context, "ProjectAdmin");
-        setIsValidUser(isMembers.value.length > 0);
+
+        if (isMembers?.value?.length > 0) {
+            setIsValidUser(true);
+        } else {
+            setIsValidUser(false);
+        }
     };
 
     const getDeletedData = async () => {
