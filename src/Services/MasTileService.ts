@@ -37,7 +37,7 @@ export function getTilesByAdminAndAuthor(WebUrl: string, spHttpClient: any, ID: 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
 
   let option = {
-    select: "ID,TileName,TileImageURL,SystemCreated,Documentpath,Active,Order0,AllowApprover,Editor/Title,Modified,LibraryName,LibGuidName,AllowOrder,DynamicControl,IsDynamicReference,ReferenceFormula,Separator,ShowMoreActions,IsArchiveRequired,RetentionDays,ArchiveVersionCount,ArchiveLibraryName,TileAdmin/Id,TileAdmin/Title,TileAdmin/EMail,IsAllowFieldsInFile,CustomPermission,icon,accentColor",
+    select: "ID,TileName,TileImageURL,SystemCreated,Documentpath,Active,Order0,AllowApprover,Editor/Title,Modified,LibraryName,LibGuidName,AllowOrder,DynamicControl,IsDynamicReference,ReferenceFormula,Separator,ShowMoreActions,IsArchiveRequired,RetentionDays,ArchiveVersionCount,ArchiveLibraryName,TileAdmin/Id,TileAdmin/Title,TileAdmin/EMail,IsAllowFieldsInFile,CustomPermission,icon,accentColor,AllowChildInheritance",
     expand: "Editor,TileAdmin",
     filter: filter,
     orderby: "Order0 asc",
