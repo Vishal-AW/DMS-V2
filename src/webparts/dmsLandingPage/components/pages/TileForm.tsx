@@ -194,6 +194,7 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const FilterRetentionDays = currentRedundancyData.find((item: any) => item.label === EditSettingData?.RetentionDays);
             setFormData((prevData) => ({
                 ...prevData, RedundancyData: FilterRetentionDays,
+                 Archive: EditSettingData?.ArchiveLibraryName,//new added
                 ArchiveInternal: EditSettingData?.ArchiveLibraryName,
                 ArchiveVersions: EditSettingData?.ArchiveVersionCount
             }));
@@ -877,7 +878,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
 
             if (formData?.isArchiveAllowed == true) {
-                ArchiveInternal = formData?.Archive?.replace(/[^a-zA-Z0-9]/g, '');
+                if(isEditMode===true){
+                    ArchiveInternal = formData?.ArchiveInternal;
+                }
+                else{
+                    ArchiveInternal = formData?.Archive?.replace(/[^a-zA-Z0-9]/g, '');
+                }
+               
             }
 
             //Single Tile Amin Logic Start
@@ -1200,7 +1207,13 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             if (UpdateTileID != null) {
                 if (UpdateTileID[0].IsArchiveRequired === true) {
                     if (UpdateTileID[0].IsArchiveRequired === true) {
-                        ArchiveInternal = formData?.Archive.replace(/[^a-zA-Z0-9]/g, '');
+
+                       if (UpdateTileID?.[0]?.ArchiveLibraryName !== undefined && UpdateTileID?.[0]?.ArchiveLibraryName !== null) {
+                           ArchiveInternal = formData?.ArchiveInternal;
+                       }
+                       else{
+                          ArchiveInternal = formData?.Archive.replace(/[^a-zA-Z0-9]/g, '');
+                       }                   
                     }
                     else {
                         ArchiveInternal = "";
@@ -1545,7 +1558,22 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                                 <label className="tile-form-label">Is Archive Allowed<span className="tile-form-required">*</span></label>
                                                 <Toggle
                                                     checked={formData?.isArchiveAllowed}
-                                                    onChange={(_, checked) => setFormData((prev: any) => ({ ...prev, isArchiveAllowed: !!checked }))}
+                                                    // onChange={(_, checked) => setFormData((prev: any) => ({ ...prev, isArchiveAllowed: !!checked }))}
+
+                                                    onChange={(_, checked) => {
+                                                        setFormData((prev: any) => ({
+                                                            ...prev,
+                                                            isArchiveAllowed: !!checked
+                                                        }));
+
+                                                        if (!checked) {
+                                                            setErrors(prev => ({
+                                                                ...prev,
+                                                                RedundancyData: "",
+                                                                ArchiveVersions: ""
+                                                            }));
+                                                        }
+                                                    }}
                                                     className="tile-form-toggle"
                                                     data-testid="toggle-archive-allowed"
                                                 />
