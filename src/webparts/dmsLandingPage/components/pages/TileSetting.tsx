@@ -33,17 +33,60 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
         fetchTileData();
     }, [isOpenEditor]);
 
+    // const fetchTileData = async () => {
+    //     const isMembers = await isMember(context, "ProjectAdmin");
+    //     let FetchallTileData: any = [];
+    //     if (isMembers) {
+    //         FetchallTileData = await getTileAllData(SiteURL, context.spHttpClient);
+    //     } else {
+    //         FetchallTileData = await getTilesByAdminAndAuthor(SiteURL, context.spHttpClient, context.pageContext.legacyPageContext.userId);
+    //     }
+    //     const TilesData = FetchallTileData.value;
+    //     setRowData(TilesData);
+    //     setIsLoading(false);
+    // };
+
+
     const fetchTileData = async () => {
-        const isMembers = await isMember(context, "ProjectAdmin");
-        let FetchallTileData: any = [];
-        if (isMembers) {
-            FetchallTileData = await getTileAllData(SiteURL, context.spHttpClient);
-        } else {
-            FetchallTileData = await getTilesByAdminAndAuthor(SiteURL, context.spHttpClient, context.pageContext.legacyPageContext.userId);
+        setIsLoading(true);
+
+        try {
+            let FetchallTileData: any = [];
+            let isMembers: any = null;
+
+            try {
+                isMembers = await isMember(context, "ProjectAdmin");
+            } catch (error) {
+                console.error("Error checking ProjectAdmin membership:", error);
+                isMembers = { value: [] };
+                FetchallTileData = await getTilesByAdminAndAuthor(
+                    SiteURL,
+                    context.spHttpClient,
+                    context.pageContext.legacyPageContext.userId
+                );
+            }
+
+            if (isMembers?.value?.length > 0) {
+                FetchallTileData = await getTileAllData(
+                    SiteURL,
+                    context.spHttpClient
+                );
+            } else {
+                FetchallTileData = await getTilesByAdminAndAuthor(
+                    SiteURL,
+                    context.spHttpClient,
+                    context.pageContext.legacyPageContext.userId
+                );
+            }
+
+            const TilesData = FetchallTileData?.value || [];
+            setRowData(TilesData);
+        } catch (error) {
+            console.error("Error fetching tile data:", error);
+            setRowData([]);
+        } finally {
+            setIsLoading(false);
         }
-        const TilesData = FetchallTileData.value;
-        setRowData(TilesData);
-        setIsLoading(false);
     };
 
     const columns = React.useMemo(() => {

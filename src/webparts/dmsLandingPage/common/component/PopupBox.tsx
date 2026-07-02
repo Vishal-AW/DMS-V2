@@ -15,7 +15,7 @@ interface IPopupboxProps {
     isPopupBoxVisible: boolean;
     hidePopup: () => void;
     msg: string;
-    type?: "success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove";
+    type?: "success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove" | "folderCreated";
 }
 
 const getPopupContent = (msg: string, type: NonNullable<IPopupboxProps["type"]>) => {
@@ -74,6 +74,12 @@ const getPopupContent = (msg: string, type: NonNullable<IPopupboxProps["type"]>)
         return {
             title: "Updated Successfully",
             message: "The changes have been saved successfully."
+        };
+    }
+    if (type === "folderCreated") {
+        return {
+            title: "Created Successfully",
+            message: "The folder has been created successfully."
         };
     }
 

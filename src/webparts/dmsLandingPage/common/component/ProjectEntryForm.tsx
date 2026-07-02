@@ -78,7 +78,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const [publisher, setPublisher] = useState<any[]>([]);
     const [approver, setApprover] = useState<any[]>([]);
     const [isPopupBoxVisible, setIsPopupBoxVisible] = useState(false);
-    const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
+    const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove" | "folderCreated" >("success");
     const [alertMsg, setAlertMsg] = useState("");
     const [isApprovalRequired, setIsApprovalRequired] = useState<boolean>(false);
     const [allUsers, setAllUsers] = useState<any>([]);
@@ -493,8 +493,10 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
 
             console.log(users);
 
-            FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true).then(async (response) => {
-                console.log(response);
+            const IsRootFolder=true;
+            // FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true).then(async (response) => {
+          FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true,IsRootFolder).then(async (response) => {
+            console.log(response);
                 await updateFolderMetaData(response);
                 if (createStructure) {
                     if (TemFolderName === "") {
@@ -510,9 +512,33 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
             });
         }
         else {
+            // await updateFolderMetaData(folderObject.id);
+            // const folders = await getAllFolder(context.pageContext.web.absoluteUrl, context, folderPath);
+            // folders.Folders.map((folder: any) => { updateFolderMetaData(folder.ListItemAllFields.Id); });
+
             await updateFolderMetaData(folderObject.id);
-            const folders = await getAllFolder(context.pageContext.web.absoluteUrl, context, folderPath);
-            folders.Folders.map((folder: any) => { updateFolderMetaData(folder.ListItemAllFields.Id); });
+
+            const folders = await getAllFolder(
+                context.pageContext.web.absoluteUrl,
+                context,
+                folderPath
+            );
+
+            await Promise.all(
+                folders.Folders.map((folder: any) =>
+                    updateFolderMetaData(folder.ListItemAllFields.Id)
+                )
+            );
+
+            setShowLoader(false);
+            dismissPanel(false);
+             setAlertMsg(DisplayLabel.FolderUpdatedMsg);
+                 //setAlertMsg(DisplayLabel.SubmitMsg);
+            //setPopupType("update");
+                if (FormType === "EditForm") {
+                setPopupType("update");
+                }
+            setIsPopupBoxVisible(true);
 
         }
     };
@@ -544,7 +570,15 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 dismissPanel(false);
                 setShowLoader(false);
                 setAlertMsg(DisplayLabel.FolderUpdatedMsg);
-                setPopupType("update");
+                 //setAlertMsg(DisplayLabel.SubmitMsg);
+                //setPopupType("update");
+                 if (FormType === "EditForm") {
+                   setPopupType("update");
+                 }else{
+                  setPopupType("folderCreated");
+                 }
+               
+                console.log("DisplayLabel.FolderUpdatedMsg", DisplayLabel.FolderUpdatedMsg);
                 setIsPopupBoxVisible(true);
             }
         });
@@ -565,6 +599,8 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     //         await createChildFolder(ChildLevel, folder.FolderName, users);
     //         count++;
     //         if (firstlevel.length === count) {
+    //              //added new
+    //             await onFolderCreated?.();
     //             dismissPanel(false);
     //             setShowLoader(false);
     //             setAlertMsg(DisplayLabel.SubmitMsg);
@@ -590,22 +626,17 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     //     });
     // };
 
-   
-    //New Code 
-
-     const createFolderStructure = async (users: any) => {
+    const createFolderStructure = async (users: any) => {
         const filterFolders = folderStructure.filter(
             (el: any) => el.TemplateName?.Name === folderTemplate
         );
 
         const firstlevel = getFirstLevel(filterFolders);
-
         const Updatedfolderpath = TemFolderName
             ? `${folderName}/${TemFolderName}`
             : folderName;
 
         for (const folder of firstlevel) {
-
             const response = await FolderStructure(
                 context,
                 `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`,
@@ -625,10 +656,9 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
             );
         }
 
-        //added new
         await onFolderCreated?.();
-        dismissPanel(false);
 
+        dismissPanel(false);
         setShowLoader(false);
         setAlertMsg(DisplayLabel.SubmitMsg);
         setPopupType("insert");
@@ -636,25 +666,18 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     };
 
     const createChildFolder = async (
-        folder: any,
-        Name: any,
+        folders: any[],
+        Name: string,
         users: any
     ) => {
-
         const basePath = TemFolderName
             ? `${folderName}/${TemFolderName}`
             : folderName;
 
-        for (const folderItem of folder) {
-
-            const ChildLevel = getEqualToData(
-                folderStructure,
-                folderItem.Id
-            );
-
+        for (const folder of folders) {
             const response = await FolderStructure(
                 context,
-                `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folderItem.FolderName}`,
+                `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folder.FolderName}`,
                 users,
                 LibraryDetails.LibraryName,
                 ChildFolderRoleInheritance
@@ -662,15 +685,102 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
 
             await updateFolderMetaData(response);
 
+            const ChildLevel = getEqualToData(
+                folderStructure,
+                folder.Id
+            );
+
             if (ChildLevel.length > 0) {
                 await createChildFolder(
                     ChildLevel,
-                    `${Name}/${folderItem.FolderName}`,
+                    `${Name}/${folder.FolderName}`,
                     users
                 );
             }
         }
     };
+
+   
+    //New Code 
+
+    //  const createFolderStructure = async (users: any) => {
+    //     const filterFolders = folderStructure.filter(
+    //         (el: any) => el.TemplateName?.Name === folderTemplate
+    //     );
+
+    //     const firstlevel = getFirstLevel(filterFolders);
+
+    //     const Updatedfolderpath = TemFolderName
+    //         ? `${folderName}/${TemFolderName}`
+    //         : folderName;
+
+    //     for (const folder of firstlevel) {
+
+    //         const response = await FolderStructure(
+    //             context,
+    //             `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`,
+    //             users,
+    //             LibraryDetails.LibraryName,
+    //             true
+    //         );
+
+    //         await updateFolderMetaData(response);
+
+    //         const ChildLevel = getEqualToData(filterFolders, folder.Id);
+
+    //         await createChildFolder(
+    //             ChildLevel,
+    //             folder.FolderName,
+    //             users
+    //         );
+    //     }
+
+    //     //added new
+    //     await onFolderCreated?.();
+    //     dismissPanel(false);
+
+    //     setShowLoader(false);
+    //     setAlertMsg(DisplayLabel.SubmitMsg);
+    //     setPopupType("insert");
+    //     setIsPopupBoxVisible(true);
+    // };
+
+    // const createChildFolder = async (
+    //     folder: any,
+    //     Name: any,
+    //     users: any
+    // ) => {
+
+    //     const basePath = TemFolderName
+    //         ? `${folderName}/${TemFolderName}`
+    //         : folderName;
+
+    //     for (const folderItem of folder) {
+
+    //         const ChildLevel = getEqualToData(
+    //             folderStructure,
+    //             folderItem.Id
+    //         );
+
+    //         const response = await FolderStructure(
+    //             context,
+    //             `${LibraryDetails.LibraryName}/${basePath}/${Name}/${folderItem.FolderName}`,
+    //             users,
+    //             LibraryDetails.LibraryName,
+    //             ChildFolderRoleInheritance
+    //         );
+
+    //         await updateFolderMetaData(response);
+
+    //         if (ChildLevel.length > 0) {
+    //             await createChildFolder(
+    //                 ChildLevel,
+    //                 `${Name}/${folderItem.FolderName}`,
+    //                 users
+    //             );
+    //         }
+    //     }
+    // };
 
     function getFirstLevel(item: any) {
         return item.filter((it: any) => it.ParentFolderIdId == null);

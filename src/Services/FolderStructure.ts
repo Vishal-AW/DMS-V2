@@ -29,8 +29,16 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 //     });
 // };
 
-export const FolderStructure = async (context: WebPartContext, FolderPath: string, uid: any[], LibraryName: string, ChildFolderRoleInheritance: boolean) => {
+// export const FolderStructure = async (context: WebPartContext, FolderPath: string, uid: any[], LibraryName: string, ChildFolderRoleInheritance: boolean) => {
 
+export const FolderStructure = async (
+    context: WebPartContext,
+    FolderPath: string,
+    uid: any[],
+    LibraryName: string,
+    ChildFolderRoleInheritance: boolean,
+    IsRootFolder: boolean = false
+ ) => {
     const folderUrl = `${context.pageContext.web.absoluteUrl}/${FolderPath}`;
     return await context.spHttpClient.post(
         `${context.pageContext.web.absoluteUrl}/_api/web/folders?$expand=ListItemAllFields`,
@@ -47,19 +55,63 @@ export const FolderStructure = async (context: WebPartContext, FolderPath: strin
     ).then(async (response: SPHttpClientResponse) => {
         if (response.ok) {
             const data = await response.json();
+            // if (ChildFolderRoleInheritance) {
+            //     await breakRoleInheritance(context, FolderPath, uid, LibraryName, data.ListItemAllFields.ID);
+            // }
+
             if (ChildFolderRoleInheritance) {
-                await breakRoleInheritance(context, FolderPath, uid, LibraryName, data.ListItemAllFields.ID);
-            }
+                await breakRoleInheritance(
+                    context,
+                    FolderPath,
+                    uid,
+                    LibraryName,
+                    data.ListItemAllFields.ID,
+                    IsRootFolder
+                );
+             }
             return data.ListItemAllFields.ID;
         }
     }).catch((error) => {
         console.error('Error creating folder:', error);
     });
 };
-const breakRoleInheritance = async (context: WebPartContext, folderUrl: string, userIds: number[], LibraryName: string, Id: number) => {
 
-    const breakInheritanceUrl = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${folderUrl}')/ListItemAllFields/breakroleinheritance(true)`;
-    return await context.spHttpClient.post(
+//original code 
+// const breakRoleInheritance = async (context: WebPartContext, folderUrl: string, userIds: number[], LibraryName: string, Id: number) => {
+
+//     const breakInheritanceUrl = `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${folderUrl}')/ListItemAllFields/breakroleinheritance(true)`;
+//     return await context.spHttpClient.post(
+//         breakInheritanceUrl,
+//         SPHttpClient.configurations.v1,
+//         {
+//             headers: {
+//                 Accept: 'application/json;odata=verbose',
+//                 'Content-Type': 'application/json;odata=verbose',
+//             },
+//         }
+//     ).then(async (response: SPHttpClientResponse) => {
+//         if (response.ok) {
+//             await grantPermissions(context, folderUrl, [...userIds]);
+//             return await removeAllPermissions(context, folderUrl, [...userIds]);
+//         }
+//     });
+// };
+//original code end
+
+//New Code 
+const breakRoleInheritance = async (
+    context: WebPartContext,
+    folderUrl: string,
+    userIds: any[],
+    LibraryName: string,
+    Id: number,
+    IsRootFolder: boolean
+) => {
+
+const breakInheritanceUrl =
+        `${context.pageContext.web.absoluteUrl}/_api/web/GetFolderByServerRelativeUrl('${folderUrl}')/ListItemAllFields/breakroleinheritance(true)`;
+
+    const response = await context.spHttpClient.post(
         breakInheritanceUrl,
         SPHttpClient.configurations.v1,
         {
@@ -68,16 +120,18 @@ const breakRoleInheritance = async (context: WebPartContext, folderUrl: string, 
                 'Content-Type': 'application/json;odata=verbose',
             },
         }
-    ).then(async (response: SPHttpClientResponse) => {
-        if (response.ok) {
+    );
+
+    if (response.ok) {
+
+        // Only for root folder
+        if (IsRootFolder) {
             await grantPermissions(context, folderUrl, [...userIds]);
-            return await removeAllPermissions(context, folderUrl, [...userIds]);
-
-
-
+            await removeAllPermissions(context, folderUrl, [...userIds]);
         }
-    });
 
+        return true;
+    }
 };
 
 // const grantPermissions = async (context: WebPartContext, folderUrl: string, userIds: number[]) => {

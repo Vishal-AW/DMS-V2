@@ -18,6 +18,7 @@ import {
   Filter20Regular,
   Person20Regular,
   TextT20Regular,
+  Search20Regular,
 } from '@fluentui/react-icons';
 import '../../components/styles/global.css';
 import { getListData } from '../../../../Services/GeneralDocument';
@@ -48,6 +49,7 @@ interface SearchFiltersProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
+  // onContentSearch: () => void;
   onConfigLoaded?: (dynamicControl: any[], filters: DynamicFilterConfig[]) => void;
   activeFilters: ActiveFilter[];
   onFilterChange: (key: string, value: any, displayValue: string) => void;
@@ -73,6 +75,7 @@ export default function SearchFilters({
   searchQuery,
   onSearchChange,
   onSearch,
+  // onContentSearch,
   onConfigLoaded,
   activeFilters,
   onFilterChange,
@@ -85,6 +88,8 @@ export default function SearchFilters({
   const [options, setOptions] = useState<{ [key: string]: { value: string; label: string; }[]; }>({});
   const [configLoading, setConfigLoading] = useState<boolean>(true);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+   const [isContentSearching, setIsContentSearching] = useState(false);
 
   useEffect(() => {
     if (!context || !libraryName) {
@@ -412,6 +417,21 @@ export default function SearchFilters({
     return null;
   };
 
+  const handleContentSearch = () => {
+    if (!searchQuery?.trim()) {
+      return;
+    }
+
+    const query = searchQuery.trim();
+    // const libraryName = libraryName;
+
+    const routePath =
+      `${siteUrl}/SitePages/Search.aspx?env=WebViewList` +
+      `&query='${encodeURIComponent(query)}'` +
+      `&Library='${encodeURIComponent(libraryName)}'`;
+
+    window.open(routePath, "_blank");
+  };
 
   return (
     <div className="search-filters" data-testid="container-search-filters">
@@ -496,6 +516,34 @@ export default function SearchFilters({
         </div>
       )}
 
+
+      
+        {/* 👇 HERE — this is where handleContentSearch gets CALLED, via onClick */}
+        <button
+          onClick={handleContentSearch}
+          disabled={!searchQuery.trim() || isContentSearching}
+          data-testid="button-content-search"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            width: '100%',
+            height: '40px',
+            borderRadius: '6px',
+            border: 'none',
+            backgroundColor: !searchQuery.trim() ? '#c8c6c4' : '#107c10',
+            color: '#ffffff',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: !searchQuery.trim() ? 'not-allowed' : 'pointer',
+            marginTop: '8px',
+          }}
+        >
+          <Search20Regular />
+          <span>{isContentSearching ? 'Searching content...' : 'Content Search'}</span>
+        </button>
+
       <span
         onClick={onSearch}
         data-testid="button-apply-filters"
@@ -517,6 +565,8 @@ export default function SearchFilters({
       >
         Apply Filters
       </span>
+
+  
     </div>
   );
 }

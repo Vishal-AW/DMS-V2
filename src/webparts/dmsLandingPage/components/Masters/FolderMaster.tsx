@@ -207,10 +207,8 @@ export default function FolderMaster({ context }: IFolderMaster): JSX.Element {
     };
 
     const closePanel = () => {
-
         clearFields();
         setIsPanelOpen(false);
-
     };
 
     const clearErrors = () => {

@@ -10,6 +10,7 @@ import PopupBox, { ConfirmationDialog } from "./PopupBox";
 import { ILabel } from "../../../../Intrface/ILabel";
 import { format } from "date-fns";
 import ReusableDataTable from "../../components/ResuableComponents/ReusableDataTable";
+import { Web } from "@pnp/sp/webs";
 
 interface IApproval {
     context: WebPartContext;
@@ -118,6 +119,90 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
         }
     ];
 
+     const recycleColumns: any= [
+        {
+            headerName: "Sr.No",
+            width: 100,
+            valueGetter: (params: any) => params.node.rowIndex + 1
+        },
+       {
+            headerName: "Name",
+            field: "ActualName",
+            width: 300,
+            valueGetter: (params: any) =>
+                params.data?.ActualName || "",
+            cellRenderer: (params: any) => {
+                return (
+                    <a
+                        style={{
+                            color: "#009ef7",
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            wordBreak: "break-word"
+                        }}
+                        onClick={() => {
+                            if (params.data?.File?.LinkingUrl === "") {
+                                window.open(params.data?.File?.ServerRelativeUrl, "_blank");
+                            } else {
+                                window.open(params.data?.File?.LinkingUrl, "_blank");
+                            }
+                        }}
+                    >
+                        {params.data?.ActualName}
+                    </a>
+                );
+            }
+        },
+        {
+            headerName: "Folder Path",
+            field: "FileDirRef",
+            flex: 1,
+            valueGetter: (params: any) => {
+                const basePath = "/sites/SPFXDMS";
+                const path = params.data?.FolderDocumentPath || "";
+
+                return path ? `${basePath}${path.startsWith("/") ? "" : "/"}${path}` : "";
+        }
+        },
+        {
+            headerName: "Submitted By",
+            flex: 1,
+            valueGetter: (params: any) =>
+                params.data?.Author?.Title || ""
+        },
+        {
+            headerName: "Status",
+            flex: 1,
+            valueGetter: (params: any) =>
+                params.data?.DisplayStatus || ""
+        },
+        {
+            headerName: "Action",
+            width: 120,
+            cellRenderer: (params: any) => {
+                return action === "Approver" ? (
+                    <FontIcon
+                        aria-label="Edit"
+                        iconName="EditSolid12"
+                        style={{ color: "#009ef7", cursor: "pointer" }}
+                        onClick={() => openEditPanel(params.data?.Id)}
+                    />
+                ) : (
+                    <FontIcon
+                        aria-label="Restore"
+                        title="Restore"
+                        iconName="RemoveFromTrash"
+                        style={{ color: "#009ef7", cursor: "pointer" }}
+                        onClick={() => {
+                            setItemId(params.data?.Id);
+                            setHideDialog(true);
+                        }}
+                    />
+                );
+            }
+        }
+    ];
+
     const columns: any = [
         {
             Header: DisplayLabel.FileName, accessor: "Name", Cell: ({ row }: { row: any; }) => <a style={{
@@ -176,7 +261,8 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
     const restoreFile = async () => {
         const obj = {
             Active: true,
-            DeleteFlag: false // Instead of null
+            // DeleteFlag: false // Instead of null
+            DeleteFlag:"false"
         };
         await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, obj, itemId, libraryName);
         setAlertMsg(DisplayLabel.RestoreDoc);
@@ -326,19 +412,38 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
     return (
         <>
             {/* <ReusableDataTable rowData={files} columnDefs={columns} /> */}
-              {
-            action === "Archive" ? (
-                <ReusableDataTable
-                    rowData={files || []}
-                    columnDefs={archiveColumns}
-                />
-            ) : (
-                <ReusableDataTable
-                    rowData={files || []}
-                    columnDefs={columns}
-                />
-            )
-        }
+              {/* {
+                action === "Archive" ? (
+                    <ReusableDataTable
+                        rowData={files || []}
+                        columnDefs={archiveColumns}
+                    />
+                ) : (
+                    <ReusableDataTable
+                        rowData={files || []}
+                        columnDefs={columns}
+                    />
+                )
+            } */}
+
+            {
+                action === "Archive" ? (
+                    <ReusableDataTable
+                        rowData={files || []}
+                        columnDefs={archiveColumns}
+                    />
+                ) : action === "Recycle" ? (
+                    <ReusableDataTable
+                        rowData={files || []}
+                        columnDefs={recycleColumns}
+                    />
+                ) : (
+                    <ReusableDataTable
+                        rowData={files || []}
+                        columnDefs={columns}
+                    />
+                )
+            }
 
             <Panel
                 headerText={DisplayLabel.Approval}

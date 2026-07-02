@@ -95,6 +95,9 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
     const handleInputChange = (key: string, value: any) => {
         setDynamicValues((prev) => ({ ...prev, [key]: value }));
     };
+   
+
+
     const fetchLibraryDetails = async () => {
         const dataConfig = await getConfigActive(context.pageContext.web.absoluteUrl, context.spHttpClient);
         const libraryData = await getDataByLibraryName(context.pageContext.web.absoluteUrl, context.spHttpClient, libName);
@@ -184,11 +187,17 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                 principalTypes={[PrincipalType.User]}
                                 onChange={(users: any[]) => {
                                     const userIds = users.map(user => user.id);
+                                    // setDynamicValues((prevValues) => ({
+                                    //     ...prevValues,
+                                    //     [item.InternalTitleName]: userIds
+                                    // }));
                                     setDynamicValues((prevValues) => ({
-                                        ...prevValues,
-                                        [item.InternalTitleName]: userIds
-                                    }));
-
+                                            ...prevValues,
+                                            [item.InternalTitleName]:
+                                                userIds.length === 1
+                                                    ? userIds[0]
+                                                    : userIds
+                                        }));
                                 }}
                                 errorMessage={dynamicValuesErr[item.InternalTitleName]}
                             />
@@ -539,7 +548,27 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 `${context.pageContext.web.serverRelativeUrl}/${folderPath}`
                     .replace(/\/+/g, "/");
 
-            const fileName = `${newFileName}.${filetype}`;
+            //const fileName = `${newFileName}.${filetype}`;
+
+                let finalFileName = newFileName;
+
+                if (folderObject.DocumentSuffix) {
+                    let suffix = folderObject.DocumentSuffix;
+
+                    if (suffix === "Other") {
+                        suffix = folderObject.OtherSuffix;
+                    }
+
+                    if (folderObject.PSType === "Prefix") {
+                        finalFileName = `${suffix}_${newFileName}`;
+                    } else {
+                        finalFileName = `${newFileName}_${suffix}`;
+                    }
+                }
+
+               const fileName = `${finalFileName}.${filetype}`;
+
+
             const fileServerRelativeUrl = `${folderServerRelativeUrl}/${fileName}`;
 
             console.log("Final Path:", folderServerRelativeUrl);
@@ -651,7 +680,8 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 lastSeq,
                 folderObject,
                 LastDocRes.value[0]?.Created,
-                libName
+                //libName
+                LibraryDetails
             );
 
             obj.ReferenceNo = ReferenceNo.refNo.replace(/null/, "");
@@ -668,19 +698,24 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
               // Send email notification after successful file creation and metadata update
             if (folderObject?.ProjectmanagerEmail) {
                 try {
-                    let emailObj: any = {
-                        To: folderObject.ProjectmanagerEmail,
-                        FolderPath: obj.FolderDocumentPath,
-                        DocName: obj.ActualName,
-                        AuthorTitle: context.pageContext.user.displayName,
-                        TileName: libName,
-                        Sub: DisplayLabel.PublisherEmailSubject + " " + obj.ReferenceNo,
-                        Status: status.value[0].InternalStatus,
-                        ID: folderObject.Id,
-                        libraryName: libName
-                    };
+                    // if( status.value[0].InternalStatus ==="PendingWithPM"){       
+                    // }
 
-                    await TileSendMail(context, emailObj);
+                     let emailObj: any = {
+                            To: folderObject.ProjectmanagerEmail,
+                            FolderPath: obj.FolderDocumentPath,
+                            DocName: obj.ActualName,
+                            AuthorTitle: context.pageContext.user.displayName,
+                            TileName: libName,
+                            Sub: DisplayLabel.PublisherEmailSubject + " " + obj.ReferenceNo,
+                            Status: status.value[0].InternalStatus,
+                            ID: folderObject.Id,
+                            libraryName: libName,
+                            CC: folderObject.PublisherEmail?.toLowerCase(),
+                            From: context.pageContext.user.loginName?.toLowerCase()
+                        };
+                        await TileSendMail(context, emailObj); 
+                   
                 } catch (emailError) {
                     console.error("Error sending email notification:", emailError);
                 }
@@ -702,8 +737,9 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 `?d=w${uniqueId}`;
 
             window.open(openUrl, "_blank");
-
+          
             setShowLoader({ display: "none" });
+            setNewFileName("");
             dismissUploadPanel();
 
 
@@ -728,6 +764,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 }
             });
         }
+        
         if (filetype === "upload" && attachmentsFiles.length === 0) {
             setAttachmentErr(DisplayLabel.ThisFieldisRequired);
             isValid = false;

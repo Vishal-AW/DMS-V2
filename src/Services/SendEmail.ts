@@ -6,47 +6,113 @@ function createSendMailItem(context: WebPartContext, savedata: any) {
 }
 
 export async function TileSendMail(context: WebPartContext, docinfo: any) {
-    let MailBody = "Dear User,";
-    MailBody += "<br><br>I hope this message finds you well.<br><br>";
+    // let MailBody = "Dear User,";
+    // MailBody += "<br><br>I hope this message finds you well.<br><br>";
 
-    if (docinfo.Status === "PendingWithPublisher") {
-        MailBody += "I kindly request your approval for the document, <b>" + docinfo.DocName + "</b>. ";
-        MailBody += "Please review the content at your convenience and let us know if any revisions or adjustments are required.";
-    }
-    else if (docinfo.Status === "PendingWithPM" ) {
-        MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and pending with PM.";
-    }
-    else if (docinfo.Status === "Published") {
-        MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and published.";
-    }
-    else if (docinfo.Status === "Rejected") {
-        MailBody += "After reviewing the document titled <b>" + docinfo.DocName + "</b>, we regret to inform you that it has been <b>Rejected</b>.";
-    }
+    // if (docinfo.Status === "PendingWithPublisher") {
+    //     MailBody += "I kindly request your approval for the document, <b>" + docinfo.DocName + "</b>. ";
+    //     MailBody += "Please review the content at your convenience and let us know if any revisions or adjustments are required.";
+    // }
+    // else if (docinfo.Status === "PendingWithPM" ) {
+    //     MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and pending with PM.";
+    // }
+    // else if (docinfo.Status === "Published") {
+    //     MailBody += "We are pleased to inform you that the document titled <b>" + docinfo.DocName + "</b> has been reviewed and published.";
+    // }
+    // else if (docinfo.Status === "Rejected") {
+    //     MailBody += "After reviewing the document titled <b>" + docinfo.DocName + "</b>, we regret to inform you that it has been <b>Rejected</b>.";
+    // }
 
-    MailBody += "<br><br><b>Document Details:</b>";
-    MailBody += "<br><b>Document Name:</b> " + docinfo.DocName;
-    MailBody += "<br><b>Uploaded By:</b> " + docinfo.AuthorTitle;
-    MailBody += "<br><b>Tile Name:</b> " + docinfo.TileName;
-    MailBody += "<br><b>Document Path:</b> " + docinfo.FolderPath;
+    // MailBody += "<br><br><b>Document Details:</b>";
+    // MailBody += "<br><b>Document Name:</b> " + docinfo.DocName;
+    // MailBody += "<br><b>Uploaded By:</b> " + docinfo.AuthorTitle;
+    // MailBody += "<br><b>Tile Name:</b> " + docinfo.TileName;
+    // MailBody += "<br><b>Document Path:</b> " + docinfo.FolderPath;
 
-    // const actionBy = (docinfo.Status === "Rejected") ? "Rejected By" : "Approved By";
-    // MailBody += `<br><b>${actionBy}:</b> ${context.pageContext.user.displayName}`;
-
-
-    if (docinfo.Status != "PendingWithPM") {
-        const actionBy = (docinfo.Status === "Rejected") ? "Rejected By" : "Approved By";
-        MailBody += `<br><b>${actionBy}:</b> ${context.pageContext.user.displayName}`;
-    }
+    // // const actionBy = (docinfo.Status === "Rejected") ? "Rejected By" : "Approved By";
+    // // MailBody += `<br><b>${actionBy}:</b> ${context.pageContext.user.displayName}`;
 
 
-    MailBody += "<br>";
+    // if (docinfo.Status != "PendingWithPM") {
+    //     const actionBy = (docinfo.Status === "Rejected") ? "Rejected By" : "Approved By";
+    //     MailBody += `<br><b>${actionBy}:</b> ${context.pageContext.user.displayName}`;
+    // }
+
+
+    // MailBody += "<br>";
+
+    let MailBody = `
+        <p>Dear User,</p>
+
+        <p>I hope this message finds you well.</p>
+        `;
+
+        if (docinfo.Status === "PendingWithPublisher") {
+            MailBody += `
+            <p>
+                I kindly request your approval for the document,
+                <b>${docinfo.DocName}</b>.
+                Please review the content at your convenience and let us know if any revisions or adjustments are required.
+            </p>`;
+        }
+        else if (docinfo.Status === "PendingWithPM") {
+            MailBody += `
+            <p>
+                We are pleased to inform you that the document titled
+                <b>${docinfo.DocName}</b> has been reviewed and is pending with PM.
+            </p>`;
+        }
+        else if (docinfo.Status === "Published") {
+            MailBody += `
+            <p>
+                We are pleased to inform you that the document titled
+                <b>${docinfo.DocName}</b> has been reviewed and published.
+            </p>`;
+        }
+        else if (docinfo.Status === "Rejected") {
+            MailBody += `
+            <p>
+                After reviewing the document titled
+                <b>${docinfo.DocName}</b>, we regret to inform you that it has been
+                <b>Rejected</b>.
+            </p>`;
+        }
+
+        MailBody += `
+        <p><b>Document Details:</b></p>
+
+        <p>
+            <b>Document Name:</b> ${docinfo.DocName}<br/>
+            <b>Uploaded By:</b> ${docinfo.AuthorTitle}<br/>
+            <b>Tile Name:</b> ${docinfo.TileName}<br/>
+            <b>Document Path:</b> ${docinfo.FolderPath}
+        `;
+
+        if (docinfo.Status !== "PendingWithPM") {
+            const actionBy =
+                docinfo.Status === "Rejected"
+                    ? "Rejected By"
+                    : "Approved By";
+
+            MailBody += `
+            <br/>
+            <b>${actionBy}:</b> ${context.pageContext.user.displayName}`;
+        }
+
+        MailBody += `
+        </p>
+
+
+        `;
 
     const subject = docinfo.Sub;
     const Mail = {
-        From: context.pageContext.user.email,
+        From: docinfo.From,
+        //context.pageContext.user.email,
         Subject: subject,
         Body: MailBody,
         To: docinfo.To,
+        CC:docinfo.CC,
         FolderPath: docinfo.FolderPath,
         DocName: docinfo.DocName,
         LID: docinfo.ID,

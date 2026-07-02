@@ -36,11 +36,13 @@ import { TileSendMail } from '../../../../Services/SendEmail';
 import { getConfigActive } from '../../../../Services/ConfigService';
 import { getDataByLibraryName } from '../../../../Services/MasTileService';
 import PageLoader from '../../common/component/PageLoader';
-
+import { SPHttpClient } from "@microsoft/sp-http";
 
 interface IApprovalsProps {
   context: WebPartContext;
 }
+
+
 const popupStyles = mergeStyleSets({
   overlay: {
     position: "fixed",
@@ -94,6 +96,9 @@ const popupStyles = mergeStyleSets({
     marginTop: "24px",
   },
 });
+
+
+
 export type actionType = "APPROVE" | "REJECT";
 export default function Approvals({ context }: IApprovalsProps) {
   const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
@@ -114,6 +119,11 @@ export default function Approvals({ context }: IApprovalsProps) {
   const libraryName = (location.state as any)?.libName || "";
   const TileName = (location.state as any)?.tileName || "";
 
+  // const [userName, setUserName] = React.useState("");
+
+ const controls: any[] = dynamicControl; // typed alias, no change to original state
+//const [userNames, setUserNames] = React.useState<{ [key: number]: string }>({});
+ const [allUsers, setAllUsers] = React.useState<any[]>([]);
 
   const currentDocs = useMemo(() => {
     if (!searchQuery.trim()) return allDocs;
@@ -134,6 +144,9 @@ export default function Approvals({ context }: IApprovalsProps) {
       })
     );
   }, [searchQuery, allDocs]);
+
+
+ 
 
   useEffect(() => {
     Promise.all([getFiles(), fetchLibraryDetails()]).finally(() => setIsLoading(false));
@@ -299,9 +312,74 @@ export default function Approvals({ context }: IApprovalsProps) {
     setIsDialogOpen(true);
   };
 
+  // React.useEffect(() => {
+  //   const loadUsers = async () => {
+  //     if (!metadataDoc) return;
+
+  //     const personFields = controls.filter(
+  //       (item: any) => item.ColumnType === "Person or Group"
+  //     );
+
+  //     const userMap: { [key: number]: string } = {};
+
+  //     for (const field of personFields) {
+  //       const userId =
+  //         metadataDoc?.[`${field.InternalTitleName}Id`] ||
+  //         metadataDoc?.[field.InternalTitleName];
+
+  //       if (userId && !userMap[userId]) {
+  //         try {
+  //           const response = await context.spHttpClient.get(
+  //             `${context.pageContext.web.absoluteUrl}/_api/web/getUserById(${userId})`,
+  //             SPHttpClient.configurations.v1
+  //           );
+
+  //           if (response.ok) {
+  //             const user = await response.json();
+  //             userMap[userId] = user.Title;
+  //           }
+  //         } catch (error) {
+  //           console.error(`Error fetching user ${userId}`, error);
+  //         }
+  //       }
+  //     }
+
+  //     setUserNames(userMap);
+  //   };
+
+  //   loadUsers();
+  // }, [metadataDoc, controls]);
+
+  React.useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await context.spHttpClient.get(
+          `${context.pageContext.web.absoluteUrl}/_api/web/siteusers?$select=Id,Title,Email`,
+          SPHttpClient.configurations.v1
+        );
+
+        const data = await response.json();
+
+        console.log("All Users", data.value);
+
+        setAllUsers(data.value || []);
+      } catch (error) {
+        console.error("Error loading users", error);
+      }
+    };
+
+    loadUsers();
+  }, []);
+
   const renderDynamicControls = useCallback(() => {
-    return dynamicControl.filter((item: any, index: number) => !item.IsFieldAllowInFile).map((item: any, index: number) => {
+    // return dynamicControl.filter((item: any, index: number) => !item.IsFieldAllowInFile).map((item: any, index: number) => {
+    // return dynamicControl.filter((item: any, index: number) => item.IsFieldAllowInFile).map((item: any, index: number) => {
+    return controls.filter((item: any) => item.IsFieldAllowInFile).map((item: any, index: number) => {
+
       const filterObj = configData.find((ele) => ele.Id === item.Id);
+
+      console.log("metadataDoc", metadataDoc);
+      console.log("dynamicControl", dynamicControl);
 
       if (!filterObj) return null;
 
@@ -319,11 +397,21 @@ export default function Approvals({ context }: IApprovalsProps) {
           );
 
         case "Person or Group":
+             const userId =
+              metadataDoc?.[`${item.InternalTitleName}Id`] ||
+              metadataDoc?.[item.InternalTitleName];
+
+            const selectedUser = allUsers.find(
+              (user) => Number(user.Id) === Number(userId)
+            );
+
+           
           return (
             <div className="meta-panel-field" >
               <label className="meta-panel-label">{item.Title}</label>
               <div className="meta-panel-select-box">
-                <span>{metadataDoc[item.InternalTitleName]?.Title}</span>
+                {/* <span>{metadataDoc[item.InternalTitleName]?.Title}</span> */}
+                   <span>{selectedUser?.Title || ""}</span>
                 <span className="meta-panel-chevron">&#8964;</span>
               </div>
             </div >
@@ -622,9 +710,13 @@ export default function Approvals({ context }: IApprovalsProps) {
 
             <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Classification</h3>
-              <div className="meta-panel-fields">
+              {/* <div className="meta-panel-fields">
                 {renderDynamicControls()}
-              </div>
+              </div> */}
+              <div className="meta-panel-fields">
+              {console.log("Classification section rendered")}
+              {renderDynamicControls()}
+            </div>
             </div>
 
             <div className="meta-panel-section">

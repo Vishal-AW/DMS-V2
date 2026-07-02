@@ -25,6 +25,7 @@ import {
     TooltipHost,
     Toggle,
     ValidationState,
+    Icon,
 } from '@fluentui/react';
 import {
     ChevronUp20Regular,
@@ -182,8 +183,16 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             const FilterRetentionDays = currentRedundancyData.find((item: any) => item.label === EditSettingData?.RetentionDays);
             setFormData((prevData) => ({
                 ...prevData, RedundancyData: FilterRetentionDays,
+                Archive: EditSettingData?.ArchiveLibraryName,//new added
                 ArchiveInternal: EditSettingData?.ArchiveLibraryName,
                 ArchiveVersions: EditSettingData?.ArchiveVersionCount
+            }));
+        }else{
+            const currentRedundancyData = redundancyOptionsParam || redundancyData;
+            const FilterRetentionDays = currentRedundancyData.find((item: any) => item.label === EditSettingData?.RetentionDays);
+            setFormData((prevData) => ({
+                ...prevData, RedundancyData: FilterRetentionDays,
+                Archive: `Archive ${EditSettingData?.LibraryName}`,
             }));
         }
 
@@ -774,14 +783,34 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         }
 
         else if (formData?.isArchiveAllowed === true) {
-            if (formData?.RedundancyData.value === "" || formData?.RedundancyData.value === undefined || formData?.RedundancyData.value === null) {
-                setErrors(prevData => ({ ...prevData, RedundancyData: DisplayLabel?.ThisFieldisRequired as string }));
-                isValidForm = false;
+            if(isEditMode===true)
+            { 
+                // if (formData?.RedundancyData.value === "" || formData?.RedundancyData.value === undefined || formData?.RedundancyData.value === null) {
+                //     setErrors(prevData => ({ ...prevData, RedundancyData: DisplayLabel?.ThisFieldisRequired as string }));
+                //     isValidForm = false;
+                // }
+                // else if (formData?.ArchiveVersions === "" || formData?.ArchiveVersions === undefined || formData?.ArchiveVersions === null) {
+                //     setErrors(prevData => ({ ...prevData, ArchiveVersions: DisplayLabel?.ThisFieldisRequired as string }));
+                //     isValidForm = false;
+                // }
+                if (!formData?.RedundancyData) {
+                    setErrors(prevData => ({ ...prevData, RedundancyData: DisplayLabel?.ThisFieldisRequired as string }));
+                    isValidForm = false;
+                }else if (!formData?.ArchiveVersions) {
+                    setErrors(prevData => ({ ...prevData, ArchiveVersions: DisplayLabel?.ThisFieldisRequired as string }));
+                    isValidForm = false;
+                }
+
+            }else{
+                if (!formData?.RedundancyData) {
+                    setErrors(prevData => ({ ...prevData, RedundancyData: DisplayLabel?.ThisFieldisRequired as string }));
+                    isValidForm = false;
+                }else if (!formData?.ArchiveVersions) {
+                    setErrors(prevData => ({ ...prevData, ArchiveVersions: DisplayLabel?.ThisFieldisRequired as string }));
+                    isValidForm = false;
+                }
             }
-            else if (formData?.ArchiveVersions === "" || formData?.ArchiveVersions === undefined || formData?.ArchiveVersions === null) {
-                setErrors(prevData => ({ ...prevData, ArchiveVersions: DisplayLabel?.ThisFieldisRequired as string }));
-                isValidForm = false;
-            }
+           
         }
 
         return isValidForm;
@@ -908,7 +937,10 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             setLoaderMessage("Updating tile form...");
             setIsPageLoading(true);
             let ArchiveInternal = "";
-            const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
+            // const Internal = formData?.TileName?.replace(/[^a-zA-Z0-9]/g, '');
+            const Internal = formData?.LibraryName?.replace(/[^a-zA-Z0-9]/g, '');
+
+            
             createAndUpdateColumn(Internal);
 
             const permissionData = formData?.PermissionIds.map((el: any) => ({ Type: "User", IDs: el }));
@@ -973,7 +1005,14 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
             if (UpdateTileID != null) {
                 if (UpdateTileID[0].IsArchiveRequired === true) {
                     if (UpdateTileID[0].IsArchiveRequired === true) {
-                        ArchiveInternal = formData?.Archive.replace(/[^a-zA-Z0-9]/g, '');
+
+                       if (UpdateTileID?.[0]?.ArchiveLibraryName !== undefined && UpdateTileID?.[0]?.ArchiveLibraryName !== null) {
+                           ArchiveInternal = formData?.ArchiveInternal;
+                       }
+                       else{
+                          ArchiveInternal = formData?.Archive.replace(/[^a-zA-Z0-9]/g, '');
+                       }          
+                      //  ArchiveInternal = formData?.Archive.replace(/[^a-zA-Z0-9]/g, '');
                     }
                     else {
                         ArchiveInternal = "";
@@ -1040,7 +1079,6 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         const response = await GetListData(context, query);
         setAllLibColumn(response.d.results);
     };
-
 
 
     return (
@@ -1308,13 +1346,53 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
                                     <div className="tile-panel-section-content">
                                         <div className="grid-2">
                                             <div className="tile-form-field">
-                                                <label className="tile-form-label">Is Archive Allowed<span className="tile-form-required">*</span></label>
+                                                <label className="tile-form-label">Is Archive Allowed<span className="tile-form-required">
+                                                     <TooltipHost
+                                                            content={
+                                                                <div style={{ maxWidth: "300px" }}>
+                                                                    <b>Why?</b>
+                                                                    <br />
+                                                                    This setting enables the user to manage the storage of the library.
+                                                                    <br /><br />
+
+                                                                    <b>What?</b>
+                                                                    <br />
+                                                                    In case there are multiple versions of the file getting uploaded in the system,
+                                                                    this feature assists us to auto archive the older files based on the days and
+                                                                    versions selected.
+                                                                    <br />
+                                                                     <br />
+                                                                     <b>How?</b>
+                                                                     <br />
+                                                                     Once Auto Archive is enabled, the admin user needs to select how many 
+                                                                     days the system should auto archive the file and up
+                                                                </div>
+                                                            }
+                                                        >
+                                                            <Icon
+                                                                iconName="Info"
+                                                                style={{
+                                                                    marginLeft: 3,
+                                                                    cursor: "pointer",
+                                                                    fontSize: 14,
+                                                                    verticalAlign: "middle",
+                                                                    color: "#070606"
+                                                                }}
+                                                            />
+                                                        </TooltipHost>
+                                                    
+                                                    *</span>
+                                                
+                                                
+                                                
+                                                </label>
                                                 <Toggle
                                                     checked={formData?.isArchiveAllowed}
                                                     onChange={(_, checked) => setFormData((prev: any) => ({ ...prev, isArchiveAllowed: !!checked }))}
                                                     className="tile-form-toggle"
                                                     data-testid="toggle-archive-allowed"
                                                 />
+                                               
                                             </div>
                                             {formData?.isArchiveAllowed && (
                                                 <>

@@ -295,6 +295,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setFolders(nextFolders);
         expandParentFolders(folderObj);
         setSelectedFolder(preservedFolder);
+       // console.log(selectedFolder.children.length);
     };
 	
 
@@ -336,11 +337,28 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setSelectedFolder(preservedFolder);
     // };
 
+    // const getAdmin = async () => {
+    //     const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
+    //     setAdmin(data.value.map((el: any) => (el.GroupNameId)));
+    //     const isMembers = await isMember(context, "ProjectAdmin");
+    //     setIsValidUser(isMembers.value.length > 0);
+    // };
+
     const getAdmin = async () => {
-        const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
-        setAdmin(data.value.map((el: any) => (el.GroupNameId)));
-        const isMembers = await isMember(context, "ProjectAdmin");
-        setIsValidUser(isMembers.value.length > 0);
+        const data = await getListData(
+            `${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`,
+            context
+        );
+        setAdmin(data.value.map((el: any) => el.GroupNameId));
+        try {
+            const isMembers = await isMember(context, "ProjectAdmin");
+            setIsValidUser(
+                isMembers?.value?.length > 0
+            );
+        } catch (error) {
+            console.log("User is not a member or access denied:", error);
+            setIsValidUser(false);
+        }
     };
 
     const getDeletedData = async () => {
@@ -367,9 +385,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setSelectedFolder(folder);
         // setButtons([]); // clear previous folder buttons
 
+           setTables(""); // <-- Reset from Archive/Recycle to Folder view
          fetchButtonsAndPermissions(folder.path); // no await
 
          expandParentFolders(folder);
+       //  setTables("Documents");
 
         if (isSameFolder) {
             await getDocument(folder);
@@ -458,10 +478,51 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 return <img src={`${filePath}`} alt={DisplayLabel.Preview} />;
             case 'pdf':
                 //  return <iframe src={`${filePath}`} style={{ width: "100%", height: "80vh" }}></iframe>;
-                return <iframe 
-                    src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
-                    style={{ width: "100%", height: "80vh" }} 
-                ></iframe>;
+                // return <iframe 
+                //     src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                //     style={{ width: "100%", height: "80vh" }} 
+                // ></iframe>;
+
+                 return (
+                    <div
+                        // style={{
+                        //     position: "relative",
+                        //     height: "80vh",
+                        //     overflowY: "auto"
+                        // }}
+                         style={{
+                            position: "relative",
+                            height: "80vh",
+                            userSelect: "none"
+                         }}
+                         onContextMenu={(e) => e.preventDefault()}
+
+                    >
+                        <iframe
+                            src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                border: "none",
+                                //pointerEvents: "none" // disables clicks
+                            }}
+                             onLoad={(e) => {
+                                try {
+                                    const iframeDoc =
+                                        e.currentTarget.contentDocument ||
+                                        e.currentTarget.contentWindow?.document;
+
+                                    iframeDoc?.addEventListener("contextmenu", (event) => {
+                                        event.preventDefault();
+                                    });
+                                } catch (err) {
+                                    console.log("Cannot access iframe content");
+                                }
+                            }}
+                        />
+                       
+                    </div>
+                );
                  
         }
     };
@@ -549,14 +610,23 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     const renderVersionsPanel = (url: string) => (
         <div
+            // style={{
+            //     position: "relative",
+            //     minHeight: "80vh",
+            //     borderRadius: "16px",
+            //     overflow: "hidden",
+            //     background: "linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%)",
+            //     border: "1px solid #dbe7f3",
+            //     boxShadow: "0 10px 30px rgba(15, 108, 189, 0.08)"
+            // }}
             style={{
                 position: "relative",
-                minHeight: "80vh",
+                height: "70vh",
+                overflowY: "auto",
+                overflowX: "hidden",
                 borderRadius: "16px",
-                overflow: "hidden",
-                background: "linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%)",
-                border: "1px solid #dbe7f3",
-                boxShadow: "0 10px 30px rgba(15, 108, 189, 0.08)"
+                background: "#fff",
+                border: "1px solid #dbe7f3"
             }}
         >
             {isVersionsLoading && (
@@ -570,6 +640,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         background: "rgba(248, 251, 255, 0.96)",
                         zIndex: 2
                     }}
+                      onContextMenu={(e) => e.preventDefault()}
                 >
                     <div
                         style={{
@@ -594,15 +665,23 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             <iframe
                 id="frame"
                 src={url}
-                style={{
+                // style={{
+                //     width: "100%",
+                //     height: "calc(80vh - 58px)",
+                //     border: "none",
+                //     backgroundColor: "#fff",
+                //     pointerEvents: "none"
+                // }}
+                  style={{
                     width: "100%",
-                    height: "calc(80vh - 58px)",
+                    height: "1200px", // adjust as needed
                     border: "none",
-                    backgroundColor: "#fff",
-                    pointerEvents: "none"
+                    backgroundColor: "#fff"
                 }}
                 onLoad={(event) => hideClickableOptionsInVersionsFrame(event.currentTarget)}
-            ></iframe>
+            >
+                
+            </iframe>
             <div
                 aria-hidden="true"
                 style={{
@@ -621,6 +700,21 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             />
         </div>
     );
+
+    const thStyle = {
+        border: "1px solid #d1d1d1",
+        padding: "10px",
+        backgroundColor: "#f5f5f5",
+        textAlign: "left" as const,
+        fontWeight: 600,
+    };
+
+    const tdStyle = {
+        border: "1px solid #d1d1d1",
+        padding: "10px",
+        // textAlign: "left" as const,
+        textAlign: "center" as const,
+    };
 
     const handleDocumentAction = async (action: string, item: any) => {
         switch (action) {
@@ -689,40 +783,103 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             case "History":
                 setActionButton(null);
                 const HistoryData = await getHistoryByID(SiteURL, context.spHttpClient, item.ListItemAllFields.Id, tileData?.LibraryName);
+                // const bindData =
+                //     HistoryData?.value.length > 0 ? (
+                //         HistoryData.value
+                //             .sort((a: any, b: any) => {
+                //                 return new Date(a.ActionDate).getTime() - new Date(b.ActionDate).getTime();
+                //             })
+                //             .map((el: any, index: number) => (
+                //                 <tr key={index}>
+                //                     <td>{index + 1}</td>
+                //                     <td>{el.Action}</td>
+                //                     <td>{el.Author.Title}</td>
+                //                     {/* <td>{el.ActionDate ? format(el.ActionDate, "DD-MM-YYYY hh:mm:ss A") : ""}</td> */}
+                //                      <td>
+                //                         {el.ActionDate
+                //                             ? format(new Date(el.ActionDate), "dd-MM-yyyy hh:mm:ss a")
+                //                             : ""}
+                //                     </td>
+                //                     <td>{el.InternalComment}</td>
+                //                 </tr>
+                //             ))
+                //     ) : (
+                //         <tr>
+                //             <td colSpan={5}>No Data</td>
+                //         </tr>
+                //     );
+                // setPanelForm(<table className="addoption" style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
+                //     <thead>
+                //         <tr>
+                //             <th>{DisplayLabel?.SrNo}</th>
+                //             <th>{DisplayLabel?.Action}</th>
+                //             <th>{DisplayLabel?.ActionBy}</th>
+                //             <th>{DisplayLabel?.ActionDate}</th>
+                //             <th>{DisplayLabel?.Comments}</th>
+                //         </tr>
+                //     </thead>
+                //     <tbody>{bindData}</tbody>
+                // </table>);
+
                 const bindData =
-                    HistoryData?.value.length > 0 ? (
+                    HistoryData?.value?.length > 0 ? (
                         HistoryData.value
                             .sort((a: any, b: any) => {
-                                return new Date(a.ActionDate).getTime() - new Date(b.ActionDate).getTime();
+                                return (
+                                    new Date(a.ActionDate).getTime() -
+                                    new Date(b.ActionDate).getTime()
+                                );
                             })
                             .map((el: any, index: number) => (
                                 <tr key={index}>
-                                    <td>{index + 1}</td>
-                                    <td>{el.Action}</td>
-                                    <td>{el.Author.Title}</td>
-                                    <td>{el.ActionDate ? format(el.ActionDate, "DD-MM-YYYY hh:mm:ss A") : ""}</td>
-                                    <td>{el.InternalComment}</td>
+                                    <td style={tdStyle}>{index + 1}</td>
+                                    <td style={tdStyle}>{el.Action}</td>
+                                    <td style={tdStyle}>{el.Author?.Title}</td>
+                                    <td style={tdStyle}>
+                                        {el.ActionDate
+                                            ? format(
+                                                new Date(el.ActionDate),
+                                                "dd-MM-yyyy hh:mm:ss a"
+                                            )
+                                            : ""}
+                                    </td>
+                                    <td style={tdStyle}>{el.InternalComment}</td>
                                 </tr>
                             ))
                     ) : (
                         <tr>
-                            <td colSpan={5}>No Data</td>
+                            <td style={tdStyle} colSpan={5}>
+                                No Data
+                            </td>
                         </tr>
                     );
-                setPanelForm(<table className="addoption" style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th>{DisplayLabel?.SrNo}</th>
-                            <th>{DisplayLabel?.Action}</th>
-                            <th>{DisplayLabel?.ActionBy}</th>
-                            <th>{DisplayLabel?.ActionDate}</th>
-                            <th>{DisplayLabel?.Comments}</th>
-                        </tr>
-                    </thead>
-                    <tbody>{bindData}</tbody>
-                </table>);
+
+                setPanelForm(
+                    <table
+                        style={{
+                            width: "100%",
+                            marginTop: "20px",
+                            borderCollapse: "collapse",
+                            border: "1px solid #d1d1d1",
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th style={thStyle}>{DisplayLabel?.SrNo}</th>
+                                <th style={thStyle}>{DisplayLabel?.Action}</th>
+                                <th style={thStyle}>{DisplayLabel?.ActionBy}</th>
+                                <th style={thStyle}>{DisplayLabel?.ActionDate}</th>
+                                <th style={thStyle}>{DisplayLabel?.Comments}</th>
+                            </tr>
+                        </thead>
+                        <tbody>{bindData}</tbody>
+                    </table>
+                );
+
                 setPanelTitle(DisplayLabel.History);
                 setIsOpenCommonPanel(true);
+
+            
                 break;
             case "View":
                 setActionButton(null);
@@ -859,17 +1016,63 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     }
     // };
 
-     const getDocument = async (folderNode?: FolderNode | null) => {
+    //comment by rupali
+
+    //  const getDocument = async (folderNode?: FolderNode | null) => {
+    //     const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
+    //     if (!folderToLoad) return [];
+
+    //     //const files = await getAllDocuments(context, folderToLoad.path);
+    //     const allFiles = await getAllDocuments(context, folderToLoad.path);
+
+    //     const files = allFiles.filter(
+    //         (file: any) =>
+    //             file.ListItemAllFields?.Active === true &&
+    //             file.ListItemAllFields?.DeleteFlag !== "Deleted"
+    //     );
+
+
+    //       console.log("Files:", files);
+    //     console.log("Files:", files);
+
+    //     setFiles(files);
+    // };
+
+    const getDocument = async (folderNode?: FolderNode | null) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
 
-        const files = await getAllDocuments(context, folderToLoad.path);
+        const allFiles = await getAllDocuments(context, folderToLoad.path);
+
+        const files = allFiles.filter((file: any) => {
+            const item = file.ListItemAllFields;
+
+            // Existing filters
+            if (
+                item?.Active !== true ||
+                item?.DeleteFlag === "Deleted"
+            ) {
+                return false;
+            }
+
+            const status = item?.InternalStatus;
+            const authorId = item?.AuthorId;
+
+            // Pending documents visible only to author
+            if (
+                ["PendingWithPublisher", "PendingWithPM", "Rejected"].includes(status)
+            ) {
+                return authorId === UserID;
+            }
+
+            // Published and other statuses visible to everyone
+            return true;
+        });
 
         console.log("Files:", files);
 
         setFiles(files);
     };
-
 
     const fetchButtonsAndPermissions = useCallback(async (targetPath: string) => {
         try {
@@ -944,13 +1147,27 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     //    return !tileData?.IsArchiveRequired;
 
                   case "Delete":
-                    return (
-                        !tileData?.IsArchiveRequired &&
-                        (
-                            canCreateRequest ||
-                            tileData?.AuthorId === UserID
-                        )
-                    );
+
+                    //multiple Tile Admin
+                    //   return (
+                    //     !tileData?.IsArchiveRequired &&
+                    //     (
+                    //         tileData?.AuthorId === UserID ||
+                    //         tileData?.TileAdminId?.some(
+                    //             (admin: any) => admin.Id === UserID
+                    //         ) ||
+                    //         isValidUser
+                    //     )
+                    // );
+
+                      return (
+                            !tileData?.IsArchiveRequired &&
+                            (
+                                item?.data?.ListItemAllFields?.AuthorId === UserID ||
+                                tileData?.TileAdminId === UserID ||
+                                isValidUser
+                            )
+                        );
 
                     case "OpenInApp":
                         const isCheck = checkExtension(item.data.Name);
@@ -966,8 +1183,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     default:
                         return checkButtons(btn.key);
                 }
-            })
-            .map((btn: any) => ({
+            }).map((btn: any) => ({
                 key: btn.key,
                 text: btn.ButtonDisplayName,
                 Icons: btn?.Icons
@@ -1209,7 +1425,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         const urlAfterSite = selectedFolder.path.replace(siteRelative, "").replace(/^\/+/, "");
 
-        FolderStructure(context, `${urlAfterSite}/${folderName}`, users, tileData.LibraryName, tileData.AllowChildInheritance).then(async (response) => {
+        const IsRootFolder=false;
+        //folderPathBread        
+        FolderStructure(context, `${urlAfterSite}/${folderName}`, users, tileData.LibraryName, tileData.AllowChildInheritance,IsRootFolder).then(async (response) => {
             const sp = spfi().using(SPFx(context));
             const folderMetadata = await sp.web.getFolderByServerRelativePath(selectedFolder?.path).listItemAllFields();
             const folderData = JSON.parse(JSON.stringify(folderMetadata, (key, value) => (value === null || (Array.isArray(value) && value.length === 0)) ? undefined : value));
@@ -1448,6 +1666,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return <div className="workspace-page"><PageLoader message="Loading workspace..." minHeight="72vh" /></div>;
     }
 
+    const isRootFolder =
+    selectedFolder?.path === buildLibraryRootPath(context, tileData?.LibraryName);
+    
+    const showNewFolderButton =
+    files.length === 0 &&
+    (
+        !isRootFolder ||                    // Any nested folder
+        selectedFolder?.children?.length > 0 // Root with existing children
+    );
+
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
             <div className="workspace-topbar">
@@ -1578,7 +1806,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
                                             : <></>}
-                                        {files.length === 0 ?
+                                        {/* {files.length === 0 ?
                                             <PrimaryButton
                                                 onClick={() => { setIsOpenFolderPanel(true); setFolderName(""); setFolderNameErr(""); }}
                                                 className="workspace-new-folder-btn"
@@ -1586,7 +1814,22 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                             >
                                                 <FolderAdd20Regular className="workspace-btn-icon" />
                                                 <span>{DisplayLabel.NewFolder} </span>
-                                            </PrimaryButton> : <></>}
+                                            </PrimaryButton> : <></>} */}
+
+                                           {showNewFolderButton && (
+                                                <PrimaryButton
+                                                    onClick={() => {
+                                                        setIsOpenFolderPanel(true);
+                                                        setFolderName("");
+                                                        setFolderNameErr("");
+                                                    }}
+                                                    className="workspace-new-folder-btn"
+                                                    data-testid="button-new-folder"
+                                                >
+                                                    <FolderAdd20Regular className="workspace-btn-icon" />
+                                                    <span>{DisplayLabel.NewFolder}</span>
+                                                </PrimaryButton>
+                                            )}
                                     </> : <> </>
                                     }
 
@@ -1688,7 +1931,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 onRenderFooterContent={() => <>{actionButton}<DefaultButton onClick={dismissCommanPanel} >Cancel</DefaultButton></>}
                 isFooterAtBottom={true}
             >
-                <div style={{ marginTop: "10px" }}>
+                <div 
+                   //style={{ marginTop: "10px" }}
+                     style={{
+                        overflowY: "auto",
+                        maxHeight: "80vh"
+                    }}
+                >
                     {/* <div className="grid">
                         <div className="row"> */}
                     {versionsPanelUrl ? renderVersionsPanel(versionsPanelUrl) : panelForm}

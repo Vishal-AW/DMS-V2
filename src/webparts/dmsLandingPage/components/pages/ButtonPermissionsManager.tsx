@@ -503,12 +503,22 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                         <tr>
                             {/* Secondary header row for Select All checkboxes */}
                             {PERMISSION_COLS.map(col => {
-                                const isAllChecked = filteredRows.length > 0 && filteredRows.every(r => !!r[col.key]);
+                                const eligibleRows = filteredRows.filter(r => {
+                                    if (col.key === 'Read') return !r.IsSetReadInactive;
+                                    if (col.key === 'Contribute') return !r.IsSetContributeCheck;
+                                    if (col.key === 'Edit') return !r.IsSetEditCheck;
+                                    return true; // FullControl has no disabled rows
+                                });
+                                const allChecked = eligibleRows.length > 0 && eligibleRows.every(r => !!r[col.key]);
+                                const someChecked = eligibleRows.some(r => !!r[col.key]);
+                                const isAllChecked = allChecked;
+                                const isIndeterminate = !allChecked && someChecked;
                                 return (
                                     <th key={`select-all-${col.key as string}`} className="bpm-th bpm-th-perm" style={{ '--perm-color': col.color, borderTop: 'none', paddingTop: 4 } as React.CSSProperties}>
                                         <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
                                             <Checkbox
                                                 checked={isAllChecked}
+                                                indeterminate={isIndeterminate}
                                                 onChange={(_, checked) => toggleAllColumn(col.key, !!checked)}
                                                 styles={{
                                                     checkbox: {
