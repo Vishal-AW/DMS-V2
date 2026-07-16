@@ -152,29 +152,28 @@ export default function SearchFilters({
     for (const item of controlArr) {
       if (item.ColumnType !== 'Dropdown' && item.ColumnType !== 'Multiple Select') continue;
 
-      const configRow = configItems.find((c: any) => c.Id === item.Id);
-
-      if (!configRow) continue;
+      // const configRow = configItems.find((c: any) => c.Id === item.Id);
+      // if (!configRow) continue;
 
       let dropdownOptions: { value: string; label: string; }[] = [];
 
-      if (configRow.IsStaticValue && configRow.StaticDataObject) {
-        dropdownOptions = configRow.StaticDataObject
+      if (item.IsStaticValue && item.StaticDataObject) {
+        dropdownOptions = item.StaticDataObject
           .split(';')
           .filter(Boolean)
           .map((ele: string) => ({ value: ele, label: ele }));
-      } else if (configRow.InternalListName) {
-        console.log('Fetching list ', configRow.InternalListName);
-        console.log('Display field ', configRow.DisplayValue);
+      } else if (item.InternalListName) {
+        console.log('Fetching list ', item.InternalListName);
+        console.log('Display field ', item.DisplayValue);
         try {
           const data = await getListData(
-            `${context.pageContext.web.absoluteUrl}/_api/web/lists/getbytitle('${configRow.InternalListName}')/items?$top=5000&$filter=Active eq 1&$orderby=${configRow.DisplayValue} asc`,
+            `${context.pageContext.web.absoluteUrl}/_api/web/lists/getbytitle('${item.InternalListName}')/items?$top=5000&$filter=Active eq 1&$orderby=${item.DisplayValue} asc`,
             context
           );
           console.log('Dropdown API data ', data);
           dropdownOptions = (data?.value || []).map((ele: any) => ({
-            value: ele[configRow.DisplayValue],
-            label: ele[configRow.DisplayValue],
+            value: ele[item.DisplayValue],
+            label: ele[item.DisplayValue],
           }));
           console.log('dropdownOptions ', dropdownOptions);
         } catch (e) {
@@ -182,8 +181,8 @@ export default function SearchFilters({
         }
       }
 
-      if (item.ColumnType === 'Radio' && configRow.IsStaticValue && configRow.StaticDataObject) {
-        dropdownOptions = configRow.StaticDataObject
+      if (item.ColumnType === 'Radio' && item.IsStaticValue && item.StaticDataObject) {
+        dropdownOptions = item.StaticDataObject
           .split(';')
           .filter(Boolean)
           .map((ele: string) => ({ value: ele, label: ele }));

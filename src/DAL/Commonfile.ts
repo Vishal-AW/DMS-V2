@@ -82,8 +82,6 @@ export function CreateItem(WebUrl: string, spHttpClient: SPHttpClient, ListName:
 
 export function UpdateItem(WebUrl: string, spHttpClient: SPHttpClient, ListName: string, jsonBody: any, ID: number) {
 
-
-
   if (!jsonBody.__metadata) {
     jsonBody.__metadata = {
       'type': 'SP.ListItem'
