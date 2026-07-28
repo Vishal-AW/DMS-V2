@@ -95,7 +95,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
     const handleInputChange = (key: string, value: any) => {
         setDynamicValues((prev) => ({ ...prev, [key]: value }));
     };
-   
+
 
 
     const fetchLibraryDetails = async () => {
@@ -158,7 +158,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                     return (
                         <div style={{ paddingTop: "10px" }} className="column6" key={index}>
                             {/* <Field  label={item.Title} required={item.IsRequired}> */}
-                           <Field   label={<span style={{ fontWeight: 500 }}>{item.Title}</span>} required={item.IsRequired}>
+                            <Field label={<span style={{ fontWeight: 500 }}>{item.Title}</span>} required={item.IsRequired}>
                                 <Select
                                     options={options[item.InternalTitleName]}
                                     required={item.IsRequired}
@@ -192,12 +192,12 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                     //     [item.InternalTitleName]: userIds
                                     // }));
                                     setDynamicValues((prevValues) => ({
-                                            ...prevValues,
-                                            [item.InternalTitleName]:
-                                                userIds.length === 1
-                                                    ? userIds[0]
-                                                    : userIds
-                                        }));
+                                        ...prevValues,
+                                        [item.InternalTitleName]:
+                                            userIds.length === 1
+                                                ? userIds[0]
+                                                : userIds
+                                    }));
                                 }}
                                 errorMessage={dynamicValuesErr[item.InternalTitleName]}
                             />
@@ -225,16 +225,16 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                     return (
                         <div style={{ paddingTop: "10px", fontWeight: 500 }} className="column6" key={index}>
 
-                            <Field  label={item.Title} required={item.IsRequired}>
+                            <Field label={item.Title} required={item.IsRequired}>
                                 {/* <DatePicker
                                     onSelectDate={(date: Date | null | undefined) => handleInputChange(item.InternalTitleName, date)}
                                     className={meargestyles.control}
                                     value={dynamicValues[item.InternalTitleName] || ""}
                                     formatDate={(date) => date ? moment(new Date(date)).format("DD/MM/YYYY") : ''}
                                 /> */}
-                               
+
                                 <TextField
-                                    
+
                                     type="date"
                                     className={meargestyles.control}
                                     value={
@@ -416,65 +416,65 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
     //     setAttachmentsFiles((prev) => prev.map((ele, i) => i === index ? { ...ele, isDisabled: !ele.isDisabled, IsExistingRefID: IsExistingReferenceNo } : ele));
     // };
 
-     const onClickDetails = (index: number) => {
+    const onClickDetails = (index: number) => {
 
-            let IsExistingReferenceNo = "";
+        let IsExistingReferenceNo = "";
 
-            // Validation
-            if (
-                attachmentsFiles[index].isUpdateExistingFile === "Yes" &&
-                (!attachmentsFiles[index].OldFileName ||
-                    attachmentsFiles[index].OldFileName === "")
-            ) {
+        // Validation
+        if (
+            attachmentsFiles[index].isUpdateExistingFile === "Yes" &&
+            (!attachmentsFiles[index].OldFileName ||
+                attachmentsFiles[index].OldFileName === "")
+        ) {
 
-                setAttachmentsFiles((prev) =>
-                    prev.map((ele, i) =>
-                        i === index
-                            ? {
-                                ...ele,
-                                fileError: "This field is required"
-                            }
-                            : ele
-                    )
-                );
-                return false;
-            }
-
-            // Remove error after selection
             setAttachmentsFiles((prev) =>
                 prev.map((ele, i) =>
                     i === index
                         ? {
                             ...ele,
-                            fileError: ""
+                            fileError: "This field is required"
                         }
                         : ele
                 )
             );
+            return false;
+        }
 
-            // Existing logic
-            if (attachmentsFiles[index].isUpdateExistingFile === "Yes") {
-                let eFile = filterFilesData.filter(
-                    (ele: any) =>
-                        ele.Name == attachmentsFiles[index].OldFileName
-                );
-                IsExistingReferenceNo =
-                    eFile.length > 0
-                        ? eFile[0].ListItemAllFields.IsExistingRefID
-                        : "";
-                setExistingFile((per) => [...per, { ...eFile[0] }]);
-            }
-            setAttachmentsFiles((prev) =>
-                prev.map((ele, i) =>
-                    i === index
-                        ? {
-                            ...ele,
-                            isDisabled: !ele.isDisabled,
-                            IsExistingRefID: IsExistingReferenceNo
-                        }
-                        : ele
-                )
+        // Remove error after selection
+        setAttachmentsFiles((prev) =>
+            prev.map((ele, i) =>
+                i === index
+                    ? {
+                        ...ele,
+                        fileError: ""
+                    }
+                    : ele
+            )
+        );
+
+        // Existing logic
+        if (attachmentsFiles[index].isUpdateExistingFile === "Yes") {
+            let eFile = filterFilesData.filter(
+                (ele: any) =>
+                    ele.Name == attachmentsFiles[index].OldFileName
             );
+            IsExistingReferenceNo =
+                eFile.length > 0
+                    ? eFile[0].ListItemAllFields.IsExistingRefID
+                    : "";
+            setExistingFile((per) => [...per, { ...eFile[0] }]);
+        }
+        setAttachmentsFiles((prev) =>
+            prev.map((ele, i) =>
+                i === index
+                    ? {
+                        ...ele,
+                        isDisabled: !ele.isDisabled,
+                        IsExistingRefID: IsExistingReferenceNo
+                    }
+                    : ele
+            )
+        );
     };
 
     const validateFileName = (): boolean => {
@@ -550,23 +550,23 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
 
             //const fileName = `${newFileName}.${filetype}`;
 
-                let finalFileName = newFileName;
+            let finalFileName = newFileName;
 
-                if (folderObject.DocumentSuffix) {
-                    let suffix = folderObject.DocumentSuffix;
+            if (folderObject.DocumentSuffix) {
+                let suffix = folderObject.DocumentSuffix;
 
-                    if (suffix === "Other") {
-                        suffix = folderObject.OtherSuffix;
-                    }
-
-                    if (folderObject.PSType === "Prefix") {
-                        finalFileName = `${suffix}_${newFileName}`;
-                    } else {
-                        finalFileName = `${newFileName}_${suffix}`;
-                    }
+                if (suffix === "Other") {
+                    suffix = folderObject.OtherSuffix;
                 }
 
-               const fileName = `${finalFileName}.${filetype}`;
+                if (folderObject.PSType === "Prefix") {
+                    finalFileName = `${suffix}_${newFileName}`;
+                } else {
+                    finalFileName = `${newFileName}_${suffix}`;
+                }
+            }
+
+            const fileName = `${finalFileName}.${filetype}`;
 
 
             const fileServerRelativeUrl = `${folderServerRelativeUrl}/${fileName}`;
@@ -622,12 +622,12 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
             //     Active: true
             // };
 
-              const folderData = JSON.parse(
+            const folderData = JSON.parse(
                 JSON.stringify(
                     folderObject,
                     (key, value) =>
                         value === null ||
-                        (Array.isArray(value) && value.length === 0)
+                            (Array.isArray(value) && value.length === 0)
                             ? undefined
                             : value
                 )
@@ -695,27 +695,27 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 libName
             );
 
-              // Send email notification after successful file creation and metadata update
+            // Send email notification after successful file creation and metadata update
             if (folderObject?.ProjectmanagerEmail) {
                 try {
                     // if( status.value[0].InternalStatus ==="PendingWithPM"){       
                     // }
 
-                     let emailObj: any = {
-                            To: folderObject.ProjectmanagerEmail,
-                            FolderPath: obj.FolderDocumentPath,
-                            DocName: obj.ActualName,
-                            AuthorTitle: context.pageContext.user.displayName,
-                            TileName: libName,
-                            Sub: DisplayLabel.PublisherEmailSubject + " " + obj.ReferenceNo,
-                            Status: status.value[0].InternalStatus,
-                            ID: folderObject.Id,
-                            libraryName: libName,
-                            CC: folderObject.PublisherEmail?.toLowerCase(),
-                            From: context.pageContext.user.loginName?.toLowerCase()
-                        };
-                        await TileSendMail(context, emailObj); 
-                   
+                    let emailObj: any = {
+                        To: folderObject.ProjectmanagerEmail,
+                        FolderPath: obj.FolderDocumentPath,
+                        DocName: obj.ActualName,
+                        AuthorTitle: context.pageContext.user.displayName,
+                        TileName: libName,
+                        Sub: DisplayLabel.PublisherEmailSubject + " " + obj.ReferenceNo,
+                        Status: status.value[0].InternalStatus,
+                        ID: folderObject.Id,
+                        libraryName: libName,
+                        CC: folderObject.PublisherEmail?.toLowerCase(),
+                        From: context.pageContext.user.loginName?.toLowerCase()
+                    };
+                    await TileSendMail(context, emailObj);
+
                 } catch (emailError) {
                     console.error("Error sending email notification:", emailError);
                 }
@@ -737,7 +737,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 `?d=w${uniqueId}`;
 
             window.open(openUrl, "_blank");
-          
+
             setShowLoader({ display: "none" });
             setNewFileName("");
             dismissUploadPanel();
@@ -764,7 +764,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                 }
             });
         }
-        
+
         if (filetype === "upload" && attachmentsFiles.length === 0) {
             setAttachmentErr(DisplayLabel.ThisFieldisRequired);
             isValid = false;
@@ -777,11 +777,11 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
         if (LastDocRes.value[0].RefSequence == null || LastDocRes.value[0].RefSequence == undefined) {
             LastDocRes.value[0].RefSequence = 0;
         }
-        
+
         //Added New
         const lastSequence = LastDocRes.value[0]?.RefSequence || 0;
 
-        attachmentsFiles.forEach(async (item,index) => {
+        attachmentsFiles.forEach(async (item, index) => {
             if (item.isUpdateExistingFile === "Yes") {
                 existingFile.map(async (el) => {
                     await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, { IsExistingFlag: "Old" }, el.ListItemAllFields.ID, libName);
@@ -830,14 +830,14 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
             // const refCount = LastDocRes.value[0].RefSequence == null ? 0 : LastDocRes.value[0].RefSequence + count;
             // const ReferenceNo = generateAutoRefNumber(refCount, folderObject, LastDocRes.value[0].Created, LibraryDetails);
 
-             const refCount = lastSequence + index;
+            const refCount = lastSequence + index;
 
-                const ReferenceNo = generateAutoRefNumber(
-                    refCount,
-                    folderObject,
-                    LastDocRes.value[0].Created,
-                    LibraryDetails
-                );
+            const ReferenceNo = generateAutoRefNumber(
+                refCount,
+                folderObject,
+                LastDocRes.value[0].Created,
+                LibraryDetails
+            );
 
 
             obj.ReferenceNo = ReferenceNo.refNo.replace(/null/, "");
@@ -1026,7 +1026,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                             });
                                                         }
                                                         setFilterFilesData(filterFiles);
-                                                        setFilesData(filterFiles.map((el: any) => ({ value: el.Name, label: el.ListItemAllFields.ActualName })));
+                                                        setFilesData(filterFiles.filter((el: any) => el.Name.split(".").pop() === "pdf").map((el: any) => ({ value: el.Name, label: el.ListItemAllFields.ActualName })));
                                                         setAttachmentsFiles(attach);
                                                         const filterD = attach.filter((el, i) => el.isUpdateExistingFile === "Yes");
                                                         filterD.length > 0 ? setIsUpdateExistingFile(option?.value === "Yes") : "";
@@ -1066,8 +1066,8 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                             );
                                                         }}
                                                     />
-                                                       {/* Error Message */}
-                                                     {item.isUpdateExistingFile === "Yes" &&
+                                                    {/* Error Message */}
+                                                    {item.isUpdateExistingFile === "Yes" &&
                                                         (!item.OldFileName || item.OldFileName === "") &&
                                                         item.fileError && (
                                                             <span
@@ -1089,11 +1089,20 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                             </td>
 
                                             <td>
-                                                <IconButton
-                                                    iconProps={{ iconName: item.isDisabled ? "Edit" : "Save" }}
-                                                    styles={{ root: { color: "#009ef7" } }}
-                                                    onClick={() => onClickDetails(index)}
-                                                />
+                                                {
+                                                    item.attachment.name.split(".").pop() === "pdf" ?
+                                                        <IconButton
+                                                            iconProps={{ iconName: item.isDisabled ? "Edit" : "Save" }}
+                                                            styles={{ root: { color: "#009ef7" } }}
+                                                            onClick={() => onClickDetails(index)}
+                                                        />
+                                                        :
+                                                        <IconButton
+                                                            iconProps={{ iconName: item.isDisabled ? "Edit" : "Save" }}
+                                                            styles={{ root: { color: "#009ef7" } }}
+                                                        />
+                                                }
+
 
                                                 <IconButton
                                                     iconProps={{ iconName: "Delete" }}

@@ -128,12 +128,12 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const selectedFolderRef = useRef<any | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
-    
+
     const canCreateRequest = useMemo(() => {
         return isValidUser || tileData?.TileAdminId === UserID;
     }, [isValidUser, tileData, UserID]);
 
-     const ShowHideDeleteOption = useMemo(() => {
+    const ShowHideDeleteOption = useMemo(() => {
         return isValidUser || tileData?.TileAdminId === UserID;
     }, [isValidUser, tileData, UserID]);
 
@@ -170,7 +170,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     // useEffect(() => {
     //     if (selectedFolder?.path) {
-            
+
     //         void fetchButtonsAndPermissions(selectedFolder.path);
     //     }
     // }, [selectedFolder?.path]);
@@ -227,7 +227,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
-   //Original Code
+    //Original Code
     // const fetchFolder = async () => {
     //     const sp = spfi().using(SPFx(context));
 
@@ -259,7 +259,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setSelectedFolder(preservedFolder);
     // };
 
-     const fetchFolder = async () => {
+    const fetchFolder = async () => {
         const sp = spfi().using(SPFx(context));
         const allItems: any[] = [];
 
@@ -295,9 +295,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setFolders(nextFolders);
         expandParentFolders(folderObj);
         setSelectedFolder(preservedFolder);
-       // console.log(selectedFolder.children.length);
+        // console.log(selectedFolder.children.length);
     };
-	
+
 
     // const fetchFolder = async () => {
     //     const sp = spfi().using(SPFx(context));
@@ -385,18 +385,18 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setSelectedFolder(folder);
         // setButtons([]); // clear previous folder buttons
 
-           setTables(""); // <-- Reset from Archive/Recycle to Folder view
-         fetchButtonsAndPermissions(folder.path); // no await
+        setTables(""); // <-- Reset from Archive/Recycle to Folder view
+        fetchButtonsAndPermissions(folder.path); // no await
 
-         expandParentFolders(folder);
-       //  setTables("Documents");
+        expandParentFolders(folder);
+        //  setTables("Documents");
 
         if (isSameFolder) {
             await getDocument(folder);
         }
     };
 
-  
+
     const getPendingApprovalData = async () => {
         if (!tileData?.LibraryName) return;
         const pendingApprovalData = await getApprovalData(context, tileData.LibraryName, UserEmailID);
@@ -483,30 +483,30 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 //     style={{ width: "100%", height: "80vh" }} 
                 // ></iframe>;
 
-                 return (
+                return (
                     <div
                         // style={{
                         //     position: "relative",
                         //     height: "80vh",
                         //     overflowY: "auto"
                         // }}
-                         style={{
+                        style={{
                             position: "relative",
                             height: "80vh",
                             userSelect: "none"
-                         }}
-                         onContextMenu={(e) => e.preventDefault()}
+                        }}
+                        onContextMenu={(e) => e.preventDefault()}
 
                     >
                         <iframe
-                            src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                            src={`${filePath}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                             style={{
                                 width: "100%",
                                 height: "100%",
                                 border: "none",
                                 //pointerEvents: "none" // disables clicks
                             }}
-                             onLoad={(e) => {
+                            onLoad={(e) => {
                                 try {
                                     const iframeDoc =
                                         e.currentTarget.contentDocument ||
@@ -520,10 +520,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 }
                             }}
                         />
-                       
+
                     </div>
                 );
-                 
+
         }
     };
 
@@ -640,7 +640,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         background: "rgba(248, 251, 255, 0.96)",
                         zIndex: 2
                     }}
-                      onContextMenu={(e) => e.preventDefault()}
+                    onContextMenu={(e) => e.preventDefault()}
                 >
                     <div
                         style={{
@@ -672,7 +672,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 //     backgroundColor: "#fff",
                 //     pointerEvents: "none"
                 // }}
-                  style={{
+                style={{
                     width: "100%",
                     height: "1200px", // adjust as needed
                     border: "none",
@@ -680,7 +680,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 }}
                 onLoad={(event) => hideClickableOptionsInVersionsFrame(event.currentTarget)}
             >
-                
+
             </iframe>
             <div
                 aria-hidden="true"
@@ -879,7 +879,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 setPanelTitle(DisplayLabel.History);
                 setIsOpenCommonPanel(true);
 
-            
+
                 break;
             case "View":
                 setActionButton(null);
@@ -899,72 +899,52 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
                         </div>
                     </div>
-                    <div className="grid-2">
+                    <div className="meta-panel-body">
+                        <div className="meta-panel-section">
+                            <div className="meta-panel-fields">
+                                <div className="meta-panel-row meta-panel-row-2col">
+                                    <div className="meta-panel-field">
+                                        <label className="meta-panel-label">{DisplayLabel.TileName}</label>
+                                        <span className="meta-panel-plain-value" data-testid="text-meta-tile">{tileData.TileName}</span>
+                                    </div>
+                                    <div className="meta-panel-field">
+                                        <label className="meta-panel-label">{DisplayLabel.FolderName}</label>
+                                        <div className="meta-panel-plain-value" data-testid="text-meta-name">{selectedFolderName}</div>
+                                    </div>
 
-                        <div className="col-md-6">
-                            <label >{DisplayLabel.TileName}</label>
-                            <TextField
-                                value={tileData.TileName}
-                                //disabled={true}
-                                readOnly
-                            />
-                            <br></br>
-                        </div>
-                        <div className="col-md-6">
-                            <label>{DisplayLabel.FolderName}</label>
-                            <TextField
-                                value={selectedFolderName}
-                                // disabled={true}
-                                readOnly
-                            />
-                            <br></br>
-                        </div>
-                        {item.ListItemAllFields.IsSuffixRequired ? <>
-                            <div className="col-md-6">
-                                <label>{DisplayLabel.DocumentSuffix}</label>
-                                <TextField
-                                    value={item.ListItemAllFields.DocumentSuffix}
-                                    //disabled={true}
-                                    readOnly
-                                />
-                                <br></br>
-                            </div>
+                                    {item.ListItemAllFields.IsSuffixRequired ? <>
+                                        <div className="meta-panel-field">
+                                            <label className="meta-panel-label">{DisplayLabel.DocumentSuffix}</label>
+                                            <span className="meta-panel-plain-value" data-testid="text-meta-tile">{item.ListItemAllFields.DocumentSuffix}</span>
+                                        </div>
+                                        {item.ListItemAllFields.DocumentSuffix === "Other" && (
+                                            <div className="meta-panel-field">
+                                                <label className="meta-panel-label">{DisplayLabel.OtherSuffixName}</label>
+                                                <div className="meta-panel-plain-value" data-testid="text-meta-name">{item.ListItemAllFields.OtherSuffix}</div>
+                                            </div>)}
 
+                                    </> : <></>}
+                                    {
+                                        jsonData.map((el: any, index: number) => {
+                                            const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
+                                            if (!filterObj) return null;
+                                            return <div className="meta-panel-field">
+                                                <label className="meta-panel-label">{el.Title}</label>
+                                                {filterObj.ColumnType === "Date and Time" ?
 
-                            {item.ListItemAllFields.DocumentSuffix === "Other" && (
-                                <div className="col-md-6">
-                                    <label>{DisplayLabel.OtherSuffixName}</label>
-                                    <TextField
-                                        value={item.ListItemAllFields.OtherSuffix}
-                                        //disabled={true}
-                                        readOnly
-                                    />
-                                    <br></br>
+                                                    <label className="meta-panel-plain-value">{item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(
+                                                        new Date(item.ListItemAllFields[el.InternalTitleName]),
+                                                        "dd/MM/yyyy"
+                                                    ) : ""}</label>
+                                                    :
+                                                    <label className="meta-panel-plain-value">{item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? (el.ColumnType === "Person or Group" ? item.ListItemAllFields[el.InternalTitleName].Title : item.ListItemAllFields[el.InternalTitleName]) : ""}</label>}
+                                            </div>;
+
+                                        })
+                                    }
                                 </div>
-                            )}</> : <></>
-                        }
-                        {
-                            jsonData.map((el: any, index: number) => {
-                                const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
-                                if (!filterObj) return null;
-                                return <div className="col-md-6">
-                                    <label>{el.Title}</label>
-                                    {filterObj.ColumnType === "Date and Time" ? <TextField
-                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(
-                                            new Date(item.ListItemAllFields[el.InternalTitleName]),
-                                            "dd/MM/yyyy"
-                                        ) : ""}
-                                        disabled={true}
-                                    /> : <TextField
-                                        value={item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? (el.ColumnType === "Person or Group" ? item.ListItemAllFields[el.InternalTitleName].Title : item.ListItemAllFields[el.InternalTitleName]) : ""}
-                                        //disabled={true}
-                                        readOnly
-                                    />}
-                                    <br></br>
-                                </div>;
-
-                            })
-                        }
+                            </div>
+                        </div>
                     </div>
                 </>;
                 setPanelForm(htm);
@@ -1127,7 +1107,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         } catch (err) {
             console.error('Error in fetchButtonsAndPermissions:', err);
         }
-    }, [context,tileData]);
+    }, [context, tileData]);
 
     const visibleButtons = useMemo(() => {
         return buttons.filter(btn => {
@@ -1146,21 +1126,21 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     // case "Delete":
                     //    return !tileData?.IsArchiveRequired;
 
-                  case "Delete":
+                    case "Delete":
 
-                    //multiple Tile Admin
-                    //   return (
-                    //     !tileData?.IsArchiveRequired &&
-                    //     (
-                    //         tileData?.AuthorId === UserID ||
-                    //         tileData?.TileAdminId?.some(
-                    //             (admin: any) => admin.Id === UserID
-                    //         ) ||
-                    //         isValidUser
-                    //     )
-                    // );
+                        //multiple Tile Admin
+                        //   return (
+                        //     !tileData?.IsArchiveRequired &&
+                        //     (
+                        //         tileData?.AuthorId === UserID ||
+                        //         tileData?.TileAdminId?.some(
+                        //             (admin: any) => admin.Id === UserID
+                        //         ) ||
+                        //         isValidUser
+                        //     )
+                        // );
 
-                      return (
+                        return (
                             !tileData?.IsArchiveRequired &&
                             (
                                 item?.data?.ListItemAllFields?.AuthorId === UserID ||
@@ -1391,19 +1371,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
         if (!selectedFolder) return;
 
-       // const isDuplicate = selectedFolder.children.filter((el: any) => el.Name === folderName);
-      
+        // const isDuplicate = selectedFolder.children.filter((el: any) => el.Name === folderName);
+
         // if (isDuplicate.length > 0) {
         //     setFolderNameErr(DisplayLabel.FolderAlreadyExist);
         //     return;
         // }
 
         const isDuplicate = selectedFolder.children
-        .flat(Infinity)
-        .some(
-            (el: any) =>
-            el?.name?.trim().toLowerCase() === folderName.trim().toLowerCase()
-        );
+            .flat(Infinity)
+            .some(
+                (el: any) =>
+                    el?.name?.trim().toLowerCase() === folderName.trim().toLowerCase()
+            );
 
         if (isDuplicate) {
             setFolderNameErr(DisplayLabel.FolderAlreadyExist);
@@ -1425,9 +1405,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         const urlAfterSite = selectedFolder.path.replace(siteRelative, "").replace(/^\/+/, "");
 
-        const IsRootFolder=false;
+        const IsRootFolder = false;
         //folderPathBread        
-        FolderStructure(context, `${urlAfterSite}/${folderName}`, users, tileData.LibraryName, tileData.AllowChildInheritance,IsRootFolder).then(async (response) => {
+        FolderStructure(context, `${urlAfterSite}/${folderName}`, users, tileData.LibraryName, tileData.AllowChildInheritance, IsRootFolder).then(async (response) => {
             const sp = spfi().using(SPFx(context));
             const folderMetadata = await sp.web.getFolderByServerRelativePath(selectedFolder?.path).listItemAllFields();
             const folderData = JSON.parse(JSON.stringify(folderMetadata, (key, value) => (value === null || (Array.isArray(value) && value.length === 0)) ? undefined : value));
@@ -1479,7 +1459,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 maxWidth: 80,
                 cellRenderer: (item: any) =>
                     <span className="table-cell-text table-cell-version" data-testid={`text-version-${item.id}`}>
-                        v{item?.data?.ListItemAllFields?.Level}
+                        v{item.data?.Name?.split(".").pop() === "pdf" ? item?.data?.ListItemAllFields?.Level : item?.data?.ListItemAllFields?.OData__UIVersionString}
                     </span>
             },
             {
@@ -1667,14 +1647,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     }
 
     const isRootFolder =
-    selectedFolder?.path === buildLibraryRootPath(context, tileData?.LibraryName);
-    
+        selectedFolder?.path === buildLibraryRootPath(context, tileData?.LibraryName);
+
     const showNewFolderButton =
-    files.length === 0 &&
-    (
-        !isRootFolder ||                    // Any nested folder
-        selectedFolder?.children?.length > 0 // Root with existing children
-    );
+        files.length === 0 &&
+        (
+            !isRootFolder ||                    // Any nested folder
+            selectedFolder?.children?.length > 0 // Root with existing children
+        );
 
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">
@@ -1694,7 +1674,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     </span>
                 </div>
                 <div className="workspace-topbar-actions">
-                      {canCreateRequest && (
+                    {canCreateRequest && (
                         <DefaultButton
                             className="workspace-new-request-btn"
                             onClick={projectCreation}
@@ -1703,7 +1683,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             <Add20Regular className="workspace-btn-icon" />
                             <span>New Request</span>
                         </DefaultButton>
-                      )}
+                    )}
                 </div>
             </div>
 
@@ -1746,67 +1726,67 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 ))}
                             </div>
                             <div className="workspace-content-actions">
-                             {canShowButtons && (
-                                <>
-                                    {tables === "" ? <>
-                                        {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
-                                            <Menu>
-                                                <MenuTrigger disableButtonEnhancement>
-                                                    <Button
-                                                        appearance="subtle"
-                                                        iconPosition="after"
-                                                        icon={<ChevronDown24Regular className="table-action-btn" />}
-                                                        className="workspace-upload-btn"
-                                                    ><span>Create or Upload</span></Button>
-                                                </MenuTrigger>
+                                {canShowButtons && (
+                                    <>
+                                        {tables === "" ? <>
+                                            {(selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
+                                                <Menu>
+                                                    <MenuTrigger disableButtonEnhancement>
+                                                        <Button
+                                                            appearance="subtle"
+                                                            iconPosition="after"
+                                                            icon={<ChevronDown24Regular className="table-action-btn" />}
+                                                            className="workspace-upload-btn"
+                                                        ><span>Create or Upload</span></Button>
+                                                    </MenuTrigger>
 
-                                                <MenuPopover
-                                                    style={{
-                                                        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-                                                        padding: "15px"
-                                                    }}
-                                                >
-                                                    <MenuList>
-                                                        <MenuItem
-                                                            key="folder"
-                                                            icon={<ArrowUpload20Regular style={{ color: "#0078D4" }} />}
-                                                            onClick={() => {
-                                                                setFileType("upload");
-                                                                setIsOpenUploadPanel(true);
-                                                            }}
-                                                        >
-                                                            Files Upload
-                                                        </MenuItem>
-                                                        <MenuItem
-                                                            key="word"
-                                                            icon={<Icon iconName="WordDocument" style={{ color: "#2B579A", fontSize: 20 }} />}
-                                                            onClick={() => {
-                                                                setFileType("docx");
-                                                                setIsOpenUploadPanel(true);
-                                                            }}
-                                                        >
-                                                            Word Document
-                                                        </MenuItem>
-                                                        <MenuItem
-                                                            key="excel"
-                                                            icon={<Icon iconName="ExcelDocument" style={{ color: "#217346", fontSize: 20 }} />}
+                                                    <MenuPopover
+                                                        style={{
+                                                            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                                                            padding: "15px"
+                                                        }}
+                                                    >
+                                                        <MenuList>
+                                                            <MenuItem
+                                                                key="folder"
+                                                                icon={<ArrowUpload20Regular style={{ color: "#0078D4" }} />}
+                                                                onClick={() => {
+                                                                    setFileType("upload");
+                                                                    setIsOpenUploadPanel(true);
+                                                                }}
+                                                            >
+                                                                Files Upload
+                                                            </MenuItem>
+                                                            <MenuItem
+                                                                key="word"
+                                                                icon={<Icon iconName="WordDocument" style={{ color: "#2B579A", fontSize: 20 }} />}
+                                                                onClick={() => {
+                                                                    setFileType("docx");
+                                                                    setIsOpenUploadPanel(true);
+                                                                }}
+                                                            >
+                                                                Word Document
+                                                            </MenuItem>
+                                                            <MenuItem
+                                                                key="excel"
+                                                                icon={<Icon iconName="ExcelDocument" style={{ color: "#217346", fontSize: 20 }} />}
 
-                                                            onClick={() => {
-                                                                setFileType("xlsx");
-                                                                setIsOpenUploadPanel(true);
-                                                            }}
-                                                        >
-                                                            Excel Document
-                                                        </MenuItem>
-                                                    </MenuList>
-                                                </MenuPopover>
-                                            </Menu>
-                                            // <DefaultButton text="Create or Upload" menuProps={uploadMenuProps} styles={{ root: { marginRight: 8 } }} />
+                                                                onClick={() => {
+                                                                    setFileType("xlsx");
+                                                                    setIsOpenUploadPanel(true);
+                                                                }}
+                                                            >
+                                                                Excel Document
+                                                            </MenuItem>
+                                                        </MenuList>
+                                                    </MenuPopover>
+                                                </Menu>
+                                                // <DefaultButton text="Create or Upload" menuProps={uploadMenuProps} styles={{ root: { marginRight: 8 } }} />
 
 
 
-                                            : <></>}
-                                        {/* {files.length === 0 ?
+                                                : <></>}
+                                            {/* {files.length === 0 ?
                                             <PrimaryButton
                                                 onClick={() => { setIsOpenFolderPanel(true); setFolderName(""); setFolderNameErr(""); }}
                                                 className="workspace-new-folder-btn"
@@ -1816,7 +1796,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                                 <span>{DisplayLabel.NewFolder} </span>
                                             </PrimaryButton> : <></>} */}
 
-                                           {showNewFolderButton && (
+                                            {showNewFolderButton && (
                                                 <PrimaryButton
                                                     onClick={() => {
                                                         setIsOpenFolderPanel(true);
@@ -1830,14 +1810,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                                     <span>{DisplayLabel.NewFolder}</span>
                                                 </PrimaryButton>
                                             )}
-                                    </> : <> </>
-                                    }
+                                        </> : <> </>
+                                        }
 
-                                
-                                </>
-                             )} 
 
-                               
+                                    </>
+                                )}
+
+
 
                                 {selectedFolder?.children.length !== 0 && (
                                     <Menu>
@@ -1931,9 +1911,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 onRenderFooterContent={() => <>{actionButton}<DefaultButton onClick={dismissCommanPanel} >Cancel</DefaultButton></>}
                 isFooterAtBottom={true}
             >
-                <div 
-                   //style={{ marginTop: "10px" }}
-                     style={{
+                <div
+                    //style={{ marginTop: "10px" }}
+                    style={{
                         overflowY: "auto",
                         maxHeight: "80vh"
                     }}
@@ -2010,9 +1990,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
             <AdvancePermission isOpen={isPanelOpen} context={context} folderId={itemId} LibraryName={tileData?.LibraryName} dismissPanel={onDismiss} />
             {/* {tileData && <ProjectEntryForm isOpen={isCreateProjectPopupOpen} dismissPanel={dissmissProjectCreationPanel} context={context} LibraryDetails={tileData} admin={admin} FormType={formType} folderObject={projectUpdateData} folderPath={selectedFolder?.path} ChildFolderRoleInheritance={tileData?.AllowChildInheritance} />} */}
-            
-             {tileData && 
-                 <ProjectEntryForm
+
+            {tileData &&
+                <ProjectEntryForm
                     isOpen={isCreateProjectPopupOpen}
                     dismissPanel={dissmissProjectCreationPanel}
                     context={context}
@@ -2024,7 +2004,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     ChildFolderRoleInheritance={tileData?.AllowChildInheritance}
                     onFolderCreated={fetchFolder}   // NEW
                 />
-             }
+            }
             <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
 
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={message} />

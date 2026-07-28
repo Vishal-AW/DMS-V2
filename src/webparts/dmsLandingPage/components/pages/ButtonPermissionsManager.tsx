@@ -91,7 +91,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
             </div>
             {open && (
                 <div className="bpm-icon-dropdown">
-                    <input 
+                    <input
                         className="bpm-icon-search"
                         placeholder="Search icon..."
                         value={search}
@@ -146,21 +146,21 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                 //Edit: !!item.EditPermission,
                 // Read: !!item.ReadPermission,
                 Read: item.IsSetReadInactive
-                ? false
-                : !!item.ReadPermission,
+                    ? false
+                    : !!item.ReadPermission,
                 IsSetReadInactive: !!item.IsSetReadInactive,
 
                 Contribute: item.IsSetContributeCheck
-                ? false
-                : !!item.Contribute,
+                    ? false
+                    : !!item.Contribute,
                 IsSetContributeCheck: !!item.IsSetContributeCheck,
 
                 Edit: item.IsSetEditCheck
-                ? false
-                : !!item.EditPermission,
+                    ? false
+                    : !!item.EditPermission,
                 IsSetEditCheck: !!item.IsSetEditCheck,
 
-                
+
 
                 _dirty: false,
                 _saving: false,
@@ -253,22 +253,22 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                 ButtonDisplayName: row.ButtonDisplayName,
                 Icons: row.Icons,
                 FullControl: row.FullControl,
-               // Contribute: row.Contribute,
-               // EditPermission: row.Edit,
+                // Contribute: row.Contribute,
+                // EditPermission: row.Edit,
                 //ReadPermission: row.Read,
                 ReadPermission: row.IsSetReadInactive
-                ? false
-                : row.Read,
-                
+                    ? false
+                    : row.Read,
+
                 Contribute: row.IsSetContributeCheck
-                ? false
-                : row.Contribute,
+                    ? false
+                    : row.Contribute,
 
                 EditPermission: row.IsSetEditCheck
-                ? false
-                : row.Edit,
+                    ? false
+                    : row.Edit,
 
-                
+
             });
             setRows(prev => prev.map(r => r.ID === row.ID ? { ...r, _dirty: false, _saving: false } : r));
             setGlobalMsg({ text: `"${row.Title}" saved successfully.`, type: MessageBarType.success });
@@ -283,23 +283,23 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
     const saveAll = async () => {
         // const dirty = rows.filter(r => r._dirty);
         const dirty = rows
-        .filter(r => r._dirty)
-        .map(r => ({
-            ...r,
-            Read: r.IsSetReadInactive
-                ? false
-                : r.Read ,
-            
-            Contribute: r.IsSetContributeCheck
-            ? false
-            : r.Contribute ,
+            .filter(r => r._dirty)
+            .map(r => ({
+                ...r,
+                Read: r.IsSetReadInactive
+                    ? false
+                    : r.Read,
 
-            Edit: r.IsSetEditCheck
-            ? false
-            : r.Edit ,
-     
-        }));
-        
+                Contribute: r.IsSetContributeCheck
+                    ? false
+                    : r.Contribute,
+
+                Edit: r.IsSetEditCheck
+                    ? false
+                    : r.Edit,
+
+            }));
+
         if (dirty.length === 0) {
             setGlobalMsg({ text: 'No changes to save.', type: MessageBarType.info });
             setTimeout(() => setGlobalMsg(null), 2500);
@@ -336,60 +336,60 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
     //     ));
     // };
 
-      const toggleAllColumn = (
-            key: keyof IButtonRow,
-            checked: boolean
-        ) => {
-            const visibleIds = new Set(filteredRows.map(r => r.ID));
+    const toggleAllColumn = (
+        key: keyof IButtonRow,
+        checked: boolean
+    ) => {
+        const visibleIds = new Set(filteredRows.map(r => r.ID));
 
-            setRows(prev =>
-                prev.map(r => {
-                    if (!visibleIds.has(r.ID)) {
-                        return r;
-                    }
+        setRows(prev =>
+            prev.map(r => {
+                if (!visibleIds.has(r.ID)) {
+                    return r;
+                }
 
-                    if (
-                        key === 'Read' &&
-                        r.IsSetReadInactive
-                    ) {
-                        return {
-                            ...r,
-                            Read: false
-                        };
-                    }
-
-                    //Contribute
-                    if (
-                        key === 'Contribute' &&
-                        r.IsSetContributeCheck
-                    ) {
-                        return {
-                            ...r,
-                            Contribute: false
-                        };
-                    }
-
-                    //Edit
-                    if (
-                        key === 'Edit' &&
-                        r.IsSetEditCheck
-                    ) {
-                        return {
-                            ...r,
-                            Edit: false
-                        };
-                    }
-
-
-
+                if (
+                    key === 'Read' &&
+                    r.IsSetReadInactive
+                ) {
                     return {
                         ...r,
-                        [key]: checked,
-                        _dirty: true
+                        Read: false
                     };
-                })
-            );
-        };
+                }
+
+                //Contribute
+                if (
+                    key === 'Contribute' &&
+                    r.IsSetContributeCheck
+                ) {
+                    return {
+                        ...r,
+                        Contribute: false
+                    };
+                }
+
+                //Edit
+                if (
+                    key === 'Edit' &&
+                    r.IsSetEditCheck
+                ) {
+                    return {
+                        ...r,
+                        Edit: false
+                    };
+                }
+
+
+
+                return {
+                    ...r,
+                    [key]: checked,
+                    _dirty: true
+                };
+            })
+        );
+    };
 
     const dirtyCount = rows.filter(r => r._dirty).length;
 
@@ -409,7 +409,7 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                         <FluentIcons.ShieldLock24Regular className="bpm-header-icon" />
                     </div>
                     <div>
-                        <h1 className="bpm-title">Button Permissions Manager</h1>
+                        <h1 className="bpm-title">Permission Manager</h1>
                         <p className="bpm-subtitle">
                             Configure visibility and access control for each action button across roles.
                         </p>
@@ -490,9 +490,9 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                             <th rowSpan={2} className="bpm-th bpm-th-toggle" style={{ verticalAlign: 'top', paddingTop: '12px' }}>ACTIVE</th>
                             {/* Permission matrix columns */}
                             {PERMISSION_COLS.map(col => (
-                                <th 
-                                    key={col.key as string} 
-                                    className="bpm-th bpm-th-perm" 
+                                <th
+                                    key={col.key as string}
+                                    className="bpm-th bpm-th-perm"
                                     style={{ '--perm-color': col.color, borderBottom: 'none', paddingBottom: 0, textAlign: 'center', verticalAlign: 'top', paddingTop: '12px' } as React.CSSProperties}
                                 >
                                     <span className="bpm-perm-label" style={{ color: col.color }}>{col.label}</span>
@@ -543,7 +543,7 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                                     <FluentIcons.DocumentSearch24Regular style={{ color: '#c8c6c4', marginBottom: 6 }} />
                                     <span>No buttons match your search.</span>
                                 </td> */}
-                                 <td colSpan={10}>
+                                <td colSpan={10}>
                                     <div className="bpm-empty-row">
                                         <FluentIcons.DocumentSearch24Regular
                                             style={{ color: '#c8c6c4' }}
@@ -618,7 +618,7 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                                     </td>
                                 ))} */}
 
-                                  {PERMISSION_COLS.map(col => (
+                                {PERMISSION_COLS.map(col => (
                                     <td key={col.key as string} className="bpm-td bpm-td-perm">
                                         <div className="bpm-perm-cell">
                                             {/* <Checkbox
@@ -658,36 +658,36 @@ export default function ButtonPermissionsManager({ context }: IButtonPermissions
                                                     }}
                                                 /> */}
 
-                                                <Checkbox
-                                                    checked={
-                                                        (col.key === "Read" && row.IsSetReadInactive) ||
-                                                        (col.key === "Contribute" && row.IsSetContributeCheck) || 
-                                                        (col.key === "Edit" && row.IsSetEditCheck)
-                                                            ? false
-                                                            : !!row[col.key]
-                                                    }
-                                                    disabled={
-                                                        (col.key === "Read" && row.IsSetReadInactive) ||
+                                            <Checkbox
+                                                checked={
+                                                    (col.key === "Read" && row.IsSetReadInactive) ||
                                                         (col.key === "Contribute" && row.IsSetContributeCheck) ||
                                                         (col.key === "Edit" && row.IsSetEditCheck)
-                                                    }
+                                                        ? false
+                                                        : !!row[col.key]
+                                                }
+                                                disabled={
+                                                    (col.key === "Read" && row.IsSetReadInactive) ||
+                                                    (col.key === "Contribute" && row.IsSetContributeCheck) ||
+                                                    (col.key === "Edit" && row.IsSetEditCheck)
+                                                }
 
-                                                    
-                                                    onChange={(_, checked) =>
-                                                        updateRow(
-                                                            row.ID,
-                                                            { [col.key]: !!checked } as Partial<IButtonRow>
-                                                        )
-                                                    }
-                                                    styles={{
-                                                        checkbox: {
-                                                            borderColor: row[col.key] ? col.color : '#c8c6c4',
-                                                            background: row[col.key] ? col.color : 'transparent',
-                                                        },
-                                                        checkmark: { color: '#fff' }
-                                                    }}
-                                                />
-                                         </div>
+
+                                                onChange={(_, checked) =>
+                                                    updateRow(
+                                                        row.ID,
+                                                        { [col.key]: !!checked } as Partial<IButtonRow>
+                                                    )
+                                                }
+                                                styles={{
+                                                    checkbox: {
+                                                        borderColor: row[col.key] ? col.color : '#c8c6c4',
+                                                        background: row[col.key] ? col.color : 'transparent',
+                                                    },
+                                                    checkmark: { color: '#fff' }
+                                                }}
+                                            />
+                                        </div>
                                     </td>
                                 ))}
 

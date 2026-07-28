@@ -89,7 +89,7 @@ export default function SearchFilters({
   const [configLoading, setConfigLoading] = useState<boolean>(true);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
-   const [isContentSearching, setIsContentSearching] = useState(false);
+  const [isContentSearching, setIsContentSearching] = useState(false);
 
   useEffect(() => {
     if (!context || !libraryName) {
@@ -516,8 +516,16 @@ export default function SearchFilters({
       )}
 
 
-      
-        {/* 👇 HERE — this is where handleContentSearch gets CALLED, via onClick */}
+
+      {/* 👇 HERE — this is where handleContentSearch gets CALLED, via onClick */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
+        }}
+      >
         <button
           onClick={handleContentSearch}
           disabled={!searchQuery.trim() || isContentSearching}
@@ -543,29 +551,29 @@ export default function SearchFilters({
           <span>{isContentSearching ? 'Searching content...' : 'Content Search'}</span>
         </button>
 
-      <span
-        onClick={onSearch}
-        data-testid="button-apply-filters"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '40px',
-          borderRadius: '6px',
-          backgroundColor: '#0078d4',
-          color: '#ffffff',
-          fontWeight: 600,
-          fontSize: '14px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          marginTop: '12px',
-        }}
-      >
-        Apply Filters
-      </span>
+        <span
+          onClick={onSearch}
+          data-testid="button-apply-filters"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '40px',
+            borderRadius: '6px',
+            backgroundColor: '#0078d4',
+            color: '#ffffff',
+            fontWeight: 600,
+            fontSize: '14px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            marginTop: '12px',
+          }}
+        >
+          Apply Filters
+        </span>
+      </div>
 
-  
     </div>
   );
 }
