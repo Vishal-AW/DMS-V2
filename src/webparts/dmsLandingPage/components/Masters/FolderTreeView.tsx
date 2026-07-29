@@ -168,17 +168,44 @@ interface DraggableFolderItemProps {
 
 // Droppable zone for each folder (to accept children)
 const FolderDroppable = ({ id, children, isOver }: { id: string; children: React.ReactNode; isOver?: boolean; }) => {
-    const { setNodeRef } = useDroppable({ id });
+    const { setNodeRef, isOver: isOverDroppable } = useDroppable({ id });
     return (
         <div
             ref={setNodeRef}
             style={{
-                background: isOver ? "#e8f4fd" : "transparent",
+                background: isOver || isOverDroppable ? "#e8f4fd" : "transparent",
                 borderRadius: 4,
                 transition: "background 0.15s ease"
             }}
         >
             {children}
+        </div>
+    );
+};
+
+// Root drop zone component - defined outside to avoid recreation on each render
+const RootDroppable = () => {
+    const { setNodeRef, isOver } = useDroppable({ id: "root-zone" });
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                minHeight: 40,
+                border: isOver ? "2px dashed #0078d4" : "1px dashed transparent",
+                borderRadius: 6,
+                margin: "4px 8px",
+                background: isOver ? "#f0f7ff" : "transparent",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s ease"
+            }}
+        >
+            {isOver && (
+                <span style={{ fontSize: 13, color: "#0078d4", fontWeight: 500 }}>
+                    Drop here to make it a root folder
+                </span>
+            )}
         </div>
     );
 };
@@ -491,6 +518,32 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
         if (activeIdStr === overIdStr) return;
 
         const activeFolderId = parseInt(activeIdStr.replace('folder-', ''));
+
+        // Check if dropped on root zone
+        if (overIdStr === "root-zone") {
+            // Make the active node a root folder
+            const activeNode = findNodeById(treeData, activeFolderId);
+            if (!activeNode) return;
+
+            // Prevent dropping into any of its descendants (not applicable for root zone)
+            const descendantIds = getDescendantIds(activeNode);
+            if (descendantIds.includes(activeFolderId)) return;
+
+            const newParentId: number | null = null;
+
+            // Remove the active node from its current position
+            const { node: removedNode, newTree } = removeNodeFromTree(treeData, activeFolderId);
+            if (!removedNode) return;
+
+            // Insert at root level
+            const updatedNode = { ...removedNode, ParentFolderIdId: newParentId };
+            const finalTree = insertNodeIntoTree(newTree, newParentId, updatedNode);
+            setTreeData(finalTree);
+
+            onDragEnd(activeFolderId, newParentId, 1);
+            return;
+        }
+
         const overFolderId = parseInt(overIdStr.replace('folder-', ''));
 
         // Get the active node from tree data
@@ -508,11 +561,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
         const descendantIds = getDescendantIds(activeNode);
         if (descendantIds.includes(overFolderId)) return;
 
-        // ALWAYS make the active node a child of the over node
-        // This is the simplest and most intuitive behavior:
-        // - Drag a root folder onto another root folder → becomes child
-        // - Drag a child folder onto another folder → becomes child of that folder
-        // - Drag a folder to root area → becomes root (handled by dropping on root container)
+        // Make the active node a child of the over node
         const newParentId: number | null = overFolderId;
 
         // Remove the active node from its current position
@@ -602,6 +651,9 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
                         />
                     </FolderDroppable>
                 ))}
+
+                {/* Root drop zone - drop folders here to make them root */}
+                <RootDroppable />
             </div>
 
             {/* Drag Overlay */}
