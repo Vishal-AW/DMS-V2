@@ -35,6 +35,12 @@ export function getTemplateDataByID(WebUrl: string, spHttpClient: any, TemplateI
   return getMethod(WebUrl, spHttpClient, filter);
 }
 
+export function getFoldersByTemplateId(WebUrl: string, spHttpClient: any, TemplateId: number) {
+  let filter = "TemplateName/ID eq " + TemplateId;
+
+  return getMethodOrdered(WebUrl, spHttpClient, filter);
+}
+
 
 
 async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
@@ -45,6 +51,20 @@ async function getMethod(WebUrl: string, spHttpClient: any, filter: any) {
     filter: filter,
     top: 5000,
     orderby: "ID desc"
+
+  };
+
+  return await GetListItem(WebUrl, spHttpClient, "DMS_Mas_FolderMaster", option);
+}
+
+async function getMethodOrdered(WebUrl: string, spHttpClient: any, filter: any) {
+
+  let option = {
+    select: "*,ID,FolderName,ParentFolderIdId,ParentFolderId/Id,ParentFolderId/FolderName,TemplateName/Name,TemplateName/ID,Active,IsParentFolder,IsApproverFlow",
+    expand: "ParentFolderId,TemplateName",
+    filter: filter,
+    top: 5000,
+    orderby: "ID asc"
 
   };
 

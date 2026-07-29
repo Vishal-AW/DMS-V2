@@ -9,7 +9,8 @@ import {
     DefaultButton,
     PrimaryButton,
     Toggle,
-    FontIcon
+    FontIcon,
+    ChoiceGroup
 } from "@fluentui/react";
 import { Badge, Field } from "@fluentui/react-components";
 import { Link } from "react-router-dom";
@@ -26,266 +27,25 @@ import {
     SaveTemplateMaster,
     UpdateTemplateMaster
 } from "../../../../Services/TemplateService";
-import { getParent } from "../../../../Services/FolderMasterService";
+import { getParent, getFoldersByTemplateId, UpdateFolderMaster } from "../../../../Services/FolderMasterService";
 
+import TemplateAccordion from "./TemplateAccordion";
+import FolderTreeView, { buildFolderTree, FolderNode } from "./FolderTreeView";
 
 // Interface for the nested folder structure
-interface FolderNode {
+interface FolderNodeLocal {
     ID: number;
     FolderName: string;
     IsParentFolder: boolean;
     Active: boolean;
-    ParentFolderIdId: number | null; // This will store the ID of the parent folder
-    children?: FolderNode[];
-    isExpanded?: boolean; // To control the expanded state in the UI
+    ParentFolderIdId: number | null;
+    children?: FolderNodeLocal[];
+    isExpanded?: boolean;
 }
-
-// Helper function to build the folder tree
-const buildFolderTree = (folders: any[], parentId: number | null = null): FolderNode[] => {
-    const tree: FolderNode[] = [];
-
-    // Find direct children of the current parentId
-    const directChildren = folders.filter(folder => {
-        return folder.ParentFolderIdId === parentId;
-    });
-
-    for (const folder of directChildren) {
-        const node: FolderNode = {
-            ID: folder.ID,
-            FolderName: folder.FolderName,
-            IsParentFolder: folder.IsParentFolder,
-            Active: folder.Active,
-            ParentFolderIdId: folder.ParentFolderIdId,
-            children: buildFolderTree(folders, folder.ID), // Recursively build children
-            isExpanded: true // Root folders must be expanded by default
-        };
-        tree.push(node);
-    }
-    return tree;
-};
-
-interface FolderTreeNodeProps {
-    node: FolderNode;
-    depth: number;
-}
-
-
-//proper working code 
-// const FolderTreeNode = ({
-//     node,
-//     depth = 0,
-//     isRoot = false,
-//     isLast = false,
-//     parentLines = []
-// }: any): JSX.Element => {
-//     const [isExpanded, setIsExpanded] = React.useState(true);
-//     const hasChildren = node.children?.length > 0;
-
-//     return (
-//         <>
-//             <div
-//                 style={{
-//                     display: "flex",
-//                     alignItems: "center",
-//                     minHeight: 32,
-//                     fontSize: 14,
-//                     paddingLeft: depth === 0 ? 8 : depth * 24 + 8,
-//                     cursor: hasChildren ? "pointer" : "default",
-//                     userSelect: "none",
-//                     position: "relative"
-//                 }}
-//                 onClick={() => hasChildren && setIsExpanded(prev => !prev)}
-//             >
-//                 {/* Chevron — only for nodes with children, placed BEFORE folder icon */}
-//                 <span
-//                     style={{
-//                         display: "inline-flex",
-//                         alignItems: "center",
-//                         justifyContent: "center",
-//                         width: 16,
-//                         marginRight: 4,
-//                         fontSize: 13,
-//                         color: "#6b7280",
-//                         fontWeight: 500,
-//                         visibility: hasChildren ? "visible" : "hidden",
-//                         transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-//                         transition: "transform 0.15s ease"
-//                     }}
-//                 >
-//                     &rsaquo;
-//                 </span>
-
-//                 {/* Folder icon */}
-//                 <span style={{ marginRight: 6, fontSize: 18, lineHeight: 1 }}>
-//                     {hasChildren && isExpanded ? "📂" : "📁"}
-//                 </span>
-
-//                 {/* Label */}
-//                 <span
-//                     style={{
-//                         fontWeight: hasChildren ? 600 : 400,
-//                         color: "#111827",
-//                         fontSize: 14
-//                     }}
-//                 >
-//                     {node.FolderName}
-//                 </span>
-//             </div>
-
-//             {/* Children */}
-//             {hasChildren && isExpanded &&
-//                 node.children.map((child: any, index: number) => (
-//                     <FolderTreeNode
-//                         key={child.ID}
-//                         node={child}
-//                         depth={depth + 1}
-//                         isLast={index === node.children.length - 1}
-//                         parentLines={[...parentLines, !isLast]}
-//                     />
-//                 ))}
-//         </>
-//     );
-// };
-
-const FolderTreeNode = ({
-    node,
-    depth = 0,
-    isLast = false,
-    parentLines = []
-}: any): JSX.Element => {
-    const [isExpanded, setIsExpanded] = React.useState(true);
-    const hasChildren = node.children?.length > 0;
-    const INDENT = 24; // px per depth level
-    const LINE_X = 16; // x offset of vertical line within each indent block
-
-    return (
-        <>
-            <div
-                style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    minHeight: 32,
-                    fontSize: 14,
-                    cursor: hasChildren ? "pointer" : "default",
-                    userSelect: "none"
-                }}
-                onClick={() => hasChildren && setIsExpanded(prev => !prev)}
-            >
-                {/* ── Ancestor vertical lines ── */}
-                {parentLines.map((show: boolean, idx: number) =>
-                    show ? (
-                        <div
-                            key={idx}
-                            style={{
-                                position: "absolute",
-                                left: idx * INDENT + LINE_X,
-                                top: 0,
-                                bottom: 0,
-                                width: 1,
-                                background: "#c0c0c0"
-                            }}
-                        />
-                    ) : null
-                )}
-
-                {/* ── Current node: vertical + horizontal connector ── */}
-                {depth > 0 && (
-                    <>
-                        {/* Vertical: top → midpoint (stops if last child) */}
-                        <div
-                            style={{
-                                position: "absolute",
-                                left: (depth - 1) * INDENT + LINE_X,
-                                top: 0,
-                                height: isLast ? "50%" : "100%",
-                                width: 1,
-                                background: "#c0c0c0"
-                            }}
-                        />
-                        {/* Horizontal: midpoint connector to icon */}
-                        <div
-                            style={{
-                                position: "absolute",
-                                left: (depth - 1) * INDENT + LINE_X,
-                                top: "50%",
-                                width: INDENT - LINE_X + 2,
-                                height: 1,
-                                background: "#c0c0c0"
-                            }}
-                        />
-                    </>
-                )}
-
-                {/* ── Content row ── */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        paddingLeft: depth * INDENT + 8
-                    }}
-                >
-                    {/* Chevron */}
-                    <span
-                        style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 14,
-                            marginRight: 4,
-                            fontSize: 12,
-                            color: "#6b7280",
-                            visibility: hasChildren ? "visible" : "hidden",
-                            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                            transition: "transform 0.15s ease",
-                            lineHeight: 1
-                        }}
-                    >
-                        {/* Using a proper right-pointing chevron */}
-                        <svg width="8" height="12" viewBox="0 0 8 12" fill="none">
-                            <path d="M1.5 1.5L6.5 6L1.5 10.5" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                    </span>
-
-                    {/* Folder icon */}
-                    <span style={{ marginRight: 6, fontSize: 17, lineHeight: 1 }}>
-                        {hasChildren && isExpanded ? "📂" : "📁"}
-                    </span>
-
-                    {/* Label */}
-                    <span
-                        style={{
-                            fontWeight: hasChildren ? 600 : 400,
-                            color: "#111827",
-                            fontSize: 14
-                        }}
-                    >
-                        {node.FolderName}
-                    </span>
-                </div>
-            </div>
-
-            {/* ── Children ── */}
-            {hasChildren && isExpanded &&
-                node.children.map((child: any, index: number) => (
-                    <FolderTreeNode
-                        key={child.ID}
-                        node={child}
-                        depth={depth + 1}
-                        isLast={index === node.children.length - 1}
-                        parentLines={[...parentLines, !isLast]}
-                    />
-                ))}
-        </>
-    );
-};
-
 
 interface ITempletMaster {
     context: WebPartContext;
 }
-
-
 
 export default function TemplateMaster({ context }: ITempletMaster): JSX.Element {
 
@@ -307,11 +67,13 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
     const [alertMsg, setAlertMsg] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
-      // New states for folder tree preview
+    // New states for folder tree preview in View panel
     const [viewTemplateName, setViewTemplateName] = useState("");
-    const [viewFolderTree, setViewFolderTree] = useState<FolderNode[]>([]); // New state
-    const [isFolderTreeLoading, setIsFolderTreeLoading] = useState<boolean>(false); // New state
+    const [viewFolderTree, setViewFolderTree] = useState<FolderNode[]>([]);
+    const [isFolderTreeLoading, setIsFolderTreeLoading] = useState<boolean>(false);
 
+    // View mode toggle: "table" or "accordion"
+    const [viewMode, setViewMode] = useState<"table" | "accordion">("accordion");
 
     useEffect(() => {
         fetchData();
@@ -356,15 +118,13 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         setIsActiveTemplateStatus(data.Active);
     };
 
- 
-    
     const openViewTemplatePanel = async (id: number) => {
         clearFields();
 
         setIsTemplateViewMode(true);
         setIsTemplateEditMode(false);
         setIsTemplatePanelOpen(true);
-        setIsFolderTreeLoading(true); // Start loading for the folder tree
+        setIsFolderTreeLoading(true);
 
         const templateRes = await getTemplateDataByID(
             context.pageContext.web.absoluteUrl,
@@ -373,25 +133,22 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         );
         const templateData = templateRes.value[0];
         setViewTemplateName(templateData.Name);
-        setTemplate(templateData.Name); // Keep existing state update
-        setIsActiveTemplateStatus(templateData.Active); // Keep existing state update
+        setTemplate(templateData.Name);
+        setIsActiveTemplateStatus(templateData.Active);
 
-        const allFoldersRes: any = await getParent(context.pageContext.web.absoluteUrl, context.spHttpClient);
-        const allFolders = allFoldersRes?.value || [];
-
-        // Filter folders belonging to the selected template
-        const filteredTemplateFolders = allFolders.filter(
-            (item: any) => item.TemplateName?.Name === templateData.Name
+        // Use the new lazy-loading method for folders by template ID
+        const foldersRes: any = await getFoldersByTemplateId(
+            context.pageContext.web.absoluteUrl,
+            context.spHttpClient,
+            id
         );
+        const allFolders = foldersRes?.value || [];
 
         // Build the nested tree structure
-        const nestedTree = buildFolderTree(filteredTemplateFolders, null); // Start with null for root parents
+        const nestedTree = buildFolderTree(allFolders, null);
         setViewFolderTree(nestedTree);
-        setIsFolderTreeLoading(false); // End loading for the folder tree
+        setIsFolderTreeLoading(false);
     };
-
-
-    
 
     const clearFields = () => {
         setTemplate("");
@@ -406,39 +163,26 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         setIsTemplatePanelOpen(false);
     };
 
-    // const validation = () => {
-    //     if (!Template.trim()) {
-    //         setTemplateErr("Template Name is required");
-    //         return false;
-    //     }
-    //     return true;
-    // };
-
     const validation = () => {
 
         const name = Template.trim().toLowerCase();
 
-        
         if (name !== name?.trim()) {
-              // Starting or ending space validation
             setTemplateErr("Spaces are not allowed at starting or ending");
             return false;
         }
         if (!name) {
             setTemplateErr("Template Name is required");
             return false;
-        }
-          // Special character validation
-        else if (!/^[a-zA-Z0-9 ]+$/.test(name)) {
-             setTemplateErr("Special characters are not allowed");
+        } else if (!/^[a-zA-Z0-9 ]+$/.test(name)) {
+            setTemplateErr("Special characters are not allowed");
             return false;
         }
-
 
         // Duplicate validation
         const isDuplicate = tableData.some((item: any) =>
             item.Name?.toLowerCase() === name &&
-            item.ID !== TemplateCurrentEditID   // allow same record during edit
+            item.ID !== TemplateCurrentEditID
         );
 
         if (isDuplicate) {
@@ -490,8 +234,6 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         setIsPopupVisible(false);
     };
 
-
-
     const TemplateTablecolumns = [
         {
             headerName: "Sr No",
@@ -528,8 +270,8 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
         {
             headerName: "Action",
             cellRenderer: (params: any) => (
-               <div style={{ display: "flex", gap: "8px" }}>
-                
+                <div style={{ display: "flex", gap: "8px" }}>
+
                     <FontIcon
                         iconName="EditSolid12"
                         style={{
@@ -562,8 +304,6 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
     if (isLoading) {
         return <PageLoader message="Loading templates..." minHeight="72vh" />;
     }
-
- 
 
     return (
         <div>
@@ -603,12 +343,30 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
 
                 <div style={{ display: "flex", justifyContent: "space-between", padding: 20 }}>
 
-                    <TextField
-                        placeholder="Search..."
-                        value={searchText}
-                        onChange={(_, val) => setSearchText(val || "")}
-                        styles={{ root: { width: 300 } }}
-                    />
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        <TextField
+                            placeholder="Search..."
+                            value={searchText}
+                            onChange={(_, val) => setSearchText(val || "")}
+                            styles={{ root: { width: 300 } }}
+                        />
+
+                        {/* View Mode Toggle */}
+                        <ChoiceGroup
+                            selectedKey={viewMode}
+                            options={[
+                                { key: "accordion", text: "Accordion View", iconProps: { iconName: "BulletedList" } },
+                                { key: "table", text: "Table View", iconProps: { iconName: "GridViewSmall" } }
+                            ]}
+                            onChange={(_, option) => {
+                                if (option) setViewMode(option.key as "table" | "accordion");
+                            }}
+                            styles={{
+                                root: { display: "flex" },
+                                flexContainer: { display: "flex", gap: 8 }
+                            }}
+                        />
+                    </div>
 
                     <PrimaryButton
                         text="Add Template"
@@ -618,10 +376,21 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
 
                 </div>
 
-                <ReactTableComponent
-                    rowData={filteredData}
-                    columnDefs={TemplateTablecolumns}
-                />
+                {/* Conditional Rendering: Accordion View or Table View */}
+                {viewMode === "accordion" ? (
+                    <div style={{ padding: "0 20px 20px" }}>
+                        <TemplateAccordion
+                            context={context}
+                            templates={filteredData}
+                            onRefreshTemplates={fetchData}
+                        />
+                    </div>
+                ) : (
+                    <ReactTableComponent
+                        rowData={filteredData}
+                        columnDefs={TemplateTablecolumns}
+                    />
+                )}
 
             </Stack>
 
@@ -630,24 +399,8 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                 onDismiss={closeTemplatePanel}
                 closeButtonAriaLabel="Close"
                 type={PanelType.medium}
-                // headerText={isTemplateEditMode ? "Edit Template" : "Add Template"}
-                 headerText={isTemplateViewMode ? `View ${viewTemplateName} Structure` : (isTemplateEditMode ? "Edit Template" : "Add Template")}
+                headerText={isTemplateViewMode ? `View ${viewTemplateName} Structure` : (isTemplateEditMode ? "Edit Template" : "Add Template")}
                 isFooterAtBottom={true}
-                // onRenderFooterContent={() => (
-                //     <>
-                //         <PrimaryButton
-                //             text={isTemplateEditMode ? "Update" : "Submit"}
-                //             onClick={SaveItemData}
-                //             styles={getPrimaryActionButtonStyles(8)}
-                //         />
-
-                //         <DefaultButton
-                //             text="Cancel"
-                //             onClick={closeTemplatePanel}
-                //             styles={getSecondaryActionButtonStyles()}
-                //         />
-                //     </>
-                // )}
                 onRenderFooterContent={() => (
                     <>
                         {!isTemplateViewMode && (
@@ -666,7 +419,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                 )}
             >
 
-                 {isTemplateViewMode ? (
+                {isTemplateViewMode ? (
                     <div style={{ padding: "0 4px" }}>
                         {/* Template Name */}
                         <div style={{ marginBottom: 16 }}>
@@ -700,7 +453,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                             />
                         </div>
 
-                        {/* Folder Structure Preview */}
+                        {/* Folder Structure Preview - Enhanced with drag-drop enabled tree */}
                         <div>
                             <label
                                 style={{
@@ -721,8 +474,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                                     border: "1px solid #e5e7eb",
                                     borderRadius: 8,
                                     background: "#f9fafb",
-                                    // maxHeight: 240,
-                                     maxHeight: 650,
+                                    maxHeight: 650,
                                     overflowY: "auto",
                                     padding: "6px 0"
                                 }}
@@ -730,14 +482,44 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                                 {isFolderTreeLoading ? (
                                     <PageLoader message="Loading folder structure..." />
                                 ) : viewFolderTree.length > 0 ? (
-                                    viewFolderTree.map((node: any) => (
-                                        <FolderTreeNode
-                                            key={node.ID}
-                                            node={node}
-                                            depth={0}
-                                            isRoot
-                                        />
-                                    ))
+                                    <FolderTreeView
+                                        folders={viewFolderTree}
+                                        templateId={TemplateCurrentEditID}
+                                        templateName={viewTemplateName}
+                                        onRefreshTree={async () => {
+                                            // Refresh the view tree
+                                            const foldersRes: any = await getFoldersByTemplateId(
+                                                context.pageContext.web.absoluteUrl,
+                                                context.spHttpClient,
+                                                TemplateCurrentEditID
+                                            );
+                                            const allFolders = foldersRes?.value || [];
+                                            const nestedTree = buildFolderTree(allFolders, null);
+                                            setViewFolderTree(nestedTree);
+                                        }}
+                                        onAddFolder={() => { }}
+                                        onDragEnd={async (draggedFolderId, newParentId, newOrder) => {
+                                            // Update folder after drag in view mode
+                                            const option: any = {
+                                                ParentFolderIdId: newParentId
+                                            };
+                                            await UpdateFolderMaster(
+                                                context.pageContext.web.absoluteUrl,
+                                                context.spHttpClient,
+                                                option,
+                                                draggedFolderId
+                                            );
+                                            // Refresh the view tree
+                                            const foldersRes: any = await getFoldersByTemplateId(
+                                                context.pageContext.web.absoluteUrl,
+                                                context.spHttpClient,
+                                                TemplateCurrentEditID
+                                            );
+                                            const allFolders = foldersRes?.value || [];
+                                            const nestedTree = buildFolderTree(allFolders, null);
+                                            setViewFolderTree(nestedTree);
+                                        }}
+                                    />
                                 ) : (
                                     <div
                                         style={{
@@ -775,7 +557,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                         </Field>
                     </>
                 )}
- 
+
             </Panel>
 
             <PopupBox
