@@ -4,21 +4,17 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
     DndContext,
     DragOverlay,
-    closestCenter,
+    pointerWithin,
     PointerSensor,
     useSensor,
     useSensors,
     DragStartEvent,
     DragEndEvent,
     DragOverEvent,
-    UniqueIdentifier
+    UniqueIdentifier,
+    useDraggable,
+    useDroppable
 } from "@dnd-kit/core";
-import {
-    SortableContext,
-    verticalListSortingStrategy,
-    useSortable,
-    arrayMove
-} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 // Interface for the nested folder structure
@@ -66,18 +62,6 @@ export const buildFolderTree = (folders: any[], parentId: number | null = null):
         tree.push(node);
     }
     return tree;
-};
-
-// Flatten tree to a list of IDs for dnd-kit sorting
-const flattenTree = (nodes: FolderNode[]): string[] => {
-    const ids: string[] = [];
-    for (const node of nodes) {
-        ids.push(`folder-${node.ID}`);
-        if (node.children && node.children.length > 0 && node.isExpanded !== false) {
-            ids.push(...flattenTree(node.children));
-        }
-    }
-    return ids;
 };
 
 // Find a node in the tree by ID
@@ -169,7 +153,7 @@ interface FolderTreeViewProps {
     isLoading?: boolean;
 }
 
-interface SortableFolderItemProps {
+interface DraggableFolderItemProps {
     node: FolderNode;
     depth: number;
     isLast: boolean;
@@ -179,9 +163,27 @@ interface SortableFolderItemProps {
     onDragEnd: (draggedFolderId: number, newParentId: number | null, newOrder: number) => void;
     onRefreshTree: () => void;
     isDragOverlay?: boolean;
+    isOver?: boolean;
 }
 
-const SortableFolderItem = ({
+// Droppable zone for each folder (to accept children)
+const FolderDroppable = ({ id, children, isOver }: { id: string; children: React.ReactNode; isOver?: boolean; }) => {
+    const { setNodeRef } = useDroppable({ id });
+    return (
+        <div
+            ref={setNodeRef}
+            style={{
+                background: isOver ? "#e8f4fd" : "transparent",
+                borderRadius: 4,
+                transition: "background 0.15s ease"
+            }}
+        >
+            {children}
+        </div>
+    );
+};
+
+const DraggableFolderItem = ({
     node,
     depth,
     isLast,
@@ -190,16 +192,16 @@ const SortableFolderItem = ({
     onToggleExpand,
     onDragEnd,
     onRefreshTree,
-    isDragOverlay = false
-}: SortableFolderItemProps): JSX.Element => {
+    isDragOverlay = false,
+    isOver = false
+}: DraggableFolderItemProps): JSX.Element => {
     const {
         attributes,
         listeners,
-        setNodeRef,
+        setNodeRef: setDraggableRef,
         transform,
-        transition,
         isDragging
-    } = useSortable({
+    } = useDraggable({
         id: `folder-${node.ID}`,
         data: {
             type: 'folder',
@@ -212,15 +214,14 @@ const SortableFolderItem = ({
     const LINE_X = 16;
 
     const style: React.CSSProperties = {
-        transform: CSS.Transform.toString(transform),
-        transition,
+        transform: CSS.Translate.toString(transform),
         opacity: isDragging ? 0.4 : 1,
         position: "relative" as const,
         zIndex: isDragging ? 1 : "auto"
     };
 
     return (
-        <div ref={setNodeRef} style={style}>
+        <div ref={setDraggableRef} style={style}>
             <div
                 className="folder-tree-row"
                 style={{
@@ -232,8 +233,8 @@ const SortableFolderItem = ({
                     cursor: "default",
                     userSelect: "none",
                     borderRadius: 4,
-                    background: isDragOverlay ? "#e8f4fd" : "transparent",
-                    border: isDragOverlay ? "1px solid #0078d4" : "none",
+                    background: isDragOverlay ? "#e8f4fd" : isOver ? "#f0f7ff" : "transparent",
+                    border: isDragOverlay ? "1px solid #0078d4" : isOver ? "1px dashed #0078d4" : "none",
                     boxShadow: isDragOverlay ? "0 4px 12px rgba(0,0,0,0.15)" : "none"
                 }}
             >
@@ -330,7 +331,7 @@ const SortableFolderItem = ({
                             opacity: 0.5,
                             touchAction: "none"
                         }}
-                        title="Drag to reorder"
+                        title="Drag to reorder or make child"
                     >
                         ⠿
                     </span>
@@ -372,24 +373,27 @@ const SortableFolderItem = ({
 
             {/* Children */}
             {hasChildren && node.isExpanded !== false && (
-                <SortableContext
-                    items={node.children!.map(c => `folder-${c.ID}`)}
-                    strategy={verticalListSortingStrategy}
-                >
+                <div style={{ position: "relative" }}>
                     {node.children!.map((child: FolderNode, index: number) => (
-                        <SortableFolderItem
+                        <FolderDroppable
                             key={child.ID}
-                            node={child}
-                            depth={depth + 1}
-                            isLast={index === node.children!.length - 1}
-                            parentLines={[...parentLines, !isLast]}
-                            allFolders={allFolders}
-                            onToggleExpand={onToggleExpand}
-                            onDragEnd={onDragEnd}
-                            onRefreshTree={onRefreshTree}
-                        />
+                            id={`folder-${child.ID}`}
+                            isOver={isOver}
+                        >
+                            <DraggableFolderItem
+                                node={child}
+                                depth={depth + 1}
+                                isLast={index === node.children!.length - 1}
+                                parentLines={[...parentLines, !isLast]}
+                                allFolders={allFolders}
+                                onToggleExpand={onToggleExpand}
+                                onDragEnd={onDragEnd}
+                                onRefreshTree={onRefreshTree}
+                                isOver={isOver}
+                            />
+                        </FolderDroppable>
                     ))}
-                </SortableContext>
+                </div>
             )}
         </div>
     );
@@ -407,7 +411,6 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     const [treeData, setTreeData] = useState<FolderNode[]>(folders);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
     const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
-    const [dropPosition, setDropPosition] = useState<"above" | "below" | "inside" | null>(null);
     const autoExpandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Sync treeData when folders prop changes
@@ -418,7 +421,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 5 // 5px movement required to start drag
+                distance: 5
             }
         })
     );
@@ -448,13 +451,12 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
         const { over } = event;
         if (!over) {
             setOverId(null);
-            setDropPosition(null);
             return;
         }
 
         setOverId(over.id);
 
-        // Auto-expand logic: if hovering over a collapsed folder, expand after delay
+        // Auto-expand logic
         const overNode = findNodeById(treeData, parseInt(String(over.id).replace('folder-', '')));
         if (overNode && overNode.children && overNode.children.length > 0 && overNode.isExpanded === false) {
             if (!autoExpandTimerRef.current) {
@@ -475,7 +477,6 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
         const { active, over } = event;
         setActiveId(null);
         setOverId(null);
-        setDropPosition(null);
 
         if (autoExpandTimerRef.current) {
             clearTimeout(autoExpandTimerRef.current);
@@ -507,35 +508,20 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
         const descendantIds = getDescendantIds(activeNode);
         if (descendantIds.includes(overFolderId)) return;
 
-        // Determine new parent based on drop position
-        // For dnd-kit with sortable, items are reordered within the same container
-        // We need to determine if the drop is "inside" (making it a child) or "between" (reordering)
-        // Since dnd-kit sortable handles reordering within the same level,
-        // we need to detect if the user wants to make it a child
-
-        // For now, we'll use a simple approach:
-        // If the active item is dropped on a folder that has children, make it a child
-        // Otherwise, reorder at the same level
-
-        // The new parent is the over node's parent (for reordering) or the over node itself (for nesting)
-        // We'll determine this based on the drop position
-
-        // Default: reorder at the same level as the over node
-        let newParentId: number | null = overNode.ParentFolderIdId;
-
-        // If the over node has children or is expanded, we can drop inside
-        // For simplicity, we'll use the over node's parent as the new parent
-        // This means dropping on a folder reorders within that folder's parent
+        // ALWAYS make the active node a child of the over node
+        // This is the simplest and most intuitive behavior:
+        // - Drag a root folder onto another root folder → becomes child
+        // - Drag a child folder onto another folder → becomes child of that folder
+        // - Drag a folder to root area → becomes root (handled by dropping on root container)
+        const newParentId: number | null = overFolderId;
 
         // Remove the active node from its current position
         const { node: removedNode, newTree } = removeNodeFromTree(treeData, activeFolderId);
         if (!removedNode) return;
 
-        // Insert the removed node at the new position
-        // For reordering within the same parent, we use the over node's position
+        // Insert as a child of the over node
         const updatedNode = { ...removedNode, ParentFolderIdId: newParentId };
         const finalTree = insertNodeIntoTree(newTree, newParentId, updatedNode);
-
         setTreeData(finalTree);
 
         // Call the parent's onDragEnd to persist changes
@@ -545,7 +531,6 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     const handleDragCancel = useCallback(() => {
         setActiveId(null);
         setOverId(null);
-        setDropPosition(null);
         if (autoExpandTimerRef.current) {
             clearTimeout(autoExpandTimerRef.current);
             autoExpandTimerRef.current = null;
@@ -553,9 +538,6 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     }, []);
 
     const activeNode = activeId ? findNodeById(treeData, parseInt(String(activeId).replace('folder-', ''))) : null;
-
-    // Flatten tree for sortable context
-    const flatIds = flattenTree(treeData);
 
     if (isLoading) {
         return (
@@ -586,7 +568,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={pointerWithin}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -601,10 +583,13 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
                     marginTop: 8
                 }}
             >
-                <SortableContext items={flatIds} strategy={verticalListSortingStrategy}>
-                    {treeData.map((node: FolderNode, index: number) => (
-                        <SortableFolderItem
-                            key={node.ID}
+                {treeData.map((node: FolderNode, index: number) => (
+                    <FolderDroppable
+                        key={node.ID}
+                        id={`folder-${node.ID}`}
+                        isOver={overId === `folder-${node.ID}`}
+                    >
+                        <DraggableFolderItem
                             node={node}
                             depth={0}
                             isLast={index === treeData.length - 1}
@@ -613,15 +598,16 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
                             onToggleExpand={handleToggleExpand}
                             onDragEnd={onDragEnd}
                             onRefreshTree={onRefreshTree}
+                            isOver={overId === `folder-${node.ID}`}
                         />
-                    ))}
-                </SortableContext>
+                    </FolderDroppable>
+                ))}
             </div>
 
             {/* Drag Overlay */}
             <DragOverlay>
                 {activeNode ? (
-                    <SortableFolderItem
+                    <DraggableFolderItem
                         node={activeNode}
                         depth={0}
                         isLast={false}
