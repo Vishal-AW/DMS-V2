@@ -7,7 +7,7 @@ import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, 
 import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular } from '@fluentui/react-icons';
 import Sidebar from "../../common/component/Sidebar";
 import { FolderNode } from "../../common/component/FolderTree";
-import { buildBreadcrumbPath, buildFolderHierarchy, buildLibraryRootPath, checkButtons, checkExtension, fileTypeConfig, getAllDocuments, getOpenAppURL } from "../../common/commonfunction";
+import { buildBreadcrumbPath, buildFolderHierarchy, buildLibraryRootPath, checkButtons, checkExtension, fileTypeConfig, getAllDocuments, getChildFolders, getOpenAppURL } from "../../common/commonfunction";
 import ReusableDataTable from "../ResuableComponents/ReusableDataTable";
 import { spfi, PermissionKind } from "@pnp/sp/presets/all";
 import { SPFx } from "@pnp/sp";
@@ -259,90 +259,79 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setSelectedFolder(preservedFolder);
     // };
 
-    const fetchFolder = async () => {
-        const sp = spfi().using(SPFx(context));
-        const allItems: any[] = [];
+    const updateFolderNodeState = (targetPath: string, updates: Partial<any>) => {
+        setFolders((prevFolders: any[]) => {
+            const updateNode = (nodes: any[]): any[] => {
+                return nodes.map(node => {
+                    if (node.path === targetPath) {
+                        return { ...node, ...updates };
+                    }
+                    if (node.children && node.children.length > 0) {
+                        return { ...node, children: updateNode(node.children) };
+                    }
+                    return node;
+                });
+            };
+            return updateNode(prevFolders);
+        });
+    };
 
-        const items = await sp.web.lists
-            .getByTitle(tileData?.LibraryName)
-            .items
-            .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
-            // ❌ No server filter — avoids threshold error
-            .top(5000);
+    const loadChildFolders = async (parentFolder: any): Promise<any[]> => {
+        if (!parentFolder || !tileData?.LibraryName) return [];
 
-        for await (const batch of items) {
-            allItems.push(...batch);
+        if (parentFolder.isLoaded && parentFolder.children) {
+            return parentFolder.children;
         }
 
-        // Filter folders client-side before building tree
-        const allFolders = allItems.filter(
-            (item) => item.FSObjType === 1 || item.FSObjType === "1"
-        );
+        updateFolderNodeState(parentFolder.path, { isLoading: true });
+
+        const childFolders = await getChildFolders(context, parentFolder.path);
+
+        const updatedNodeProps = {
+            children: childFolders,
+            isLoaded: true,
+            isLoading: false,
+            isLastLevel: childFolders.length === 0
+        };
+
+        Object.assign(parentFolder, updatedNodeProps);
+        updateFolderNodeState(parentFolder.path, updatedNodeProps);
+
+        return childFolders;
+    };
+
+    const fetchFolder = async () => {
+        if (!tileData?.LibraryName) return;
 
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
-        const folder = buildFolderHierarchy(allFolders, rootPath); // only folders passed
-        const folderObj = {
+        const rootChildFolders = await getChildFolders(context, rootPath);
+
+        const rootFolderObj = {
             id: 0,
             name: tileData?.LibraryName,
             path: rootPath,
-            children: [...folder]
+            children: rootChildFolders,
+            isLoaded: true,
+            isLoading: false,
+            isLastLevel: rootChildFolders.length === 0,
+            FileRef: rootPath,
+            FileDirRef: "",
+            FSObjType: 1
         };
 
-        const nextFolders = [folderObj];
+        const nextFolders = [rootFolderObj];
         const preservedFolder =
-            findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
+            findFolderByPath(nextFolders, selectedFolderRef.current?.path) || rootFolderObj;
 
         setFolders(nextFolders);
-        expandParentFolders(folderObj);
+        expandParentFolders(rootFolderObj);
+        selectedFolderRef.current = preservedFolder;
         setSelectedFolder(preservedFolder);
-        // console.log(selectedFolder.children.length);
+
+        if (preservedFolder.children.length === 0) {
+            await getDocument(preservedFolder);
+        }
     };
-
-
-    // const fetchFolder = async () => {
-    //     const sp = spfi().using(SPFx(context));
-    //     const allItems: any[] = [];
-
-    //     const items = await sp.web.lists
-    //         .getByTitle(tileData?.LibraryName)
-    //         .items
-    //         .select("*", "Id", "Title", "FileRef", "FileDirRef", "FSObjType")
-    //         // ❌ No server filter — avoids threshold error
-    //         .top(5000);
-
-    //     for await (const batch of items) {
-    //         allItems.push(...batch);
-    //     }
-
-    //     // Filter folders client-side before building tree
-    //     const allFolders = allItems.filter(
-    //         (item) => item.FSObjType === 1 || item.FSObjType === "1"
-    //     );
-
-    //     const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
-    //     const folder = buildFolderHierarchy(allFolders, rootPath); // only folders passed
-    //     const folderObj = {
-    //         id: 0,
-    //         name: tileData?.LibraryName,
-    //         path: rootPath,
-    //         children: [...folder]
-    //     };
-
-    //     const nextFolders = [folderObj];
-    //     const preservedFolder =
-    //         findFolderByPath(nextFolders, selectedFolderRef.current?.path) || folderObj;
-
-    //     setFolders(nextFolders);
-    //     expandParentFolders(folderObj);
-    //     setSelectedFolder(preservedFolder);
-    // };
-
-    // const getAdmin = async () => {
-    //     const data = await getListData(`${SiteURL}/_api/web/lists/getbytitle('DMS_GroupName')/items?`, context);
-    //     setAdmin(data.value.map((el: any) => (el.GroupNameId)));
-    //     const isMembers = await isMember(context, "ProjectAdmin");
-    //     setIsValidUser(isMembers.value.length > 0);
-    // };
 
     const getAdmin = async () => {
         const data = await getListData(
@@ -366,32 +355,20 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setDeletedData(deletedData.value);
     };
 
-    // const handleFolderSelect = async (folder: FolderNode) => {
-    //    // setFiles([]);
-    //     const isSameFolder = selectedFolderRef.current?.path === folder.path;
-    //     selectedFolderRef.current = folder;
-    //     setSelectedFolder(folder);
-    //     // await fetchButtonsAndPermissions(folder.path);//new added
-    //     expandParentFolders(folder);
-    //     if (isSameFolder) {
-    //         await getDocument(folder);
-    //     }
-    // };
-
     const handleFolderSelect = async (folder: FolderNode) => {
-        const isSameFolder = selectedFolderRef.current?.path === folder.path;
-
         selectedFolderRef.current = folder;
         setSelectedFolder(folder);
-        // setButtons([]); // clear previous folder buttons
 
         setTables(""); // <-- Reset from Archive/Recycle to Folder view
-        fetchButtonsAndPermissions(folder.path); // no await
-
+        fetchButtonsAndPermissions(folder.path);
         expandParentFolders(folder);
-        //  setTables("Documents");
 
-        if (isSameFolder) {
+        let children = folder.children || [];
+        if (!folder.isLoaded) {
+            children = await loadChildFolders(folder);
+        }
+
+        if (children.length === 0) {
             await getDocument(folder);
         }
     };
@@ -1620,7 +1597,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             return <ApprovalFlow context={context} libraryName={tileData?.LibraryName} userEmail={UserEmailID} action="Archive" />;
         }
         else {
-            return (selectedFolder?.children.length === 0 && selectedFolder?.name !== tileData?.LibraryName) ?
+            return (!selectedFolder?.children || selectedFolder?.children.length === 0) ?
                 <ReusableDataTable rowData={files} columnDefs={columns} />
                 :
                 <div>

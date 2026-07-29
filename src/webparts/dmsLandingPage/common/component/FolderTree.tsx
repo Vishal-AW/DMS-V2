@@ -17,7 +17,10 @@ export interface FolderNode {
   name: string;
   children?: FolderNode[];
   isLastLevel?: boolean;
+  isLoaded?: boolean;
+  isLoading?: boolean;
   path: string;
+  [key: string]: any;
 }
 
 interface FolderTreeProps {
@@ -44,7 +47,7 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
 
   const hasChildren = folder.children && folder.children.length > 0;
   const isSelected = folder.id === selectedId;
-  const isLeaf = folder.isLastLevel || (!hasChildren);
+  const isLeaf = folder.isLastLevel === true || (folder.isLoaded && !hasChildren);
   const isExpanded = expandedFolders.includes(folder.id);
 
   const handleClick = () => {
@@ -53,9 +56,10 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
 
   const leftIndent = 10 + Math.min(level, 6) * 14;
 
-
-
   const renderFolderIcon = () => {
+    if (folder.isLoading) {
+      return <span className="folder-tree-loading-icon" style={{ fontSize: '12px', marginRight: '6px' }}>⏳</span>;
+    }
     if (isLeaf) {
       return <Folder20Filled className="folder-tree-icon folder-tree-icon-leaf" />;
     }
