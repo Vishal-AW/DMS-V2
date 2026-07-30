@@ -1,6 +1,7 @@
 /* eslint-disable */
 import * as React from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { FontIcon } from "@fluentui/react";
 import {
     DndContext,
     DragOverlay,
@@ -149,6 +150,7 @@ interface FolderTreeViewProps {
     templateName: string;
     onRefreshTree: () => void;
     onAddFolder: () => void;
+    onEditFolder?: (folderData: any) => void;
     onDragEnd: (draggedFolderId: number, newParentId: number | null, newOrder: number) => void;
     isLoading?: boolean;
 }
@@ -162,6 +164,7 @@ interface DraggableFolderItemProps {
     onToggleExpand: (id: number) => void;
     onDragEnd: (draggedFolderId: number, newParentId: number | null, newOrder: number) => void;
     onRefreshTree: () => void;
+    onEditFolder?: (folderData: any) => void;
     isDragOverlay?: boolean;
     isOver?: boolean;
 }
@@ -219,6 +222,7 @@ const DraggableFolderItem = ({
     onToggleExpand,
     onDragEnd,
     onRefreshTree,
+    onEditFolder,
     isDragOverlay = false,
     isOver = false
 }: DraggableFolderItemProps): JSX.Element => {
@@ -237,6 +241,7 @@ const DraggableFolderItem = ({
     });
 
     const hasChildren = node.children && node.children.length > 0;
+    const isParentFolder = depth === 0;
     const INDENT = 24;
     const LINE_X = 16;
 
@@ -255,14 +260,16 @@ const DraggableFolderItem = ({
                     position: "relative",
                     display: "flex",
                     alignItems: "center",
-                    minHeight: 36,
+                    minHeight: 40,
                     fontSize: 14,
                     cursor: "default",
                     userSelect: "none",
-                    borderRadius: 4,
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                    margin: "2px 6px",
                     background: isDragOverlay ? "#e8f4fd" : isOver ? "#f0f7ff" : "transparent",
-                    border: isDragOverlay ? "1px solid #0078d4" : isOver ? "1px dashed #0078d4" : "none",
-                    boxShadow: isDragOverlay ? "0 4px 12px rgba(0,0,0,0.15)" : "none"
+                    border: isDragOverlay ? "1px solid #0078d4" : "none",
+                    boxShadow: "none"
                 }}
             >
                 {/* Ancestor vertical lines */}
@@ -395,6 +402,37 @@ const DraggableFolderItem = ({
                             Inactive
                         </span>
                     )}
+
+                    {/* Edit Folder Button */}
+                    <span
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onEditFolder) {
+                                onEditFolder({
+                                    ID: node.ID,
+                                    FolderName: node.FolderName,
+                                    Active: node.Active,
+                                    ParentFolderIdId: node.ParentFolderIdId,
+                                    TemplateNameId: node.TemplateNameId
+                                });
+                            }
+                        }}
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            color: "#009ef7",
+                            backgroundColor: "#f5f8fa",
+                            padding: "5px 8px",
+                            borderRadius: "6px",
+                            marginLeft: 6,
+                            fontSize: 12
+                        }}
+                        title="Edit Folder"
+                    >
+                        <FontIcon iconName="EditSolid12" />
+                    </span>
                 </div>
             </div>
 
@@ -416,6 +454,7 @@ const DraggableFolderItem = ({
                                 onToggleExpand={onToggleExpand}
                                 onDragEnd={onDragEnd}
                                 onRefreshTree={onRefreshTree}
+                                onEditFolder={onEditFolder}
                                 isOver={isOver}
                             />
                         </FolderDroppable>
@@ -432,6 +471,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     templateName,
     onRefreshTree,
     onAddFolder,
+    onEditFolder,
     onDragEnd,
     isLoading = false
 }) => {
@@ -647,6 +687,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
                             onToggleExpand={handleToggleExpand}
                             onDragEnd={onDragEnd}
                             onRefreshTree={onRefreshTree}
+                            onEditFolder={onEditFolder}
                             isOver={overId === `folder-${node.ID}`}
                         />
                     </FolderDroppable>

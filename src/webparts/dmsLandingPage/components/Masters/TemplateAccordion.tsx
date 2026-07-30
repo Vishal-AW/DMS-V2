@@ -26,6 +26,7 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
     const [loadingTemplateId, setLoadingTemplateId] = useState<number | null>(null);
     const [addFolderPanelOpen, setAddFolderPanelOpen] = useState(false);
     const [selectedTemplateForAdd, setSelectedTemplateForAdd] = useState<{ id: number; name: string; } | null>(null);
+    const [editFolderData, setEditFolderData] = useState<any | null>(null);
     const loadedTemplatesRef = useRef<Set<number>>(new Set());
 
     const toggleAccordion = useCallback(async (templateId: number) => {
@@ -85,6 +86,13 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
     }, [context]);
 
     const handleAddFolder = useCallback((templateId: number, templateName: string) => {
+        setEditFolderData(null);
+        setSelectedTemplateForAdd({ id: templateId, name: templateName });
+        setAddFolderPanelOpen(true);
+    }, []);
+
+    const handleEditFolder = useCallback((templateId: number, templateName: string, folderData: any) => {
+        setEditFolderData(folderData);
         setSelectedTemplateForAdd({ id: templateId, name: templateName });
         setAddFolderPanelOpen(true);
     }, []);
@@ -117,22 +125,6 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
         }
     }, [expandedTemplateId, context, handleRefreshTree]);
 
-    const getTemplateFolderCount = (templateId: number): number => {
-        const tree = templateFolderTrees[templateId];
-        if (!tree) return 0;
-        const countFolders = (nodes: FolderNode[]): number => {
-            let count = 0;
-            for (const node of nodes) {
-                count += 1;
-                if (node.children) {
-                    count += countFolders(node.children);
-                }
-            }
-            return count;
-        };
-        return countFolders(tree);
-    };
-
     if (!templates || templates.length === 0) {
         return (
             <div
@@ -156,7 +148,6 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
             {templates.map((template: any) => {
                 const isExpanded = expandedTemplateId === template.ID;
                 const isLoading = loadingTemplateId === template.ID;
-                const folderCount = getTemplateFolderCount(template.ID);
                 const tree = templateFolderTrees[template.ID] || [];
 
                 return (
@@ -250,46 +241,57 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                 {template.Active ? "Active" : "Inactive"}
                             </span>
 
-                            {/* Folder Count */}
-                            {folderCount > 0 && (
+                            {/* Action Buttons */}
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                {/* Add Folder Button */}
                                 <span
-                                    style={{
-                                        fontSize: 12,
-                                        color: "#6b7280",
-                                        background: "#f3f4f6",
-                                        padding: "2px 8px",
-                                        borderRadius: 4,
-                                        marginRight: 8
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAddFolder(template.ID, template.Name);
                                     }}
+                                    style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 4,
+                                        padding: "5px 10px",
+                                        borderRadius: 6,
+                                        cursor: "pointer",
+                                        color: "#009ef7",
+                                        background: "#f5f8fa",
+                                        fontSize: 12,
+                                        fontWeight: 500
+                                    }}
+                                    title="Add Folder"
                                 >
-                                    {folderCount} folder{folderCount !== 1 ? "s" : ""}
+                                    <FontIcon iconName="Add" style={{ fontSize: 12 }} />
+                                    Add Folder
                                 </span>
-                            )}
 
-                            {/* Edit Button */}
-                            <span
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onEditTemplate) {
-                                        onEditTemplate(template.ID);
-                                    }
-                                }}
-                                style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: 6,
-                                    cursor: "pointer",
-                                    color: "#009ef7",
-                                    background: "#f5f8fa",
-                                    marginLeft: 4
-                                }}
-                                title="Edit Template"
-                            >
-                                <FontIcon iconName="EditSolid12" />
-                            </span>
+                                {/* Edit Template Button */}
+                                <span
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onEditTemplate) {
+                                            onEditTemplate(template.ID);
+                                        }
+                                    }}
+                                    style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 6,
+                                        cursor: "pointer",
+                                        color: "#009ef7",
+                                        background: "#f5f8fa"
+                                    }}
+                                    title="Edit Template"
+                                >
+                                    <FontIcon iconName="EditSolid12" />
+                                </span>
+                            </div>
                         </div>
 
                         {/* Accordion Content */}
@@ -302,25 +304,17 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                     templateName={template.Name}
                                     onRefreshTree={() => handleRefreshTree(template.ID)}
                                     onAddFolder={() => handleAddFolder(template.ID, template.Name)}
+                                    onEditFolder={(folderData) => handleEditFolder(template.ID, template.Name, folderData)}
                                     onDragEnd={handleDragEnd}
                                     isLoading={isLoading}
                                 />
-
-                                {/* Add Folder Button */}
-                                <div style={{ marginTop: 12 }}>
-                                    <PrimaryButton
-                                        text="+ Add Folder"
-                                        onClick={() => handleAddFolder(template.ID, template.Name)}
-                                        styles={getAddActionButtonStyles()}
-                                    />
-                                </div>
                             </div>
                         )}
                     </div>
                 );
             })}
 
-            {/* Add Folder Panel */}
+            {/* Add/Edit Folder Panel */}
             {selectedTemplateForAdd && (
                 <AddFolderPanel
                     context={context}
@@ -328,10 +322,12 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                     onDismiss={() => {
                         setAddFolderPanelOpen(false);
                         setSelectedTemplateForAdd(null);
+                        setEditFolderData(null);
                     }}
                     onSaved={handleAddFolderSaved}
                     templateId={selectedTemplateForAdd.id}
                     templateName={selectedTemplateForAdd.name}
+                    editFolderData={editFolderData}
                 />
             )}
         </div>
