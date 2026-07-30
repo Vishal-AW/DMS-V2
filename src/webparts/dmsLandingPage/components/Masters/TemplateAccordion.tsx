@@ -12,12 +12,14 @@ interface TemplateAccordionProps {
     context: WebPartContext;
     templates: any[];
     onRefreshTemplates: () => void;
+    onEditTemplate?: (id: number) => void;
 }
 
 const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
     context,
     templates,
-    onRefreshTemplates
+    onRefreshTemplates,
+    onEditTemplate
 }) => {
     const [expandedTemplateId, setExpandedTemplateId] = useState<number | null>(null);
     const [templateFolderTrees, setTemplateFolderTrees] = useState<Record<number, FolderNode[]>>({});
@@ -263,6 +265,31 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                     {folderCount} folder{folderCount !== 1 ? "s" : ""}
                                 </span>
                             )}
+
+                            {/* Edit Button */}
+                            <span
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onEditTemplate) {
+                                        onEditTemplate(template.ID);
+                                    }
+                                }}
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 6,
+                                    cursor: "pointer",
+                                    color: "#009ef7",
+                                    background: "#f5f8fa",
+                                    marginLeft: 4
+                                }}
+                                title="Edit Template"
+                            >
+                                <FontIcon iconName="EditSolid12" />
+                            </span>
                         </div>
 
                         {/* Accordion Content */}

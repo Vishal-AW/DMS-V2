@@ -352,7 +352,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                         />
 
                         {/* View Mode Toggle */}
-                        <ChoiceGroup
+                        {/* <ChoiceGroup
                             selectedKey={viewMode}
                             options={[
                                 { key: "accordion", text: "Accordion View", iconProps: { iconName: "BulletedList" } },
@@ -365,7 +365,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                                 root: { display: "flex" },
                                 flexContainer: { display: "flex", gap: 8 }
                             }}
-                        />
+                        /> */}
                     </div>
 
                     <PrimaryButton
@@ -383,6 +383,7 @@ export default function TemplateMaster({ context }: ITempletMaster): JSX.Element
                             context={context}
                             templates={filteredData}
                             onRefreshTemplates={fetchData}
+                            onEditTemplate={openEditTemplatePanel}
                         />
                     </div>
                 ) : (
