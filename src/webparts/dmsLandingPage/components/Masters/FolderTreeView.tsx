@@ -373,9 +373,27 @@ const DraggableFolderItem = ({
                         ⠿
                     </span>
 
-                    {/* Folder icon */}
-                    <span style={{ marginRight: 6, fontSize: 17, lineHeight: 1 }}>
-                        {hasChildren && node.isExpanded ? "📂" : "📁"}
+                    {/* Folder icon - open when expanded, closed when collapsed */}
+                    <span
+                        style={{
+                            marginRight: 6,
+                            fontSize: 17,
+                            lineHeight: 1,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            color: "#eab308"
+                        }}
+                    >
+                        {hasChildren && node.isExpanded ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M2 6C2 4.89543 2.89543 4 4 4H9L11 6H20C21.1046 6 22 6.89543 22 8V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6Z" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                                <path d="M2 8C2 6.89543 2.89543 6 4 6H20C21.1046 6 22 6.89543 22 8V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V8Z" fill="#facc15" stroke="#ca8a04" strokeWidth="1.5" />
+                            </svg>
+                        ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M2 6C2 4.89543 2.89543 4 4 4H9L11 6H20C21.1046 6 22 6.89543 22 8V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6Z" fill="#facc15" stroke="#ca8a04" strokeWidth="1.5" />
+                            </svg>
+                        )}
                     </span>
 
                     {/* Label */}

@@ -198,9 +198,30 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                 </svg>
                             </span>
 
-                            {/* Template Icon */}
-                            <span style={{ marginRight: 10, fontSize: 18 }}>
-                                {isExpanded ? "📋" : "📄"}
+                            {/* Template Icon - open when expanded, closed when collapsed */}
+                            <span
+                                style={{
+                                    marginRight: 10,
+                                    fontSize: 18,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    color: "#4f46e5"
+                                }}
+                            >
+                                {isExpanded ? (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z" fill="#e0e7ff" stroke="#6366f1" strokeWidth="1.5" />
+                                        <path d="M8 8H16" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+                                        <path d="M8 12H14" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+                                        <path d="M8 16H12" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+                                    </svg>
+                                ) : (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z" fill="#eef2ff" stroke="#6366f1" strokeWidth="1.5" />
+                                        <path d="M8 8H16" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+                                        <path d="M8 12H14" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+                                    </svg>
+                                )}
                             </span>
 
                             {/* Template Name */}
