@@ -247,6 +247,7 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                 <span
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (!template.Active) return;
                                         handleAddFolder(template.ID, template.Name);
                                     }}
                                     style={{
@@ -256,13 +257,14 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                         gap: 4,
                                         padding: "5px 10px",
                                         borderRadius: 6,
-                                        cursor: "pointer",
-                                        color: "#009ef7",
-                                        background: "#f5f8fa",
+                                        cursor: template.Active ? "pointer" : "not-allowed",
+                                        color: template.Active ? "#009ef7" : "#d1d5db",
+                                        background: template.Active ? "#f5f8fa" : "#f9fafb",
                                         fontSize: 12,
-                                        fontWeight: 500
+                                        fontWeight: 500,
+                                        opacity: template.Active ? 1 : 0.6
                                     }}
-                                    title="Add Folder"
+                                    title={template.Active ? "Add Folder" : "Template is inactive"}
                                 >
                                     <FontIcon iconName="Add" style={{ fontSize: 12 }} />
                                     Add Folder
@@ -302,6 +304,7 @@ const TemplateAccordion: React.FC<TemplateAccordionProps> = ({
                                     folders={tree}
                                     templateId={template.ID}
                                     templateName={template.Name}
+                                    templateActive={template.Active}
                                     onRefreshTree={() => handleRefreshTree(template.ID)}
                                     onAddFolder={() => handleAddFolder(template.ID, template.Name)}
                                     onEditFolder={(folderData) => handleEditFolder(template.ID, template.Name, folderData)}

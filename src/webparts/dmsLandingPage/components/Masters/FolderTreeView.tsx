@@ -148,6 +148,7 @@ interface FolderTreeViewProps {
     folders: FolderNode[];
     templateId: number;
     templateName: string;
+    templateActive?: boolean;
     onRefreshTree: () => void;
     onAddFolder: () => void;
     onEditFolder?: (folderData: any) => void;
@@ -167,6 +168,7 @@ interface DraggableFolderItemProps {
     onEditFolder?: (folderData: any) => void;
     isDragOverlay?: boolean;
     isOver?: boolean;
+    templateActive?: boolean;
 }
 
 // Droppable zone for each folder (to accept children)
@@ -224,7 +226,8 @@ const DraggableFolderItem = ({
     onRefreshTree,
     onEditFolder,
     isDragOverlay = false,
-    isOver = false
+    isOver = false,
+    templateActive = true
 }: DraggableFolderItemProps): JSX.Element => {
     const {
         attributes,
@@ -387,26 +390,26 @@ const DraggableFolderItem = ({
                         {node.FolderName}
                     </span>
 
-                    {/* Active badge */}
-                    {!node.Active && (
-                        <span
-                            style={{
-                                fontSize: 11,
-                                color: "#9ca3af",
-                                background: "#f3f4f6",
-                                padding: "1px 6px",
-                                borderRadius: 4,
-                                marginLeft: 8
-                            }}
-                        >
-                            Inactive
-                        </span>
-                    )}
+                    {/* Active/Inactive badge */}
+                    <span
+                        style={{
+                            fontSize: 11,
+                            color: node.Active ? "#059669" : "#9ca3af",
+                            background: node.Active ? "#ecfdf5" : "#f3f4f6",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            marginLeft: 8,
+                            fontWeight: 500
+                        }}
+                    >
+                        {node.Active ? "Active" : "Inactive"}
+                    </span>
 
                     {/* Edit Folder Button */}
                     <span
                         onClick={(e) => {
                             e.stopPropagation();
+                            if (!templateActive) return;
                             if (onEditFolder) {
                                 onEditFolder({
                                     ID: node.ID,
@@ -421,15 +424,16 @@ const DraggableFolderItem = ({
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            cursor: "pointer",
-                            color: "#009ef7",
-                            backgroundColor: "#f5f8fa",
+                            cursor: templateActive ? "pointer" : "not-allowed",
+                            color: templateActive ? "#009ef7" : "#d1d5db",
+                            backgroundColor: templateActive ? "#f5f8fa" : "#f9fafb",
                             padding: "5px 8px",
                             borderRadius: "6px",
                             marginLeft: 6,
-                            fontSize: 12
+                            fontSize: 12,
+                            opacity: templateActive ? 1 : 0.6
                         }}
-                        title="Edit Folder"
+                        title={templateActive ? "Edit Folder" : "Template is inactive"}
                     >
                         <FontIcon iconName="EditSolid12" />
                     </span>
@@ -456,6 +460,7 @@ const DraggableFolderItem = ({
                                 onRefreshTree={onRefreshTree}
                                 onEditFolder={onEditFolder}
                                 isOver={isOver}
+                                templateActive={templateActive}
                             />
                         </FolderDroppable>
                     ))}
@@ -469,6 +474,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
     folders,
     templateId,
     templateName,
+    templateActive = true,
     onRefreshTree,
     onAddFolder,
     onEditFolder,
@@ -689,6 +695,7 @@ const FolderTreeView: React.FC<FolderTreeViewProps> = ({
                             onRefreshTree={onRefreshTree}
                             onEditFolder={onEditFolder}
                             isOver={overId === `folder-${node.ID}`}
+                            templateActive={templateActive}
                         />
                     </FolderDroppable>
                 ))}
