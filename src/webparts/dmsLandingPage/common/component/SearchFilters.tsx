@@ -103,7 +103,6 @@ export default function SearchFilters({
     setConfigLoading(true);
     try {
       const libraryData = await getDataByLibraryName(siteUrl, context.spHttpClient, libraryName);
-      console.log('libraryData ', libraryData);
       if (!libraryData?.value?.length) {
         setConfigLoading(false);
         return;
@@ -116,12 +115,10 @@ export default function SearchFilters({
       setDynamicControl(rawDynamicControl);
 
       const configData = await getConfigActive(siteUrl, context.spHttpClient);
-      console.log('configData', configData);
       const configItems: any[] = configData?.value || [];
       const filterConfigs: DynamicFilterConfig[] = [];
-      console.log('filterConfigs', filterConfigs);
       for (const item of rawDynamicControl) {
-        if (!item.IsShowAsFilter) continue;
+        if (!item.IsShowAsFilter || !item.IsActiveControl) continue;
         const configRow = configItems.find((c: any) => c.Id === item.Id);
         if (!configRow) continue;
 

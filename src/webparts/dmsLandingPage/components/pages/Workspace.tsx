@@ -300,7 +300,38 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         return childFolders;
     };
 
+    // Refreshes only the currently selected folder's children.
+    // Unlike fetchFolder (which rebuilds the whole tree from root),
+    // this preserves the nested folder structure and keeps the user
+    // in the same location after creating a folder.
+    const refreshCurrentFolder = async () => {
+        const folderToRefresh = selectedFolderRef.current || selectedFolder;
+        if (!folderToRefresh || !tileData?.LibraryName) return;
+
+        // Force a re-fetch of the selected folder's children
+        const childFolders = await getChildFolders(context, folderToRefresh.path);
+
+        const updatedNodeProps = {
+            children: childFolders,
+            isLoaded: true,
+            isLoading: false,
+            isLastLevel: childFolders.length === 0
+        };
+
+        Object.assign(folderToRefresh, updatedNodeProps);
+        updateFolderNodeState(folderToRefresh.path, updatedNodeProps);
+
+        // Keep the selection pointing to the refreshed folder object
+        selectedFolderRef.current = folderToRefresh;
+        setSelectedFolder(folderToRefresh);
+
+        if (childFolders.length === 0) {
+            await getDocument(folderToRefresh);
+        }
+    };
+
     const fetchFolder = async () => {
+
         if (!tileData?.LibraryName) return;
 
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
@@ -1251,7 +1282,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const hidePopup = useCallback(() => { setIsPopupBoxVisible(false); }, [isPopupBoxVisible]);
     const hideCommonPopup = useCallback(() => { setIsShowCommnPopupBoxVisible(false); }, []);
     const dismissFolderPanel = () => { setIsOpenFolderPanel(false); };
-    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); fetchFolder(); }, [isCreateProjectPopupOpen]);
+    const dissmissProjectCreationPanel = useCallback((value: boolean) => { setIsCreateProjectPopupOpen(value); refreshCurrentFolder(); }, [isCreateProjectPopupOpen]);
+
     const dissmissSharePopup = useCallback((value: boolean) => { setIFrameDialogOpened(value); }, []);
     const dismissUploadPanel = useCallback(() => { setIsOpenUploadPanel(false); }, []);
 
@@ -1396,10 +1428,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 dismissFolderPanel();
                 setAlertMsg(DisplayLabel.SubmitMsg);
                 setIsPopupBoxVisible(true);
-                fetchFolder();
+                // Refresh only the currently selected folder's children
+                // instead of rebuilding the whole tree from root.
+                // This preserves the nested folder structure and keeps
+                // the user in the same location after creating a folder.
+                refreshCurrentFolder();
             });
         });
     };
+
 
 
     const columns = React.useMemo(() => {
@@ -1979,8 +2016,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     folderObject={projectUpdateData}
                     folderPath={selectedFolder?.path}
                     ChildFolderRoleInheritance={tileData?.AllowChildInheritance}
-                    onFolderCreated={fetchFolder}   // NEW
+                    onFolderCreated={refreshCurrentFolder}   // NEW
                 />
+
             }
             <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
 
