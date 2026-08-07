@@ -87,7 +87,7 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
         setLoading(true);
 
-        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Permission/Title,TileAdmin/ID,Order0,icon,accentColor,Author/Title,LibraryName&$expand=Permission,TileAdmin,Author&$filter=Active eq 1&$orderby=Order0 asc`;
+        const query = `${SITEURL}/_api/web/lists/getByTitle('DMS_Mas_Tile')/items?$select=*,ID,TileName,Permission/ID,Permission/Title,TileAdmin/ID,Order0,icon,accentColor,Author/Title,LibraryName&$expand=Permission,TileAdmin,Author&$filter=Active eq 1&$orderby=Order0 asc&$top=1000`;
 
         const response = await context.spHttpClient.get(
             query,

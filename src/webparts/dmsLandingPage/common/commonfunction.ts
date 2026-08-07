@@ -111,6 +111,42 @@ export const getAllDocuments = async (
     return files;
 };
 
+export const getChildFolders = async (
+    context: WebPartContext,
+    folderPath: string
+) => {
+    const sp = spfi().using(SPFx(context));
+
+    try {
+        const subfolders = await sp.web
+            .getFolderByServerRelativePath(folderPath)
+            .folders
+            .select("Name", "ServerRelativeUrl", "ItemCount", "ListItemAllFields/ID", "ListItemAllFields/Title")
+            .expand("ListItemAllFields")();
+
+        return subfolders
+            .filter((f: any) => f.Name && f.Name.toLowerCase() !== "forms" && !f.Name.startsWith("."))
+            .map((f: any) => ({
+                id: f.ListItemAllFields?.ID ? String(f.ListItemAllFields.ID) : f.ServerRelativeUrl,
+                name: f.Name,
+                path: f.ServerRelativeUrl,
+                children: [],
+                isLoaded: false,
+                isLoading: false,
+                isLastLevel: false,
+                FileRef: f.ServerRelativeUrl,
+                FileDirRef: folderPath,
+                FSObjType: 1,
+                ItemCount: f.ItemCount
+            }))
+            .sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    } catch (error) {
+        console.error("Error fetching child folders for path:", folderPath, error);
+        return [];
+    }
+};
+
+
 export const fileTypeConfig: Record<string, { IconName: typeof DocumentPdf20Regular; className: string; label: string; }> = {
     pdf: { IconName: DocumentPdf20Regular, className: 'doc-icon-pdf', label: 'PDF' },
     docx: { IconName: DocumentText20Regular, className: 'doc-icon-word', label: 'Word' },

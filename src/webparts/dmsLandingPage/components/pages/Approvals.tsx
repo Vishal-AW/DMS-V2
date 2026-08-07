@@ -121,9 +121,9 @@ export default function Approvals({ context }: IApprovalsProps) {
 
   // const [userName, setUserName] = React.useState("");
 
- const controls: any[] = dynamicControl; // typed alias, no change to original state
-//const [userNames, setUserNames] = React.useState<{ [key: number]: string }>({});
- const [allUsers, setAllUsers] = React.useState<any[]>([]);
+  const controls: any[] = dynamicControl; // typed alias, no change to original state
+  //const [userNames, setUserNames] = React.useState<{ [key: number]: string }>({});
+  const [allUsers, setAllUsers] = React.useState<any[]>([]);
 
   const currentDocs = useMemo(() => {
     if (!searchQuery.trim()) return allDocs;
@@ -146,7 +146,7 @@ export default function Approvals({ context }: IApprovalsProps) {
   }, [searchQuery, allDocs]);
 
 
- 
+
 
   useEffect(() => {
     Promise.all([getFiles(), fetchLibraryDetails()]).finally(() => setIsLoading(false));
@@ -374,12 +374,9 @@ export default function Approvals({ context }: IApprovalsProps) {
   const renderDynamicControls = useCallback(() => {
     // return dynamicControl.filter((item: any, index: number) => !item.IsFieldAllowInFile).map((item: any, index: number) => {
     // return dynamicControl.filter((item: any, index: number) => item.IsFieldAllowInFile).map((item: any, index: number) => {
-    return controls.filter((item: any) => item.IsFieldAllowInFile).map((item: any, index: number) => {
+    return controls.map((item: any, index: number) => {
 
       const filterObj = configData.find((ele) => ele.Id === item.Id);
-
-      console.log("metadataDoc", metadataDoc);
-      console.log("dynamicControl", dynamicControl);
 
       if (!filterObj) return null;
 
@@ -389,30 +386,30 @@ export default function Approvals({ context }: IApprovalsProps) {
           return (
             <div className="meta-panel-field">
               <label className="meta-panel-label">{item.Title}</label>
-              <div className="meta-panel-select-box">
+              <div className="meta-panel-plain-value">
                 <span>{metadataDoc[item.InternalTitleName]}</span>
-                <span className="meta-panel-chevron">&#8964;</span>
+                {/* <span className="meta-panel-chevron">&#8964;</span> */}
               </div>
             </div>
           );
 
         case "Person or Group":
-             const userId =
-              metadataDoc?.[`${item.InternalTitleName}Id`] ||
-              metadataDoc?.[item.InternalTitleName];
+          const userId =
+            metadataDoc?.[`${item.InternalTitleName}Id`] ||
+            metadataDoc?.[item.InternalTitleName];
 
-            const selectedUser = allUsers.find(
-              (user) => Number(user.Id) === Number(userId)
-            );
+          const selectedUser = allUsers.find(
+            (user) => Number(user.Id) === Number(userId)
+          );
 
-           
+
           return (
             <div className="meta-panel-field" >
               <label className="meta-panel-label">{item.Title}</label>
-              <div className="meta-panel-select-box">
+              <div className="meta-panel-plain-value">
                 {/* <span>{metadataDoc[item.InternalTitleName]?.Title}</span> */}
-                   <span>{selectedUser?.Title || ""}</span>
-                <span className="meta-panel-chevron">&#8964;</span>
+                <span>{selectedUser?.Title || ""}</span>
+                {/* <span className="meta-panel-chevron">&#8964;</span> */}
               </div>
             </div >
           );
@@ -425,27 +422,27 @@ export default function Approvals({ context }: IApprovalsProps) {
           return (
             <div className="meta-panel-field">
               <label className="meta-panel-label">{item.Title}</label>
-              <div className="meta-panel-select-box">
+              <div className="meta-panel-plain-value">
                 <span>{metadataDoc[item.InternalTitleName]}</span>
-                <span className="meta-panel-chevron">&#8964;</span>
+                {/* <span className="meta-panel-chevron">&#8964;</span> */}
               </div>
             </div>
           );
         case "Date and Time":
           return <div className="meta-panel-field" >
             <label className="meta-panel-label">{item.Title}</label>
-            <div className="meta-panel-select-box">
+            <div className="meta-panel-plain-value">
               <span>{format(metadataDoc[item.InternalTitleName], "dd/MM/yyyy")}</span>
-              <span className="meta-panel-chevron">&#8964;</span>
+              {/* <span className="meta-panel-chevron">&#8964;</span> */}
             </div>
           </div >;
 
         default:
           return <div className="meta-panel-field" >
             <label className="meta-panel-label">{item.Title}</label>
-            <div className="meta-panel-select-box">
+            <div className="meta-panel-plain-value">
               <span>{metadataDoc[item.InternalTitleName]}</span>
-              <span className="meta-panel-chevron">&#8964;</span>
+              {/* <span className="meta-panel-chevron">&#8964;</span> */}
             </div>
           </div >;
       }
@@ -472,7 +469,8 @@ export default function Approvals({ context }: IApprovalsProps) {
           </div>
           <div className="approval-card-status-wrap">
             <StatusBadge status={doc?.Status.StatusName} />
-            <span className="approval-card-version" data-testid={`text-approval-version-${doc.ID}`}>v{doc.Level}</span>
+            <span className="approval-card-version" data-testid={`text-approval-version-${doc.ID}`}>v{doc.Name?.split(".").pop() === "pdf" ? doc?.Level : doc?.OData__UIVersionString}
+            </span>
           </div>
         </div>
 
@@ -607,7 +605,8 @@ export default function Approvals({ context }: IApprovalsProps) {
                 </div>
                 <div className="meta-panel-doc-info">
                   <span className="meta-panel-doc-name" data-testid="text-meta-doc-name">{metadataDoc?.ActualName}</span>
-                  <span className="meta-panel-doc-ref">{metadataDoc.referenceNo} &middot; v{metadataDoc?.Level}</span>
+                  <span className="meta-panel-doc-ref">{metadataDoc.referenceNo} &middot; v{metadataDoc?.Name?.split(".").pop() === "pdf" ? metadataDoc?.Level : metadataDoc?.OData__UIVersionString}
+                  </span>
                 </div>
               </div>
               <div className="meta-panel-quick-actions">
@@ -678,29 +677,29 @@ export default function Approvals({ context }: IApprovalsProps) {
                   </div>
                   <div className="meta-panel-field">
                     <label className="meta-panel-label">{DisplayLabel.FolderName}</label>
-                    <div className="meta-panel-input-box" data-testid="text-meta-name">{metadataDoc?.FolderDocumentPath.split("/").pop() || ""}</div>
+                    <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.FolderDocumentPath.split("/").pop() || ""}</div>
                   </div>
                 </div>
 
-                <div className="meta-panel-field">
+                {/* <div className="meta-panel-field">
                   <label className="meta-panel-label">{DisplayLabel.IsSuffixRequired}</label>
                   <Toggle
                     checked={metadataDoc?.IsSuffixRequired}
                     disabled
                     data-testid="toggle-meta-suffix"
                   />
-                </div>
+                </div> */}
                 {metadataDoc?.IsSuffixRequired && (
                   <>
                     <div className="meta-panel-field">
                       <label className="meta-panel-label">{DisplayLabel.DocumentSuffix}</label>
-                      <div className="meta-panel-input-box" data-testid="text-meta-name">{metadataDoc?.DocumentSuffix || ""}</div>
+                      <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.DocumentSuffix || ""}</div>
                     </div>
 
                     {metadataDoc?.DocumentSuffix === "Other" && (
                       <div className="meta-panel-field">
                         <label className="meta-panel-label">{DisplayLabel.DocumentSuffix}</label>
-                        <div className="meta-panel-input-box" data-testid="text-meta-name">{metadataDoc?.OtherSuffix || ""}</div>
+                        <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.OtherSuffix || ""}</div>
                       </div>
                     )}
                   </>
@@ -710,13 +709,9 @@ export default function Approvals({ context }: IApprovalsProps) {
 
             <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Classification</h3>
-              {/* <div className="meta-panel-fields">
+              <div className="meta-panel-row meta-panel-row-2col">
                 {renderDynamicControls()}
-              </div> */}
-              <div className="meta-panel-fields">
-              {console.log("Classification section rendered")}
-              {renderDynamicControls()}
-            </div>
+              </div>
             </div>
 
             <div className="meta-panel-section">
