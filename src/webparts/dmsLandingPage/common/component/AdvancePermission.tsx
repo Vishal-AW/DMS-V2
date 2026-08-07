@@ -318,7 +318,7 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {userData.map((el: any) => (
+                                    {/* {userData.map((el: any) => (
                                         <tr key={el.Id}>
                                             <td>
                                                 {el.Member.Title !== "ProjectAdmin" && (
@@ -327,6 +327,7 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
                                                         onChange={() => handleCheckboxChange(el.Member.Id)}
                                                     />
                                                 )}
+
                                             </td>
                                             <td>{el.Member.Title}</td>
                                             <td>
@@ -338,7 +339,36 @@ const AdvancePermission: React.FC<IAdvanceProps> = ({ isOpen, dismissPanel, cont
                                                 ))}
                                             </td>
                                         </tr>
-                                    ))}
+                                    ))} */}
+                                    {userData.map((el: any) => {
+                                        const hideCheckbox =
+                                            el.Member.Title === "ProjectAdmin" ||
+                                            el.Member.Title === `TileAdmin - ${LibraryName}`;
+
+                                        return (
+                                            <tr key={el.Id}>
+                                                <td>
+                                                    {!hideCheckbox && (
+                                                        <Checkbox
+                                                            checked={isCheckedUser.includes(el.Member.Id)}
+                                                            onChange={() => handleCheckboxChange(el.Member.Id)}
+                                                        />
+                                                    )}
+                                                </td>
+
+                                                <td>{el.Member.Title}</td>
+
+                                                <td>
+                                                    {el.RoleDefinitionBindings.map((item: any) => (
+                                                        <React.Fragment key={item.Id}>
+                                                            <p>{item.Name}</p>
+                                                            <p>{item.Description}</p>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

@@ -33,7 +33,7 @@ import Select from 'react-select';
 import { getTemplateActive } from "../../../../Services/TemplateService";
 import { getActiveFolder } from "../../../../Services/FolderMasterService";
 import { format } from "date-fns";
-//import { SPHttpClient } from "@microsoft/sp-http";
+import { SPHttpClient } from "@microsoft/sp-http";
 
 
 export interface IProjectEntryProps {
@@ -473,9 +473,31 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     };
 
 
+    const getGroupId = async (
+        context: WebPartContext,
+        groupName: string
+    ): Promise<number> => {
+
+        const response = await context.spHttpClient.get(
+            `${context.pageContext.web.absoluteUrl}/_api/web/sitegroups/getbyname('${groupName}')`,
+            SPHttpClient.configurations.v1
+        );
+
+        const group = await response.json();
+
+        return group.Id;
+    };
+
+
+    
 
     const createFolder = async () => {
         setShowLoader(true);
+        const tileAdminGroupId = await getGroupId(
+            context,
+            `TileAdmin - ${LibraryDetails.LibraryName}`
+        );
+
         if (FormType === "EntryForm") {
 
             const users = [
@@ -484,19 +506,27 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 ...publisher.map(id => ({ id, type: 'Publisher' })),
                 ...approver.map(id => ({ id, type: 'Approver' })),
                 ...admin.map((id: any) => ({ id, type: 'Admin' })),
-                ...(LibraryDetails.TileAdminId
-                    ? [{ id: LibraryDetails.TileAdminId, type: 'TileAdmin' }]
-                    : []),
+                // ...(LibraryDetails.TileAdminId
+                //     ? [{ id: LibraryDetails.TileAdminId, type: 'TileAdmin' }]
+                //     : []),//single admin
+                // ...(LibraryDetails.TileAdminId?.length
+                //     ? LibraryDetails.TileAdminId.map((id: number) => ({
+                //         id,
+                //         type: 'TileAdmin',
+                //     }))
+                //     : []),
+                 {
+                    id: tileAdminGroupId,
+                    type: 'TileAdmin'
+                 }
             ];
 
+           console.log(users);
 
-
-            console.log(users);
-
-            const IsRootFolder=true;
+           const IsRootFolder=true;
             // FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true).then(async (response) => {
-          FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true,IsRootFolder).then(async (response) => {
-            console.log(response);
+           FolderStructure(context, `${LibraryDetails.LibraryName}/${folderName}`, users, LibraryDetails.LibraryName, true,IsRootFolder).then(async (response) => {
+               console.log(response);
                 await updateFolderMetaData(response);
                 if (createStructure) {
                     if (TemFolderName === "") {

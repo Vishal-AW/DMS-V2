@@ -129,8 +129,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
     
+    // const canCreateRequest = useMemo(() => {
+    //     return isValidUser || tileData?.TileAdminId === UserID;
+    // }, [isValidUser, tileData, UserID]);
+
     const canCreateRequest = useMemo(() => {
-        return isValidUser || tileData?.TileAdminId === UserID;
+        return (
+            isValidUser ||
+            tileData?.TileAdminId?.includes?.(Number(UserID))
+        );
     }, [isValidUser, tileData, UserID]);
 
      const ShowHideDeleteOption = useMemo(() => {
@@ -1164,7 +1171,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             !tileData?.IsArchiveRequired &&
                             (
                                 item?.data?.ListItemAllFields?.AuthorId === UserID ||
-                                tileData?.TileAdminId === UserID ||
+                                // tileData?.TileAdminId === UserID ||
+                                tileData?.TileAdminId?.includes?.(Number(UserID)) ||
                                 isValidUser
                             )
                         );
@@ -1416,9 +1424,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             { id: selectedFolder?.ProjectmanagerId, type: 'FolderAccess' },
             { id: selectedFolder?.PublisherId, type: 'FolderAccess' },
             ...admin.map((id: any) => ({ id, type: 'Admin' })),
-            ...(tileData?.TileAdminId
-                ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
-                : []),
+            // ...(tileData?.TileAdminId
+            //     ? [{ id: tileData.TileAdminId, type: 'TileAdmin' }]
+            //     : []),
+            ...(tileData?.TileAdminId?.length
+                ? tileData.TileAdminId.map((id: number) => ({
+                    id,
+                    type: 'TileAdmin',
+                }))
+             : []),
         ];
         const siteRelative = context.pageContext.web.serverRelativeUrl;
 

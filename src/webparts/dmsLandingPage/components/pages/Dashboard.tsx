@@ -65,8 +65,12 @@ const Dashboard: React.FunctionComponent<IDashboardProps> = ({ context }) => {
 
         if (userRole === "ProjectAdmin") return true;
 
-        if (tile.TileAdminId === USERID) return true;
+       // if (tile.TileAdminId === USERID) return true;
 
+        // Check if current user is one of the Tile Admins
+        if (tile.TileAdminId?.includes?.(USERID)) {
+            return true;
+        }
 
         const expectedGroupName = getTileAccessGroupName(tile.LibraryName);
 
