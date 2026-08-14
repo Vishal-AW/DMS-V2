@@ -57,8 +57,27 @@ import { IDmsButton } from "./buttonPermissionHelper";
 interface IWorkspaceProps {
     context: WebPartContext;
 }
-interface Folder {
-    [key: string]: string | number | {} | null | undefined;
+/**
+ * Fields returned by SharePoint's listItemAllFields endpoint.  Folder
+ * libraries can contain tenant-specific columns, so those values must remain
+ * extensible while the tree fields retain their known types.
+ */
+interface FolderMetadata {
+    Id?: number;
+    ID?: number;
+    Title?: string;
+    ProjectmanagerId?: number;
+    PublisherId?: number;
+    [fieldName: string]: unknown;
+}
+
+/** A tree node enriched with all of its backing list item's fields. */
+interface SelectedFolder extends FolderNode, FolderMetadata {
+    children: FolderNode[];
+}
+
+interface Folder extends FolderNode {
+    children?: FolderNode[];
 }
 
 const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
@@ -69,7 +88,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
     const { workspaceId } = useParams<{ workspaceId: string; }>();
     const navigate = useNavigate();
-    const [selectedFolder, setSelectedFolder] = useState<any | null>(null);
+    const [selectedFolder, setSelectedFolder] = useState<SelectedFolder | null>(null);
     const [folders, setFolders] = useState<any>([]);
     const [tileData, setTileData] = useState<any | null>(null);
     const [files, setFiles] = useState<any[]>([]);
@@ -125,7 +144,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [versionsPanelUrl, setVersionsPanelUrl] = useState("");
     const [isVersionsOverlayVisible, setIsVersionsOverlayVisible] = useState(false);
     const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
-    const selectedFolderRef = useRef<any | null>(null);
+    const selectedFolderRef = useRef<SelectedFolder | null>(null);
+    const folderSelectionRequestRef = useRef(0);
+    const [isFolderMetadataLoading, setIsFolderMetadataLoading] = useState(false);
+    const [folderMetadataError, setFolderMetadataError] = useState<string | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
 
@@ -204,6 +226,51 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         return null;
     };
+
+    /**
+     * Commits a folder selection only after its backing list item has been
+     * loaded. The request id prevents a slower earlier click from replacing a
+     * more recent selection.
+     */
+    const selectFolderWithMetadata = useCallback(async (folder: FolderNode): Promise<{ folder: SelectedFolder; requestId: number; } | null> => {
+        const requestId = ++folderSelectionRequestRef.current;
+        setIsFolderMetadataLoading(true);
+        setFolderMetadataError(null);
+
+        try {
+            const sp = spfi().using(SPFx(context));
+            const fieldsData = await sp.web
+                .getFolderByServerRelativePath(folder.path)
+                .listItemAllFields() as FolderMetadata;
+
+            if (!fieldsData || typeof fieldsData !== "object" || Array.isArray(fieldsData)) {
+                throw new Error("SharePoint returned invalid folder metadata.");
+            }
+
+            // A newer selection has started while this request was in flight.
+            if (requestId !== folderSelectionRequestRef.current) return null;
+
+            const enrichedFolder: SelectedFolder = {
+                ...folder,
+                ...fieldsData,
+                children: folder.children || []
+            };
+
+            selectedFolderRef.current = enrichedFolder;
+            setSelectedFolder(enrichedFolder);
+            return { folder: enrichedFolder, requestId };
+        } catch (error) {
+            if (requestId === folderSelectionRequestRef.current) {
+                console.error("Unable to load selected folder metadata:", error);
+                setFolderMetadataError("Unable to load the selected folder's metadata. Please try again.");
+            }
+            return null;
+        } finally {
+            if (requestId === folderSelectionRequestRef.current) {
+                setIsFolderMetadataLoading(false);
+            }
+        }
+    }, [context]);
 
     // const collectExpandedFolderIds = (nodes: any[], targetPath?: string, parents: string[] = []): string[] => {
     //     if (!targetPath) return [];
@@ -307,9 +374,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const refreshCurrentFolder = async () => {
         const folderToRefresh = selectedFolderRef.current || selectedFolder;
         if (!folderToRefresh || !tileData?.LibraryName) return;
+        const selectionRequestId = folderSelectionRequestRef.current;
 
         // Force a re-fetch of the selected folder's children
         const childFolders = await getChildFolders(context, folderToRefresh.path);
+        if (selectionRequestId !== folderSelectionRequestRef.current) return;
 
         const updatedNodeProps = {
             children: childFolders,
@@ -322,11 +391,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         updateFolderNodeState(folderToRefresh.path, updatedNodeProps);
 
         // Keep the selection pointing to the refreshed folder object
-        selectedFolderRef.current = folderToRefresh;
-        setSelectedFolder(folderToRefresh);
+        const refreshedFolder: SelectedFolder = {
+            ...folderToRefresh,
+            ...updatedNodeProps
+        };
+        selectedFolderRef.current = refreshedFolder;
+        setSelectedFolder(refreshedFolder);
 
         if (childFolders.length === 0) {
-            await getDocument(folderToRefresh);
+            await getDocument(folderToRefresh, selectionRequestId);
         }
     };
 
@@ -338,7 +411,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         const rootChildFolders = await getChildFolders(context, rootPath);
 
         const rootFolderObj = {
-            id: 0,
+            id: "0",
             name: tileData?.LibraryName,
             path: rootPath,
             children: rootChildFolders,
@@ -356,11 +429,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         setFolders(nextFolders);
         expandParentFolders(rootFolderObj);
-        selectedFolderRef.current = preservedFolder;
-        setSelectedFolder(preservedFolder);
-
-        if (preservedFolder.children.length === 0) {
-            await getDocument(preservedFolder);
+        const selection = await selectFolderWithMetadata(preservedFolder);
+        if (selection?.folder.children.length === 0) {
+            await getDocument(selection.folder, selection.requestId);
         }
     };
 
@@ -387,20 +458,26 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
     const handleFolderSelect = async (folder: FolderNode) => {
-        selectedFolderRef.current = folder;
-        setSelectedFolder(folder);
+        const selection = await selectFolderWithMetadata(folder);
+        if (!selection) return;
+
+        const { folder: selectedFolderWithMetadata, requestId } = selection;
 
         setTables(""); // <-- Reset from Archive/Recycle to Folder view
-        fetchButtonsAndPermissions(folder.path);
-        expandParentFolders(folder);
+        expandParentFolders(selectedFolderWithMetadata);
 
-        let children = folder.children || [];
-        if (!folder.isLoaded) {
-            children = await loadChildFolders(folder);
+        let children = selectedFolderWithMetadata.children || [];
+        if (!selectedFolderWithMetadata.isLoaded) {
+            children = await loadChildFolders(selectedFolderWithMetadata);
         }
 
+        // Do not let an earlier selection update documents after a later click.
+        if (requestId !== folderSelectionRequestRef.current) return;
+
         if (children.length === 0) {
-            await getDocument(folder);
+            await getDocument(selectedFolderWithMetadata, requestId);
+        } else {
+            setFiles([]);
         }
     };
 
@@ -436,25 +513,26 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
-    const getRestrictedUserData = async () => {
-        if (!selectedFolder?.path) return;
+    const getRestrictedUserData = async (folderPath: string) => {
 
         let View: any = "viewListItems";
         let Edit: any = "editListItems";
 
         const canView = await hasFolderPermission(
             context,
-            selectedFolder.path,
+            folderPath,
             View
         );
 
         const canEdit = await hasFolderPermission(
             context,
-            selectedFolder.path,
+            folderPath,
             Edit
         );
 
         // Restricted View Logic
+        if (selectedFolderRef.current?.path !== folderPath) return;
+
         if (canView === true && canEdit === false) {
             setIsRestrictedView(true);
         } else {
@@ -982,9 +1060,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     useEffect(() => {
         if (selectedFolder) {
-            getDocument();
-            hasRequiredPermissions();
-            getRestrictedUserData();
+            hasRequiredPermissions(selectedFolder.path);
+            void getRestrictedUserData(selectedFolder.path);
         }
     }, [selectedFolder]);
 
@@ -1026,7 +1103,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setFiles(files);
     // };
 
-    const getDocument = async (folderNode?: FolderNode | null) => {
+    const getDocument = async (folderNode?: FolderNode | null, selectionRequestId?: number) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
 
@@ -1057,7 +1134,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             return true;
         });
 
-        console.log("Files:", files);
+        if (selectionRequestId !== undefined && selectionRequestId !== folderSelectionRequestRef.current) {
+            return [];
+        }
 
         setFiles(files);
     };
@@ -1619,8 +1698,12 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     });
 
     const projectCreation = useCallback(() => { setIsCreateProjectPopupOpen(true); setFormType("EntryForm"); setProjectUpdateData({}); }, []);
-    const hasRequiredPermissions = () => {
-        checkPermissions(context, selectedFolder?.path).then((permission: boolean) => setHasPermission(permission));
+    const hasRequiredPermissions = (folderPath: string) => {
+        checkPermissions(context, folderPath).then((permission: boolean) => {
+            if (selectedFolderRef.current?.path === folderPath) {
+                setHasPermission(permission);
+            }
+        });
     };
     const bindTable = () => {
 
@@ -1721,6 +1804,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 />
 
                 <div className="workspace-content">
+                    {isFolderMetadataLoading && (
+                        <div role="status" aria-live="polite" className="workspace-folder-metadata-loading">
+                            <Spinner size={SpinnerSize.small} label="Loading folder details..." />
+                        </div>
+                    )}
+                    {folderMetadataError && (
+                        <div role="alert" className="workspace-folder-metadata-error">
+                            {folderMetadataError}
+                        </div>
+                    )}
                     {selectedFolder && folderPathBread.length > 0 && (
                         <div className="workspace-content-header">
                             <div className="workspace-folder-breadcrumb" data-testid="nav-folder-breadcrumb">
@@ -2014,13 +2107,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     admin={admin}
                     FormType={formType}
                     folderObject={projectUpdateData}
-                    folderPath={selectedFolder?.path}
+                    folderPath={selectedFolder?.path || ""}
                     ChildFolderRoleInheritance={tileData?.AllowChildInheritance}
                     onFolderCreated={refreshCurrentFolder}   // NEW
                 />
 
             }
-            <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
+            <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name || ""} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "") || ""} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
 
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={message} />
             <ConfirmationDialog hideDialog={hideDialogCheckOut} closeDialog={closeDialogCheckOut} handleConfirm={handleConfirmCheckOut} msg={message} />
