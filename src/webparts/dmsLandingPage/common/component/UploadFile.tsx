@@ -65,7 +65,6 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
 
 
 
-
     const peoplePickerContext: IPeoplePickerContext = {
         absoluteUrl: context.pageContext.web.absoluteUrl,
         msGraphClientFactory: context.msGraphClientFactory as any,
