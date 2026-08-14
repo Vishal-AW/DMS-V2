@@ -492,16 +492,49 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setArchiveData(data.value || []);
     };
 
+    /**
+     * Resolves the full folder metadata (listItemAllFields) BEFORE opening the
+     * ProjectEntryForm so bindFormData() can bind every field. The sidebar tree
+     * node alone only carries id/name/path/children, so metadata-bound inputs
+     * would otherwise render empty.
+     */
+    const openFolderEntryForm = async (folder: FolderNode, formType: string) => {
+        try {
+            let enrichedFolder: any = folder;
+
+            const selected = selectedFolderRef.current;
+            if (selected?.path === folder.path) {
+                // Already enriched (the currently selected folder) — reuse it.
+                enrichedFolder = { ...folder, ...selected };
+            } else {
+                const sp = spfi().using(SPFx(context));
+                const fieldsData = await sp.web
+                    .getFolderByServerRelativePath(folder.path)
+                    .listItemAllFields();
+                enrichedFolder = { ...folder, ...fieldsData };
+            }
+
+            setProjectUpdateData(enrichedFolder);
+        } catch (error) {
+            console.error("Unable to load folder metadata for the entry form:", error);
+            // Fall back to the tree node so the form still opens with the folder name.
+            setProjectUpdateData(folder);
+        } finally {
+            setFormType(formType);
+            setIsCreateProjectPopupOpen(true);   // open only AFTER data is set
+        }
+    };
+
     const handleFolderAction = (action: string, folder: FolderNode) => {
         console.log('Folder action:', action, folder.name);
 
         // const folderPath = selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "");
         switch (action) {
             case "FView":
-                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("ViewForm");
+                void openFolderEntryForm(folder, "ViewForm");
                 break;
             case "FEdit":
-                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("EditForm");
+                void openFolderEntryForm(folder, "EditForm");
                 break;
             case "AdvancePermission":
                 setItemId(Number(folder.id)); setIsPanelOpen(true);
