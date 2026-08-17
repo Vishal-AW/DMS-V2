@@ -189,6 +189,8 @@ const TileForm: React.FunctionComponent<ITileFormProps> = ({ context, setIsOpenE
         setOriginalTileAdminIds(TileAdminIds);
 
 
+        
+
         getAllColumns(EditSettingData?.LibraryName);
 
         setTableData(EditSettingData?.DynamicControl === null ? [] : JSON.parse(EditSettingData?.DynamicControl));
