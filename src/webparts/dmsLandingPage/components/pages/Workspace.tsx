@@ -3,7 +3,7 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize, ActionButton } from '@fluentui/react';
+import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize, ActionButton, Dropdown, Toggle, IDropdownStyles, IDropdownOption, ITextFieldStyles, IToggleStyles, IToggleStyleProps, IBasePickerStyles } from '@fluentui/react';
 import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular } from '@fluentui/react-icons';
 import Sidebar from "../../common/component/Sidebar";
 import { FolderNode } from "../../common/component/FolderTree";
@@ -33,6 +33,7 @@ import {
     Label,
     Field
 } from "@fluentui/react-components";
+import { IPeoplePickerContext, PeoplePicker, PrincipalType } from "@pnp/spfx-controls-react/lib/PeoplePicker";
 import { getAllButtons } from "../../../../Services/Buttons";
 import { IButtonsProps, IRolePermission } from "../../../../Intrface/IButtonInterface";
 import { checkPermissions, commonPostMethod, getApprovalData, getArchiveData, getListData, hasFolderPermission, updateLibrary } from "../../../../Services/GeneralDocument";
@@ -57,19 +58,285 @@ import { IDmsButton } from "./buttonPermissionHelper";
 interface IWorkspaceProps {
     context: WebPartContext;
 }
-interface Folder {
-    [key: string]: string | number | {} | null | undefined;
+/**
+ * Fields returned by SharePoint's listItemAllFields endpoint.  Folder
+ * libraries can contain tenant-specific columns, so those values must remain
+ * extensible while the tree fields retain their known types.
+ */
+interface FolderMetadata {
+    Id?: number;
+    ID?: number;
+    Title?: string;
+    ProjectmanagerId?: number;
+    PublisherId?: number;
+    [fieldName: string]: unknown;
 }
 
+/** A tree node enriched with all of its backing list item's fields. */
+interface SelectedFolder extends FolderNode, FolderMetadata {
+    children: FolderNode[];
+}
+
+interface Folder extends FolderNode {
+    children?: FolderNode[];
+}
+/* ------------------------------------------------------------------ */
+/* Reusable view-only styles - light, non-editable, form-consistent    */
+/* ------------------------------------------------------------------ */
+const viewOnlyBackground = "#fafafa";
+const viewOnlyTextColor = "#323130";
+const viewOnlyBorderColor = "#d1d1d1";
+
+const viewOnlyTextFieldStyles: Partial<ITextFieldStyles> = {
+    root: { width: "100%" },
+    fieldGroup: {
+        backgroundColor: viewOnlyBackground,
+        borderColor: viewOnlyBorderColor,
+        borderRadius: 4,
+        selectors: {
+            ":hover": { borderColor: viewOnlyBorderColor },
+            "&.is-focused::after": { border: `1px solid ${viewOnlyBorderColor}` },
+        },
+    },
+    field: {
+        backgroundColor: viewOnlyBackground,
+        color: viewOnlyTextColor,
+        fontWeight: 400,
+    },
+    subComponentStyles: {
+        label: { root: { color: viewOnlyTextColor, fontWeight: 600 } },
+    },
+};
+
+const viewOnlyDropdownStyles: Partial<IDropdownStyles> = {
+    root: { width: "100%" },
+    label: { color: viewOnlyTextColor, fontWeight: 600 },
+    title: {
+        backgroundColor: viewOnlyBackground,
+        borderColor: viewOnlyBorderColor,
+        color: viewOnlyTextColor,
+        height: 32,
+        lineHeight: 30,
+        fontSize: 14,
+        borderRadius: 4,
+        selectors: {
+            ":hover": { borderColor: viewOnlyBorderColor },
+        },
+    },
+    caretDownWrapper: { lineHeight: 30 },
+    caretDown: { color: "#605e5c", fontSize: 14 },
+};
+
+const viewOnlyPeoplePickerStyles: Partial<IBasePickerStyles> = {
+    root: { width: "100%" },
+    text: {
+        backgroundColor: viewOnlyBackground,
+        borderColor: viewOnlyBorderColor,
+        borderRadius: 4,
+        selectors: {
+            ":hover": { borderColor: viewOnlyBorderColor },
+        },
+    },
+    itemsWrapper: { backgroundColor: viewOnlyBackground },
+    input: { backgroundColor: viewOnlyBackground, color: viewOnlyTextColor },
+};
+
+const viewOnlyToggleStyles = (props: IToggleStyleProps): IToggleStyles => ({
+    root: { marginBottom: 0 },
+    label: { color: viewOnlyTextColor, fontWeight: 600 },
+    container: { marginTop: 4 },
+    pill: {
+        backgroundColor: props.checked ? "#0078d4" : "#f3f2f1",
+        borderColor: viewOnlyBorderColor,
+    },
+    thumb: { backgroundColor: "#ffffff", borderColor: viewOnlyBorderColor },
+    text: { color: viewOnlyTextColor },
+});
+
+const formatDateValue = (value: any): string => {
+    if (!value) return "";
+    try {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return "";
+        return format(date, "dd/MM/yyyy");
+    } catch {
+        return "";
+    }
+};
+
+const normalizeMultiValues = (value: any): string[] => {
+    if (value == null || value === "") return [];
+    if (Array.isArray(value)) return value.map((v: any) => String(v));
+    const text = String(value);
+    if (text.indexOf(";#") > -1) return text.split(";#").filter((v: string) => v !== "");
+    return [text];
+};
+
+/**
+ * Renders a dynamic metadata field of the document View panel as a read-only
+ * Fluent UI control (matching the Create/Edit form layout) based on its column
+ * type: Text, Choice (Dropdown/Radio/Multiple Select), Date and Time, Person or
+ * Group, Yes/No and Multi-line text.
+ */
+const renderViewOnlyMetaField = (
+    el: any,
+    filterObj: any,
+    item: any,
+    usersById: Map<number, any>,
+    choiceOptionsMap: { [key: string]: IDropdownOption[] },
+    peoplePickerContext: IPeoplePickerContext
+): React.ReactElement | null => {
+    if (!filterObj) return null;
+
+    const columnType = filterObj.ColumnType || el.ColumnType || "Single line of Text";
+    const allFields = item?.ListItemAllFields || {};
+    const hasValue = allFields.hasOwnProperty(el.InternalTitleName);
+    const raw = hasValue ? allFields[el.InternalTitleName] : undefined;
+    const fieldTitle = el.Title || filterObj.Title || "";
+    const fieldKey = el.Id ?? el.InternalTitleName ?? "meta-field";
+
+    const buildOptions = (currentValues: string[]): IDropdownOption[] => {
+        const fetched = choiceOptionsMap[el.InternalTitleName];
+        if (fetched && fetched.length > 0) return fetched;
+        if (el.IsStaticValue || filterObj.IsStaticValue) {
+            const staticData = el.StaticDataObject || filterObj.StaticDataObject || "";
+            return staticData
+                .split(";")
+                .filter((v: string) => v !== "")
+                .map((v: string) => ({ key: v, text: v }));
+        }
+        if (currentValues.length > 0) {
+            return currentValues.map((v: string) => ({ key: v, text: v }));
+        }
+        return [{ key: "", text: "" }];
+    };
+
+    let control: React.ReactElement;
+
+    switch (columnType) {
+        case "Date and Time": {
+            control = (
+                <TextField
+                    label={fieldTitle}
+                    readOnly
+                    value={formatDateValue(raw)}
+                    styles={viewOnlyTextFieldStyles}
+                />
+            );
+            break;
+        }
+        case "Person or Group": {
+            const person = raw && typeof raw === "object" ? raw : null;
+            const personId = person?.Id ?? (typeof raw === "number" ? raw : null);
+            const siteUser = personId != null ? usersById.get(Number(personId)) : undefined;
+            const personEmail = siteUser?.Email || person?.EMail || person?.LoginName || "";
+            control = personEmail ? (
+                <PeoplePicker
+                    titleText={fieldTitle}
+                    context={peoplePickerContext}
+                    personSelectionLimit={20}
+                    showtooltip={false}
+                    showHiddenInUI={false}
+                    principalTypes={[PrincipalType.User]}
+                    defaultSelectedUsers={[personEmail]}
+                    disabled
+                    styles={viewOnlyPeoplePickerStyles}
+                />
+            ) : (
+                <TextField
+                    label={fieldTitle}
+                    readOnly
+                    value={person?.Title || siteUser?.Title || ""}
+                    styles={viewOnlyTextFieldStyles}
+                />
+            );
+            break;
+        }
+        case "Dropdown":
+        case "Radio": {
+            const singleValue = raw == null ? "" : String(raw);
+            control = (
+                <Dropdown
+                    label={fieldTitle}
+                    options={buildOptions([singleValue])}
+                    selectedKey={singleValue}
+                    disabled
+                    styles={viewOnlyDropdownStyles}
+                />
+            );
+            break;
+        }
+        case "Multiple Select": {
+            const multiValues = normalizeMultiValues(raw);
+            control = (
+                <Dropdown
+                    label={fieldTitle}
+                    multiSelect
+                    options={buildOptions(multiValues)}
+                    selectedKeys={multiValues}
+                    disabled
+                    styles={viewOnlyDropdownStyles}
+                />
+            );
+            break;
+        }
+        case "Yes/No": {
+            const checked = raw === true || raw === 1 || raw === "Yes" || raw === "true" || raw === "1";
+            control = (
+                <Toggle
+                    label={fieldTitle}
+                    checked={checked}
+                    disabled
+                    styles={viewOnlyToggleStyles}
+                />
+            );
+            break;
+        }
+        case "Multiple lines of Text": {
+            control = (
+                <TextField
+                    label={fieldTitle}
+                    multiline
+                    readOnly
+                    value={raw == null ? "" : String(raw)}
+                    styles={viewOnlyTextFieldStyles}
+                />
+            );
+            break;
+        }
+        default: {
+            control = (
+                <TextField
+                    label={fieldTitle}
+                    readOnly
+                    value={raw == null ? "" : String(raw)}
+                    styles={viewOnlyTextFieldStyles}
+                />
+            );
+            break;
+        }
+    }
+
+    return (
+        <div className="col-md-6" key={fieldKey}>
+            {control}
+        </div>
+    );
+};
 const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const SiteURL = context.pageContext.web.absoluteUrl;
     const UserID = context.pageContext.legacyPageContext.userId;
     const UserEmailID = context.pageContext.user.email;
     const portalUrl = new URL(context.pageContext.web.absoluteUrl).origin;
+    const peoplePickerContext: IPeoplePickerContext = {
+        absoluteUrl: SiteURL,
+        msGraphClientFactory: context.msGraphClientFactory as any,
+        spHttpClient: context.spHttpClient as any,
+    };
     const DisplayLabel: ILabel = JSON.parse(localStorage.getItem('DisplayLabel') || '{}');
     const { workspaceId } = useParams<{ workspaceId: string; }>();
     const navigate = useNavigate();
-    const [selectedFolder, setSelectedFolder] = useState<any | null>(null);
+    const [selectedFolder, setSelectedFolder] = useState<SelectedFolder | null>(null);
     const [folders, setFolders] = useState<any>([]);
     const [tileData, setTileData] = useState<any | null>(null);
     const [files, setFiles] = useState<any[]>([]);
@@ -125,7 +392,10 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [versionsPanelUrl, setVersionsPanelUrl] = useState("");
     const [isVersionsOverlayVisible, setIsVersionsOverlayVisible] = useState(false);
     const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
-    const selectedFolderRef = useRef<any | null>(null);
+    const selectedFolderRef = useRef<SelectedFolder | null>(null);
+    const folderSelectionRequestRef = useRef(0);
+    const [isFolderMetadataLoading, setIsFolderMetadataLoading] = useState(false);
+    const [folderMetadataError, setFolderMetadataError] = useState<string | null>(null);
     const [popupType, setPopupType] = useState<"success" | "warning" | "insert" | "checkin" | "checkout" | "approve" | "reject" | "delete" | "update" | "restore" | "grant" | "remove">("success");
 
     
@@ -211,6 +481,51 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         return null;
     };
+
+    /**
+     * Commits a folder selection only after its backing list item has been
+     * loaded. The request id prevents a slower earlier click from replacing a
+     * more recent selection.
+     */
+    const selectFolderWithMetadata = useCallback(async (folder: FolderNode): Promise<{ folder: SelectedFolder; requestId: number; } | null> => {
+        const requestId = ++folderSelectionRequestRef.current;
+        setIsFolderMetadataLoading(true);
+        setFolderMetadataError(null);
+
+        try {
+            const sp = spfi().using(SPFx(context));
+            const fieldsData = await sp.web
+                .getFolderByServerRelativePath(folder.path)
+                .listItemAllFields() as FolderMetadata;
+
+            if (!fieldsData || typeof fieldsData !== "object" || Array.isArray(fieldsData)) {
+                throw new Error("SharePoint returned invalid folder metadata.");
+            }
+
+            // A newer selection has started while this request was in flight.
+            if (requestId !== folderSelectionRequestRef.current) return null;
+
+            const enrichedFolder: SelectedFolder = {
+                ...folder,
+                ...fieldsData,
+                children: folder.children || []
+            };
+
+            selectedFolderRef.current = enrichedFolder;
+            setSelectedFolder(enrichedFolder);
+            return { folder: enrichedFolder, requestId };
+        } catch (error) {
+            if (requestId === folderSelectionRequestRef.current) {
+                console.error("Unable to load selected folder metadata:", error);
+                setFolderMetadataError("Unable to load the selected folder's metadata. Please try again.");
+            }
+            return null;
+        } finally {
+            if (requestId === folderSelectionRequestRef.current) {
+                setIsFolderMetadataLoading(false);
+            }
+        }
+    }, [context]);
 
     // const collectExpandedFolderIds = (nodes: any[], targetPath?: string, parents: string[] = []): string[] => {
     //     if (!targetPath) return [];
@@ -314,9 +629,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const refreshCurrentFolder = async () => {
         const folderToRefresh = selectedFolderRef.current || selectedFolder;
         if (!folderToRefresh || !tileData?.LibraryName) return;
+        const selectionRequestId = folderSelectionRequestRef.current;
 
         // Force a re-fetch of the selected folder's children
         const childFolders = await getChildFolders(context, folderToRefresh.path);
+        if (selectionRequestId !== folderSelectionRequestRef.current) return;
 
         const updatedNodeProps = {
             children: childFolders,
@@ -329,11 +646,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         updateFolderNodeState(folderToRefresh.path, updatedNodeProps);
 
         // Keep the selection pointing to the refreshed folder object
-        selectedFolderRef.current = folderToRefresh;
-        setSelectedFolder(folderToRefresh);
+        const refreshedFolder: SelectedFolder = {
+            ...folderToRefresh,
+            ...updatedNodeProps
+        };
+        selectedFolderRef.current = refreshedFolder;
+        setSelectedFolder(refreshedFolder);
 
         if (childFolders.length === 0) {
-            await getDocument(folderToRefresh);
+            await getDocument(folderToRefresh, selectionRequestId);
         }
     };
 
@@ -345,7 +666,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         const rootChildFolders = await getChildFolders(context, rootPath);
 
         const rootFolderObj = {
-            id: 0,
+            id: "0",
             name: tileData?.LibraryName,
             path: rootPath,
             children: rootChildFolders,
@@ -363,11 +684,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         setFolders(nextFolders);
         expandParentFolders(rootFolderObj);
-        selectedFolderRef.current = preservedFolder;
-        setSelectedFolder(preservedFolder);
-
-        if (preservedFolder.children.length === 0) {
-            await getDocument(preservedFolder);
+        const selection = await selectFolderWithMetadata(preservedFolder);
+        if (selection?.folder.children.length === 0) {
+            await getDocument(selection.folder, selection.requestId);
         }
     };
 
@@ -394,20 +713,26 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     };
 
     const handleFolderSelect = async (folder: FolderNode) => {
-        selectedFolderRef.current = folder;
-        setSelectedFolder(folder);
+        const selection = await selectFolderWithMetadata(folder);
+        if (!selection) return;
+
+        const { folder: selectedFolderWithMetadata, requestId } = selection;
 
         setTables(""); // <-- Reset from Archive/Recycle to Folder view
-        fetchButtonsAndPermissions(folder.path);
-        expandParentFolders(folder);
+        expandParentFolders(selectedFolderWithMetadata);
 
-        let children = folder.children || [];
-        if (!folder.isLoaded) {
-            children = await loadChildFolders(folder);
+        let children = selectedFolderWithMetadata.children || [];
+        if (!selectedFolderWithMetadata.isLoaded) {
+            children = await loadChildFolders(selectedFolderWithMetadata);
         }
 
+        // Do not let an earlier selection update documents after a later click.
+        if (requestId !== folderSelectionRequestRef.current) return;
+
         if (children.length === 0) {
-            await getDocument(folder);
+            await getDocument(selectedFolderWithMetadata, requestId);
+        } else {
+            setFiles([]);
         }
     };
 
@@ -422,16 +747,49 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         setArchiveData(data.value || []);
     };
 
+    /**
+     * Resolves the full folder metadata (listItemAllFields) BEFORE opening the
+     * ProjectEntryForm so bindFormData() can bind every field. The sidebar tree
+     * node alone only carries id/name/path/children, so metadata-bound inputs
+     * would otherwise render empty.
+     */
+    const openFolderEntryForm = async (folder: FolderNode, formType: string) => {
+        try {
+            let enrichedFolder: any = folder;
+
+            const selected = selectedFolderRef.current;
+            if (selected?.path === folder.path) {
+                // Already enriched (the currently selected folder) — reuse it.
+                enrichedFolder = { ...folder, ...selected };
+            } else {
+                const sp = spfi().using(SPFx(context));
+                const fieldsData = await sp.web
+                    .getFolderByServerRelativePath(folder.path)
+                    .listItemAllFields();
+                enrichedFolder = { ...folder, ...fieldsData };
+            }
+
+            setProjectUpdateData(enrichedFolder);
+        } catch (error) {
+            console.error("Unable to load folder metadata for the entry form:", error);
+            // Fall back to the tree node so the form still opens with the folder name.
+            setProjectUpdateData(folder);
+        } finally {
+            setFormType(formType);
+            setIsCreateProjectPopupOpen(true);   // open only AFTER data is set
+        }
+    };
+
     const handleFolderAction = (action: string, folder: FolderNode) => {
         console.log('Folder action:', action, folder.name);
 
         // const folderPath = selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "");
         switch (action) {
             case "FView":
-                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("ViewForm");
+                void openFolderEntryForm(folder, "ViewForm");
                 break;
             case "FEdit":
-                setProjectUpdateData(folder); setIsCreateProjectPopupOpen(true); setFormType("EditForm");
+                void openFolderEntryForm(folder, "EditForm");
                 break;
             case "AdvancePermission":
                 setItemId(Number(folder.id)); setIsPanelOpen(true);
@@ -443,25 +801,26 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
-    const getRestrictedUserData = async () => {
-        if (!selectedFolder?.path) return;
+    const getRestrictedUserData = async (folderPath: string) => {
 
         let View: any = "viewListItems";
         let Edit: any = "editListItems";
 
         const canView = await hasFolderPermission(
             context,
-            selectedFolder.path,
+            folderPath,
             View
         );
 
         const canEdit = await hasFolderPermission(
             context,
-            selectedFolder.path,
+            folderPath,
             Edit
         );
 
         // Restricted View Logic
+        if (selectedFolderRef.current?.path !== folderPath) return;
+
         if (canView === true && canEdit === false) {
             setIsRestrictedView(true);
         } else {
@@ -907,61 +1266,97 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     "";
                 let jsonData = JSON.parse(libraryData.value[0].DynamicControl);
                 jsonData = jsonData.filter((ele: any) => ele.IsActiveControl);
-                //setPanelSize(PanelType.large);
-                const htm = <>
-                    <div className="row">
-                        <div className="col-md-12">
-                            <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
-                        </div>
-                    </div>
-                    <div className="meta-panel-body">
-                        <div className="meta-panel-section">
-                            <div className="meta-panel-fields">
-                                <div className="meta-panel-row meta-panel-row-2col">
-                                    <div className="meta-panel-field">
-                                        <label className="meta-panel-label">{DisplayLabel.TileName}</label>
-                                        <span className="meta-panel-plain-value" data-testid="text-meta-tile">{tileData.TileName}</span>
-                                    </div>
-                                    <div className="meta-panel-field">
-                                        <label className="meta-panel-label">{DisplayLabel.FolderName}</label>
-                                        <div className="meta-panel-plain-value" data-testid="text-meta-name">{selectedFolderName}</div>
-                                    </div>
 
-                                    {item.ListItemAllFields.IsSuffixRequired ? <>
-                                        <div className="meta-panel-field">
-                                            <label className="meta-panel-label">{DisplayLabel.DocumentSuffix}</label>
-                                            <span className="meta-panel-plain-value" data-testid="text-meta-tile">{item.ListItemAllFields.DocumentSuffix}</span>
-                                        </div>
-                                        {item.ListItemAllFields.DocumentSuffix === "Other" && (
-                                            <div className="meta-panel-field">
-                                                <label className="meta-panel-label">{DisplayLabel.OtherSuffixName}</label>
-                                                <div className="meta-panel-plain-value" data-testid="text-meta-name">{item.ListItemAllFields.OtherSuffix}</div>
-                                            </div>)}
+                // Resolve site users once so "Person or Group" fields can bind the
+                // PeoplePicker by email (listItemAllFields only returns Id/Title).
+                let usersById = new Map<number, any>();
+                try {
+                    const siteUsersRes = await getListData(`${SiteURL}/_api/web/siteusers?$filter=PrincipalType eq 1`, context);
+                    usersById = new Map((siteUsersRes?.value || []).map((u: any) => [Number(u.Id), u]));
+                } catch (error) {
+                    console.warn("Unable to load site users for PeoplePicker:", error);
+                }
 
-                                    </> : <></>}
-                                    {
-                                        jsonData.map((el: any, index: number) => {
-                                            const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
-                                            if (!filterObj) return null;
-                                            return <div className="meta-panel-field">
-                                                <label className="meta-panel-label">{el.Title}</label>
-                                                {filterObj.ColumnType === "Date and Time" ?
+                // Pre-fetch options for list-backed choice columns (same logic as the Create/Edit form).
+                const choiceOptionsMap: { [key: string]: IDropdownOption[] } = {};
+                const listBasedChoiceFields = jsonData.filter(
+                    (el: any) =>
+                        (el.ColumnType === "Dropdown" || el.ColumnType === "Multiple Select" || el.ColumnType === "Radio") &&
+                        !el.IsStaticValue &&
+                        el.InternalListName
+                );
+                await Promise.all(
+                    listBasedChoiceFields.map(async (el: any) => {
+                        try {
+                            const res = await getListData(
+                                `${SiteURL}/_api/web/lists/getbytitle('${el.InternalListName}')/items?$top=5000&$filter=Active eq 1&$orderby=${el.DisplayValue} asc`,
+                                context
+                            );
+                            choiceOptionsMap[el.InternalTitleName] = (res?.value || []).map((ele: any) => ({
+                                key: String(ele[el.DisplayValue]),
+                                text: ele[el.DisplayValue],
+                            }));
+                        } catch (error) {
+                            console.warn(`Unable to load options for "${el.Title}":`, error);
+                        }
+                    })
+                );
 
-                                                    <label className="meta-panel-plain-value">{item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? format(
-                                                        new Date(item.ListItemAllFields[el.InternalTitleName]),
-                                                        "dd/MM/yyyy"
-                                                    ) : ""}</label>
-                                                    :
-                                                    <label className="meta-panel-plain-value">{item.ListItemAllFields.hasOwnProperty(el.InternalTitleName) ? (el.ColumnType === "Person or Group" ? item.ListItemAllFields[el.InternalTitleName].Title : item.ListItemAllFields[el.InternalTitleName]) : ""}</label>}
-                                            </div>;
-
-                                        })
-                                    }
-                                </div>
+                const htm = (
+                    <>
+                        <div className="row">
+                            <div className="col-md-12">
+                                <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
                             </div>
                         </div>
-                    </div>
-                </>;
+                        <div className="grid-2">
+                            <div className="col-md-6" data-testid="text-meta-tile">
+                                <TextField
+                                    label={DisplayLabel.TileName}
+                                    readOnly
+                                    value={tileData.TileName}
+                                    styles={viewOnlyTextFieldStyles}
+                                />
+                            </div>
+                            <div className="col-md-6" data-testid="text-meta-name">
+                                <TextField
+                                    label={DisplayLabel.FolderName}
+                                    readOnly
+                                    value={selectedFolderName}
+                                    styles={viewOnlyTextFieldStyles}
+                                />
+                            </div>
+
+                            {item.ListItemAllFields.IsSuffixRequired ? (
+                                <>
+                                    <div className="col-md-6" data-testid="text-meta-tile">
+                                        <TextField
+                                            label={DisplayLabel.DocumentSuffix}
+                                            readOnly
+                                            value={item.ListItemAllFields.DocumentSuffix || ""}
+                                            styles={viewOnlyTextFieldStyles}
+                                        />
+                                    </div>
+                                    {item.ListItemAllFields.DocumentSuffix === "Other" && (
+                                        <div className="col-md-6" data-testid="text-meta-name">
+                                            <TextField
+                                                label={DisplayLabel.OtherSuffixName}
+                                                readOnly
+                                                value={item.ListItemAllFields.OtherSuffix || ""}
+                                                styles={viewOnlyTextFieldStyles}
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            ) : null}
+
+                            {jsonData.map((el: any) => {
+                                const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
+                                return renderViewOnlyMetaField(el, filterObj, item, usersById, choiceOptionsMap, peoplePickerContext);
+                            })}
+                        </div>
+                    </>
+                );
                 setPanelForm(htm);
                 setPanelTitle(DisplayLabel.View);
                 setIsOpenCommonPanel(true);
@@ -989,9 +1384,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
     useEffect(() => {
         if (selectedFolder) {
-            getDocument();
-            hasRequiredPermissions();
-            getRestrictedUserData();
+            hasRequiredPermissions(selectedFolder.path);
+            void getRestrictedUserData(selectedFolder.path);
         }
     }, [selectedFolder]);
 
@@ -1033,7 +1427,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //     setFiles(files);
     // };
 
-    const getDocument = async (folderNode?: FolderNode | null) => {
+    const getDocument = async (folderNode?: FolderNode | null, selectionRequestId?: number) => {
         const folderToLoad = folderNode || selectedFolderRef.current || selectedFolder;
         if (!folderToLoad) return [];
 
@@ -1064,7 +1458,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             return true;
         });
 
-        console.log("Files:", files);
+        if (selectionRequestId !== undefined && selectionRequestId !== folderSelectionRequestRef.current) {
+            return [];
+        }
 
         setFiles(files);
     };
@@ -1633,8 +2029,12 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     });
 
     const projectCreation = useCallback(() => { setIsCreateProjectPopupOpen(true); setFormType("EntryForm"); setProjectUpdateData({}); }, []);
-    const hasRequiredPermissions = () => {
-        checkPermissions(context, selectedFolder?.path).then((permission: boolean) => setHasPermission(permission));
+    const hasRequiredPermissions = (folderPath: string) => {
+        checkPermissions(context, folderPath).then((permission: boolean) => {
+            if (selectedFolderRef.current?.path === folderPath) {
+                setHasPermission(permission);
+            }
+        });
     };
     const bindTable = () => {
 
@@ -1735,6 +2135,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 />
 
                 <div className="workspace-content">
+                    {isFolderMetadataLoading && (
+                        <div role="status" aria-live="polite" className="workspace-folder-metadata-loading">
+                            <Spinner size={SpinnerSize.small} label="Loading folder details..." />
+                        </div>
+                    )}
+                    {folderMetadataError && (
+                        <div role="alert" className="workspace-folder-metadata-error">
+                            {folderMetadataError}
+                        </div>
+                    )}
                     {selectedFolder && folderPathBread.length > 0 && (
                         <div className="workspace-content-header">
                             <div className="workspace-folder-breadcrumb" data-testid="nav-folder-breadcrumb">
@@ -2028,13 +2438,13 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     admin={admin}
                     FormType={formType}
                     folderObject={projectUpdateData}
-                    folderPath={selectedFolder?.path}
+                    folderPath={selectedFolder?.path || ""}
                     ChildFolderRoleInheritance={tileData?.AllowChildInheritance}
                     onFolderCreated={refreshCurrentFolder}   // NEW
                 />
 
             }
-            <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "")} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
+            <UploadFiles context={context} isOpenUploadPanel={isOpenUploadPanel} folderName={selectedFolder?.name || ""} folderPath={selectedFolder?.path?.replace(context.pageContext.web.serverRelativeUrl, "")?.replace(/^\/+/, "") || ""} dismissUploadPanel={dismissUploadPanel} libName={tileData?.LibraryName} files={files} folderObject={selectedFolder} LibraryDetails={tileData} filetype={fileType} FileData={files} />
 
             <ConfirmationDialog hideDialog={hideDialog} closeDialog={closeDialog} handleConfirm={handleConfirm} msg={message} />
             <ConfirmationDialog hideDialog={hideDialogCheckOut} closeDialog={closeDialogCheckOut} handleConfirm={handleConfirmCheckOut} msg={message} />
