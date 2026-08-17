@@ -221,7 +221,8 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
       CheckoutSuccess: getValue("CheckoutSuccess", data, Language),
       CheckInSuccess: getValue("CheckInSuccess", data, Language),
       Role: getValue("Role", data, Language),
-      ProjectName: getValue("ProjectName", data, Language)
+      ProjectName: getValue("ProjectName", data, Language),
+      AuthorName: getValue("AuthorName", data, Language)
     };
 
     // 

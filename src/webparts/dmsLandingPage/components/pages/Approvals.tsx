@@ -623,7 +623,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                   <Eye20Regular className="meta-panel-quick-icon" />
                   <span>View Document</span>
                 </button> */}
-                <button
+                {/* <button
                   className="meta-panel-quick-btn"
                   onClick={() => {
                     window.open(metadataDoc?.File?.ServerRelativeUrl + "?download=1");
@@ -632,8 +632,10 @@ export default function Approvals({ context }: IApprovalsProps) {
                 >
                   <ArrowDownload20Regular className="meta-panel-quick-icon" />
                   <span>Download</span>
-                </button>
+                </button> */}
               </div>
+
+              
             </div>
           );
         }}
@@ -680,6 +682,16 @@ export default function Approvals({ context }: IApprovalsProps) {
                     <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.FolderDocumentPath.split("/").pop() || ""}</div>
                   </div>
                 </div>
+                <div className="meta-panel-row meta-panel-row-2col">
+                  <div className="meta-panel-field">
+                    <label className="meta-panel-label">{DisplayLabel.ReferenceNo}</label>
+                    <span className="meta-panel-plain-value" data-testid="text-meta-tile">{metadataDoc?.ReferenceNo}</span>
+                  </div>
+                  <div className="meta-panel-field">
+                    <label className="meta-panel-label">{DisplayLabel.AuthorName}</label>
+                    <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.Author.Title || ""}</div>
+                  </div>
+                </div>
 
                 {/* <div className="meta-panel-field">
                   <label className="meta-panel-label">{DisplayLabel.IsSuffixRequired}</label>
@@ -714,16 +726,12 @@ export default function Approvals({ context }: IApprovalsProps) {
               </div>
             </div>
 
-            <div className="meta-panel-section">
+            {/* <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Workflow</h3>
               <div className="meta-panel-fields">
                 <div className="meta-panel-field">
                   <label className="meta-panel-label">Is Approval flow required?</label>
-                  {/* <Toggle
-                    checked={metadataDoc.metadata.isApprovalFlowRequired}
-                    disabled
-                    data-testid="toggle-meta-approval-flow"
-                  /> */}
+               
                   <Toggle
                     checked={metadataDoc.AllowApprover}
                     disabled
@@ -731,7 +739,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
       </Panel>

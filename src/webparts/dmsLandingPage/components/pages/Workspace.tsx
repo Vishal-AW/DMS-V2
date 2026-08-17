@@ -1852,14 +1852,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const columns = React.useMemo(() => {
         return [
             {
-                headerName: DisplayLabel.SrNo,
+                headerName: DisplayLabel.SrNo || "Sr.No",
                 filter: false,
                 resizable: false,
                 maxWidth: 80,
                 valueGetter: (params: any) => params.node.rowIndex + 1
             },
             {
-                headerName: DisplayLabel.FileName,
+                headerName: DisplayLabel.FileName || "File Name",
                 filter: true,
                 sortable: true,
                 field: "Name",
@@ -1868,7 +1868,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 cellRenderer: (item: any) => renderDocName(item.data)
             },
             {
-                headerName: DisplayLabel.ReferenceNo,
+                headerName: DisplayLabel.ReferenceNo || "Reference No",
                 filter: true,
                 sortable: true,
                 field: "ListItemAllFields.ReferenceNo",
@@ -1876,7 +1876,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 minWidth: 120,
             },
             {
-                headerName: DisplayLabel.Versions,
+                headerName: DisplayLabel.Versions || "Versions",
                 filter: true,
                 sortable: true,
                 field: "ListItemAllFields.Level",
@@ -1887,7 +1887,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     </span>
             },
             {
-                headerName: DisplayLabel.Status,
+                headerName: DisplayLabel.Status || "Status",
                 filter: true,
                 sortable: true,
                 field: "ListItemAllFields.DisplayStatus",
@@ -1903,7 +1903,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 }
             },
             {
-                headerName: DisplayLabel.Action,
+                headerName: DisplayLabel.Action || "Action",
                 filter: true,
                 sortable: true,
                 minWidth: 100,

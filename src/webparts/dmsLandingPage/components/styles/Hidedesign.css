@@ -1071,3 +1071,9 @@ aside {
 .ps-submenu-root .css-1tqrhto>.ps-menu-button {
     padding-left: 0 !important;
 }
+
+
+#spTopPlaceholder {
+    display:none !important;
+}
+
