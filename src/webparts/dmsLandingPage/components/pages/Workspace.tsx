@@ -178,6 +178,152 @@ const normalizeMultiValues = (value: any): string[] => {
  * type: Text, Choice (Dropdown/Radio/Multiple Select), Date and Time, Person or
  * Group, Yes/No and Multi-line text.
  */
+// const renderViewOnlyMetaField = (
+//     el: any,
+//     filterObj: any,
+//     item: any,
+//     usersById: Map<number, any>,
+//     choiceOptionsMap: { [key: string]: IDropdownOption[] },
+//     peoplePickerContext: IPeoplePickerContext
+// ): React.ReactElement | null => {
+//     if (!filterObj) return null;
+
+//     const columnType = filterObj.ColumnType || el.ColumnType || "Single line of Text";
+//     const allFields = item?.ListItemAllFields || {};
+//     const hasValue = allFields.hasOwnProperty(el.InternalTitleName);
+//     const raw = hasValue ? allFields[el.InternalTitleName] : undefined;
+//     const fieldTitle = el.Title || filterObj.Title || "";
+//     const fieldKey = el.Id ?? el.InternalTitleName ?? "meta-field";
+
+//     const buildOptions = (currentValues: string[]): IDropdownOption[] => {
+//         const fetched = choiceOptionsMap[el.InternalTitleName];
+//         if (fetched && fetched.length > 0) return fetched;
+//         if (el.IsStaticValue || filterObj.IsStaticValue) {
+//             const staticData = el.StaticDataObject || filterObj.StaticDataObject || "";
+//             return staticData
+//                 .split(";")
+//                 .filter((v: string) => v !== "")
+//                 .map((v: string) => ({ key: v, text: v }));
+//         }
+//         if (currentValues.length > 0) {
+//             return currentValues.map((v: string) => ({ key: v, text: v }));
+//         }
+//         return [{ key: "", text: "" }];
+//     };
+
+//     let control: React.ReactElement;
+
+//     switch (columnType) {
+//         case "Date and Time": {
+//             control = (
+//                 <TextField
+//                     label={fieldTitle}
+//                     readOnly
+//                     value={formatDateValue(raw)}
+//                     styles={viewOnlyTextFieldStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         case "Person or Group": {
+//             const person = raw && typeof raw === "object" ? raw : null;
+//             const personId = person?.Id ?? (typeof raw === "number" ? raw : null);
+//             const siteUser = personId != null ? usersById.get(Number(personId)) : undefined;
+//             const personEmail = siteUser?.Email || person?.EMail || person?.LoginName || "";
+//             control = personEmail ? (
+//                 <PeoplePicker
+//                     titleText={fieldTitle}
+//                     context={peoplePickerContext}
+//                     personSelectionLimit={20}
+//                     showtooltip={false}
+//                     showHiddenInUI={false}
+//                     principalTypes={[PrincipalType.User]}
+//                     defaultSelectedUsers={[personEmail]}
+//                     disabled
+//                     styles={viewOnlyPeoplePickerStyles}
+//                 />
+//             ) : (
+//                 <TextField
+//                     label={fieldTitle}
+//                     readOnly
+//                     value={person?.Title || siteUser?.Title || ""}
+//                     styles={viewOnlyTextFieldStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         case "Dropdown":
+//         case "Radio": {
+//             const singleValue = raw == null ? "" : String(raw);
+//             control = (
+//                 <Dropdown
+//                     label={fieldTitle}
+//                     options={buildOptions([singleValue])}
+//                     selectedKey={singleValue}
+//                     disabled
+//                     styles={viewOnlyDropdownStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         case "Multiple Select": {
+//             const multiValues = normalizeMultiValues(raw);
+//             control = (
+//                 <Dropdown
+//                     label={fieldTitle}
+//                     multiSelect
+//                     options={buildOptions(multiValues)}
+//                     selectedKeys={multiValues}
+//                     disabled
+//                     styles={viewOnlyDropdownStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         case "Yes/No": {
+//             const checked = raw === true || raw === 1 || raw === "Yes" || raw === "true" || raw === "1";
+//             control = (
+//                 <Toggle
+//                     label={fieldTitle}
+//                     checked={checked}
+//                     disabled
+//                     styles={viewOnlyToggleStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         case "Multiple lines of Text": {
+//             control = (
+//                 <TextField
+//                     label={fieldTitle}
+//                     multiline
+//                     readOnly
+//                     value={raw == null ? "" : String(raw)}
+//                     styles={viewOnlyTextFieldStyles}
+//                 />
+//             );
+//             break;
+//         }
+//         default: {
+//             control = (
+//                 <TextField
+//                     label={fieldTitle}
+//                     readOnly
+//                     value={raw == null ? "" : String(raw)}
+//                     styles={viewOnlyTextFieldStyles}
+//                 />
+//             );
+//             break;
+//         }
+//     }
+
+//     return (
+//         <div className="col-md-6" key={fieldKey}>
+//             {control}
+//         </div>
+//     );
+// };
+
 const renderViewOnlyMetaField = (
     el: any,
     filterObj: any,
@@ -211,118 +357,63 @@ const renderViewOnlyMetaField = (
         return [{ key: "", text: "" }];
     };
 
-    let control: React.ReactElement;
+    let displayValue: string;
 
     switch (columnType) {
         case "Date and Time": {
-            control = (
-                <TextField
-                    label={fieldTitle}
-                    readOnly
-                    value={formatDateValue(raw)}
-                    styles={viewOnlyTextFieldStyles}
-                />
-            );
+            // Guard against empty/null/undefined raw values so they don't
+            // fall through to new Date(null) -> 01/01/1970.
+            displayValue = raw ? formatDateValue(raw) : "";
             break;
         }
         case "Person or Group": {
             const person = raw && typeof raw === "object" ? raw : null;
             const personId = person?.Id ?? (typeof raw === "number" ? raw : null);
             const siteUser = personId != null ? usersById.get(Number(personId)) : undefined;
-            const personEmail = siteUser?.Email || person?.EMail || person?.LoginName || "";
-            control = personEmail ? (
-                <PeoplePicker
-                    titleText={fieldTitle}
-                    context={peoplePickerContext}
-                    personSelectionLimit={20}
-                    showtooltip={false}
-                    showHiddenInUI={false}
-                    principalTypes={[PrincipalType.User]}
-                    defaultSelectedUsers={[personEmail]}
-                    disabled
-                    styles={viewOnlyPeoplePickerStyles}
-                />
-            ) : (
-                <TextField
-                    label={fieldTitle}
-                    readOnly
-                    value={person?.Title || siteUser?.Title || ""}
-                    styles={viewOnlyTextFieldStyles}
-                />
-            );
+            displayValue = person?.Title || siteUser?.Title || "";
             break;
         }
         case "Dropdown":
         case "Radio": {
             const singleValue = raw == null ? "" : String(raw);
-            control = (
-                <Dropdown
-                    label={fieldTitle}
-                    options={buildOptions([singleValue])}
-                    selectedKey={singleValue}
-                    disabled
-                    styles={viewOnlyDropdownStyles}
-                />
-            );
+            const options = buildOptions([singleValue]);
+            const matched = options.find((o) => String(o.key) === singleValue);
+            displayValue = matched?.text || singleValue;
             break;
         }
         case "Multiple Select": {
             const multiValues = normalizeMultiValues(raw);
-            control = (
-                <Dropdown
-                    label={fieldTitle}
-                    multiSelect
-                    options={buildOptions(multiValues)}
-                    selectedKeys={multiValues}
-                    disabled
-                    styles={viewOnlyDropdownStyles}
-                />
-            );
+            const options = buildOptions(multiValues);
+            displayValue = multiValues
+                .map((v) => options.find((o) => String(o.key) === v)?.text || v)
+                .join(", ");
             break;
         }
         case "Yes/No": {
             const checked = raw === true || raw === 1 || raw === "Yes" || raw === "true" || raw === "1";
-            control = (
-                <Toggle
-                    label={fieldTitle}
-                    checked={checked}
-                    disabled
-                    styles={viewOnlyToggleStyles}
-                />
-            );
+            displayValue = checked ? "Yes" : "No";
             break;
         }
         case "Multiple lines of Text": {
-            control = (
-                <TextField
-                    label={fieldTitle}
-                    multiline
-                    readOnly
-                    value={raw == null ? "" : String(raw)}
-                    styles={viewOnlyTextFieldStyles}
-                />
-            );
+            displayValue = raw == null ? "" : String(raw);
             break;
         }
         default: {
-            control = (
-                <TextField
-                    label={fieldTitle}
-                    readOnly
-                    value={raw == null ? "" : String(raw)}
-                    styles={viewOnlyTextFieldStyles}
-                />
-            );
+            displayValue = raw == null ? "" : String(raw);
             break;
         }
     }
 
     return (
         <div className="col-md-6" key={fieldKey}>
-            {control}
+            <label className="view-only-label">{fieldTitle}</label>
+            <div className="view-only-value">{displayValue}</div>
         </div>
     );
 };
+
+
+
 const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const SiteURL = context.pageContext.web.absoluteUrl;
     const UserID = context.pageContext.legacyPageContext.userId;
@@ -1305,61 +1396,106 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     })
                 );
 
-                const htm = (
-                    <>
-                        <div className="row">
-                            <div className="col-md-12">
-                                <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
-                            </div>
-                        </div>
-                        <div className="grid-2">
-                            <div className="col-md-6" data-testid="text-meta-tile">
-                                <TextField
-                                    label={DisplayLabel.TileName}
-                                    readOnly
-                                    value={tileData.TileName}
-                                    styles={viewOnlyTextFieldStyles}
-                                />
-                            </div>
-                            <div className="col-md-6" data-testid="text-meta-name">
-                                <TextField
-                                    label={DisplayLabel.FolderName}
-                                    readOnly
-                                    value={selectedFolderName}
-                                    styles={viewOnlyTextFieldStyles}
-                                />
-                            </div>
+                // const htm = (
+                //     <>
+                //         <div className="row">
+                //             <div className="col-md-12">
+                //                 <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
+                //             </div>
+                //         </div>
+                //         <div className="grid-2">
+                //             <div className="col-md-6" data-testid="text-meta-tile">
+                //                 <TextField
+                //                     label={DisplayLabel.TileName}
+                //                     readOnly
+                //                     value={tileData.TileName}
+                //                     styles={viewOnlyTextFieldStyles}
+                //                 />
+                //             </div>
+                //             <div className="col-md-6" data-testid="text-meta-name">
+                //                 <TextField
+                //                     label={DisplayLabel.FolderName}
+                //                     readOnly
+                //                     value={selectedFolderName}
+                //                     styles={viewOnlyTextFieldStyles}
+                //                 />
+                //             </div>
 
-                            {item.ListItemAllFields.IsSuffixRequired ? (
-                                <>
-                                    <div className="col-md-6" data-testid="text-meta-tile">
-                                        <TextField
-                                            label={DisplayLabel.DocumentSuffix}
-                                            readOnly
-                                            value={item.ListItemAllFields.DocumentSuffix || ""}
-                                            styles={viewOnlyTextFieldStyles}
-                                        />
-                                    </div>
-                                    {item.ListItemAllFields.DocumentSuffix === "Other" && (
-                                        <div className="col-md-6" data-testid="text-meta-name">
-                                            <TextField
-                                                label={DisplayLabel.OtherSuffixName}
-                                                readOnly
-                                                value={item.ListItemAllFields.OtherSuffix || ""}
-                                                styles={viewOnlyTextFieldStyles}
-                                            />
+                //             {item.ListItemAllFields.IsSuffixRequired ? (
+                //                 <>
+                //                     <div className="col-md-6" data-testid="text-meta-tile">
+                //                         <TextField
+                //                             label={DisplayLabel.DocumentSuffix}
+                //                             readOnly
+                //                             value={item.ListItemAllFields.DocumentSuffix || ""}
+                //                             styles={viewOnlyTextFieldStyles}
+                //                         />
+                //                     </div>
+                //                     {item.ListItemAllFields.DocumentSuffix === "Other" && (
+                //                         <div className="col-md-6" data-testid="text-meta-name">
+                //                             <TextField
+                //                                 label={DisplayLabel.OtherSuffixName}
+                //                                 readOnly
+                //                                 value={item.ListItemAllFields.OtherSuffix || ""}
+                //                                 styles={viewOnlyTextFieldStyles}
+                //                             />
+                //                         </div>
+                //                     )}
+                //                 </>
+                //             ) : null}
+
+                //             {jsonData.map((el: any) => {
+                //                 const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
+                //                 return renderViewOnlyMetaField(el, filterObj, item, usersById, choiceOptionsMap, peoplePickerContext);
+                //             })}
+                //         </div>
+                //     </>
+                // );
+
+                    const htm = (
+                        <>
+                            <div className="row">
+                                <div className="col-md-12">
+                                    <label>{DisplayLabel.Path}: <b>{currentSelectedFolder?.path || ""}</b></label>
+                                </div>
+                            </div>
+                            <div className="grid-2">
+                                <div className="col-md-6" data-testid="text-meta-tile">
+                                    {/* <label className="view-only-label">{DisplayLabel.TileName}</label> */}
+                                    <label className="view-only-label" >{DisplayLabel.TileName}</label>
+                                    <div className="view-only-value">{tileData.TileName}</div>
+                                </div>
+                                <div className="col-md-6" data-testid="text-meta-name">
+                                   
+                                     <label className="view-only-label" >{DisplayLabel.FolderName}</label>
+                                    <div className="view-only-value">{selectedFolderName}</div>
+                                </div>
+
+                                {item.ListItemAllFields.IsSuffixRequired ? (
+                                    <>
+                                        <div className="col-md-6" data-testid="text-meta-tile">
+                                            {/* <label className="view-only-label">{DisplayLabel.DocumentSuffix}</label> */}
+                                            <label className="view-only-label" >{DisplayLabel.DocumentSuffix}</label>
+                                            <div className="view-only-value">{item.ListItemAllFields.DocumentSuffix || ""}</div>
                                         </div>
-                                    )}
-                                </>
-                            ) : null}
+                                        {item.ListItemAllFields.DocumentSuffix === "Other" && (
+                                            <div className="col-md-6" data-testid="text-meta-name">
+                                                {/* <label className="view-only-label">{DisplayLabel.OtherSuffixName}</label> */}
+                                                      <label className="view-only-label" >{DisplayLabel.OtherSuffixName}</label>
+                                                <div className="view-only-value">{item.ListItemAllFields.OtherSuffix || ""}</div>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : null}
 
-                            {jsonData.map((el: any) => {
-                                const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
-                                return renderViewOnlyMetaField(el, filterObj, item, usersById, choiceOptionsMap, peoplePickerContext);
-                            })}
-                        </div>
-                    </>
-                );
+                                {jsonData.map((el: any) => {
+                                    const filterObj = dataConfig?.value.find((ele: any) => ele.Id === el.Id);
+                                    return renderViewOnlyMetaField(el, filterObj, item, usersById, choiceOptionsMap, peoplePickerContext);
+                                })}
+                            </div>
+                        </>
+                    );
+
                 setPanelForm(htm);
                 setPanelTitle(DisplayLabel.View);
                 setIsOpenCommonPanel(true);

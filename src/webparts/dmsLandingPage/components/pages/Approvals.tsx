@@ -747,7 +747,7 @@ export default function Approvals({ context }: IApprovalsProps) {
               </div>
             </div>
 
-             <div className="meta-panel-section">
+               <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Document</h3>
               <div
                 className="meta-panel-doc-summary meta-panel-doc-summary-hover"
@@ -760,7 +760,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                   const docFileConfig = fileTypeConfig[docExt] || fileTypeConfig.other;
                   const { IconName: DocIcon, className: docIconClass } = docFileConfig;
                   return (
-                    <>
+                    <div className="meta-panel-doc-left">
                       <div className={`doc-icon-wrap ${docIconClass}`}>
                         <DocIcon className="doc-icon-svg" />
                       </div>
@@ -775,7 +775,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                             : metadataDoc?.OData__UIVersionString}
                         </span>
                       </div>
-                    </>
+                    </div>
                   );
                 })()}
                 <button
@@ -793,7 +793,6 @@ export default function Approvals({ context }: IApprovalsProps) {
                 </button>
               </div>
             </div>
-          
 
             {/* <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Workflow</h3>

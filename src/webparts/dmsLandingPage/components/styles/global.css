@@ -2752,3 +2752,24 @@ body {
   margin-left: -14px;
   margin-top: -14px;
 }
+
+.meta-panel-doc-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-only-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600; /* semi-bold, lighter than full bold */
+  color: #201f1e;
+  margin-bottom: 4px;
+}
+
+.view-only-value {
+  font-size: 14px;
+  color: #605e5c;
+  min-height: 20px;
+  padding: 2px 0;
+}
