@@ -498,6 +498,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 .getFolderByServerRelativePath(folder.path)
                 .listItemAllFields() as FolderMetadata;
 
+            // TEMP-DIAG: verify what listItemAllFields returns for the selected folder. Remove after confirming.
+            console.log("[DMS-TEMP] Folder Metadata:", fieldsData);
+
             if (!fieldsData || typeof fieldsData !== "object" || Array.isArray(fieldsData)) {
                 throw new Error("SharePoint returned invalid folder metadata.");
             }
@@ -1988,19 +1991,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const foldersColumn = React.useMemo(() => {
         return [
             {
-                headerName: DisplayLabel.SrNo,
+                headerName: DisplayLabel.SrNo || "Sr.No",
                 filter: false,
                 resizable: false,
-                maxWidth: 80,
+                maxWidth: 400,
                 valueGetter: (params: any) => params.node.rowIndex + 1
             },
             {
-                headerName: DisplayLabel.FileName,
+                headerName: DisplayLabel.FileName || "Folder Name",
                 filter: true,
                 sortable: true,
                 // field: "Name",
                 field: "name", // FIXED
-                maxWidth: 400,
+                maxWidth: 300,
                 minWidth: 400,
                 cellRenderer: (item: any) => <a href="javascript:void()" onClick={() => handleFolderSelect(item?.data)} style={{ color: "rgb(0, 158, 247)" }}>{item?.data?.name}</a>
             },
@@ -2010,7 +2013,28 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 resizable: false,
                 filter: "agDateColumnFilter",
                 maxWidth: 80,
-                valueGetter: (params: any) => format(params?.data?.Modified, "dd-MM-yyyy hh:mm a")
+                valueGetter: (params: any) => params?.data?.Modified ? format(params.data.Modified, "dd-MM-yyyy hh:mm a") : ""
+            },
+            // {
+            //     headerName: DisplayLabel.LastModifiedBy || "Modified By",
+            //     filter: true,
+            //     sortable: true,
+            //     field: "Editor.Title",
+            //     maxWidth: 180
+            // },
+            {
+                headerName: DisplayLabel.CreatedDate || "Created Date",
+                resizable: false,
+                filter: "agDateColumnFilter",
+                maxWidth: 180,
+                valueGetter: (params: any) => params?.data?.Created ? format(params.data.Created, "dd-MM-yyyy hh:mm a") : ""
+            },
+            {
+                headerName: DisplayLabel.CreatedBy || "Created By",
+                filter: true,
+                sortable: true,
+                maxWidth: 180,
+                valueGetter: (params: any) => params?.data?.Author?.Title || (typeof params?.data?.Author === "string" ? params.data.Author : "") || ""
             },
         ];
     }, []);

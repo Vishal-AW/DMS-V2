@@ -63,6 +63,10 @@ export interface ILabel {
     SearchData: string;
     Active: string;
     LastModified: string;
+    LastModifiedBy: string;
+    CreatedDate: string;
+    CreatedBy: string;
+
     Tiles: string;
     ThisFieldisRequired: string;
     Archive: string;
@@ -207,4 +211,5 @@ export interface ILabel {
     Role: string;
     ProjectName: string;
     AuthorName:string;
+ 
 }

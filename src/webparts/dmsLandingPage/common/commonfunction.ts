@@ -121,10 +121,10 @@ export const getChildFolders = async (
         const subfolders = await sp.web
             .getFolderByServerRelativePath(folderPath)
             .folders
-            .select("Name", "ServerRelativeUrl", "ItemCount", "ListItemAllFields/ID", "ListItemAllFields/Title")
+            .select("Name", "ServerRelativeUrl", "ItemCount", "ListItemAllFields/*")
             .expand("ListItemAllFields")();
 
-        return subfolders
+        const nodes = subfolders
             .filter((f: any) => f.Name && f.Name.toLowerCase() !== "forms" && !f.Name.startsWith("."))
             .map((f: any) => ({
                 id: f.ListItemAllFields?.ID ? String(f.ListItemAllFields.ID) : f.ServerRelativeUrl,
@@ -137,9 +137,69 @@ export const getChildFolders = async (
                 FileRef: f.ServerRelativeUrl,
                 FileDirRef: folderPath,
                 FSObjType: 1,
-                ItemCount: f.ItemCount
+                ItemCount: f.ItemCount,
+                Modified: f.ListItemAllFields?.Modified,
+                Created: f.ListItemAllFields?.Created,
+                Editor: f.ListItemAllFields?.Editor,
+                Author: f.ListItemAllFields?.Author
             }))
             .sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+        // SharePoint's ListItemAllFields projection on the /Folders endpoint does
+        // not always include the display names of the person fields (Author/Editor).
+        // Enrich them from the library's list items using the same
+        // Author/Title + expand("Author,Editor") pattern used across the app.
+        // This step is optional: if it fails, the folder list still works exactly
+        // as before and the grid simply keeps the (possibly blank) person columns.
+        try {
+            const listId = (subfolders[0] as any)?.ListItemAllFields?.ListId;
+            // Fallback: when ListItemAllFields does not expose ListId, derive the
+            // library name from the folder path (libraries live at the web root).
+            const webRelativeUrl = context.pageContext.web.serverRelativeUrl;
+            const libraryName = folderPath.replace(webRelativeUrl, "").split("/").filter(Boolean)[0];
+
+            let folderItems: any[] = [];
+            if (listId && nodes.length > 0) {
+                folderItems = await sp.web.lists.getById(listId).items
+                    .select("Id", "FileRef", "Author/Title", "Editor/Title")
+                    .expand("Author,Editor")
+                    .filter(`FSObjType eq 1 and FileDirRef eq '${folderPath}'`)
+                    .top(5000)();
+            } else if (libraryName && nodes.length > 0) {
+                folderItems = await sp.web.lists.getByTitle(libraryName).items
+                    .select("Id", "FileRef", "Author/Title", "Editor/Title")
+                    .expand("Author,Editor")
+                    .filter(`FSObjType eq 1 and FileDirRef eq '${folderPath}'`)
+                    .top(5000)();
+            }
+            const itemsByPath = new Map<string, any>(folderItems.map((it: any) => [it.FileRef, it]));
+            nodes.forEach((node: any) => {
+                const item = itemsByPath.get(node.path);
+                if (item) {
+                    if (item.Author?.Title) node.Author = { Id: item.Author.Id, Title: item.Author.Title };
+                    if (item.Editor?.Title) node.Editor = { Id: item.Editor.Id, Title: item.Editor.Title };
+                }
+            });
+
+            // TEMP-DIAG: verify person metadata on the grid rows. Remove after confirming.
+            if (nodes.length > 0) {
+                console.log("[DMS-TEMP] child folders enriched:", {
+                    folderPath,
+                    count: nodes.length,
+                    sample: {
+                        name: nodes[0].name,
+                        Created: nodes[0].Created,
+                        Modified: nodes[0].Modified,
+                        Author: nodes[0].Author,
+                        Editor: nodes[0].Editor
+                    }
+                });
+            }
+        } catch (enrichError) {
+            console.warn("Unable to enrich folder author/editor names for path:", folderPath, enrichError);
+        }
+
+        return nodes;
     } catch (error) {
         console.error("Error fetching child folders for path:", folderPath, error);
         return [];

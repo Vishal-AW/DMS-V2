@@ -450,6 +450,21 @@ export default function Approvals({ context }: IApprovalsProps) {
   }, [dynamicControl, metadataDoc]);
 
 
+  const openDocument = (el: any) => {
+    if (!el?.File?.ServerRelativeUrl) return;
+    const ext = el.File.Name?.split(".").pop()?.toLowerCase();
+    const officeExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"];
+    if (ext === "pdf" || !officeExts.includes(ext)) {
+      window.open(el.File.ServerRelativeUrl, "_blank");
+    } else {
+      window.open(
+        `${context.pageContext.site.absoluteUrl}/_layouts/15/WopiFrame.aspx?sourcedoc=${el.File.ServerRelativeUrl}&action=embedview`,
+        "_blank"
+      );
+    }
+  };
+
+
   const renderDocCard = (doc: any) => {
     const ext = doc.File.Name.split(".").pop();
     const fileConfig = fileTypeConfig[ext] || fileTypeConfig.other;
@@ -584,9 +599,6 @@ export default function Approvals({ context }: IApprovalsProps) {
         hasCloseButton={false}
         onRenderHeader={() => {
           if (!metadataDoc) return null;
-          const ext = metadataDoc.File.Name.split(".").pop();
-          const fileConfig = fileTypeConfig[ext] || fileTypeConfig.other;
-          const { IconName: HeaderIcon, className: headerIconClass } = fileConfig;
           return (
             <div className="meta-panel-header" data-testid="container-metadata-panel">
               <div className="meta-panel-header-top">
@@ -599,16 +611,7 @@ export default function Approvals({ context }: IApprovalsProps) {
                   <Dismiss20Regular />
                 </button>
               </div>
-              <div className="meta-panel-doc-summary">
-                <div className={`doc-icon-wrap ${headerIconClass}`}>
-                  <HeaderIcon className="doc-icon-svg" />
-                </div>
-                <div className="meta-panel-doc-info">
-                  <span className="meta-panel-doc-name" data-testid="text-meta-doc-name">{metadataDoc?.ActualName}</span>
-                  <span className="meta-panel-doc-ref">{metadataDoc.referenceNo} &middot; v{metadataDoc?.Name?.split(".").pop() === "pdf" ? metadataDoc?.Level : metadataDoc?.OData__UIVersionString}
-                  </span>
-                </div>
-              </div>
+          
               <div className="meta-panel-quick-actions">
                 {/* <button
                   className="meta-panel-quick-btn"
@@ -688,9 +691,27 @@ export default function Approvals({ context }: IApprovalsProps) {
                     <span className="meta-panel-plain-value" data-testid="text-meta-tile">{metadataDoc?.ReferenceNo}</span>
                   </div>
                   <div className="meta-panel-field">
+                    <label className="meta-panel-label">{DisplayLabel.FolderPath}</label>
+                    <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.FolderDocumentPath || ""}</div>
+                  </div>
+                  
+                </div>
+
+                <div className="meta-panel-row meta-panel-row-2col">
+                  <div className="meta-panel-field">
                     <label className="meta-panel-label">{DisplayLabel.AuthorName}</label>
                     <div className="meta-panel-plain-value" data-testid="text-meta-name">{metadataDoc?.Author.Title || ""}</div>
                   </div>
+                  <div className="meta-panel-field">
+                    <label className="meta-panel-label">{DisplayLabel.CreatedDate}</label>
+                    {/* <span className="meta-panel-plain-value" data-testid="text-meta-tile">{metadataDoc?.Created}</span> */}
+                    <span className="meta-panel-plain-value" data-testid="text-meta-tile">
+                      {metadataDoc?.Created
+                        ? format(new Date(metadataDoc.Created), "dd/MM/yyyy")
+                        : ""}
+                    </span>
+                  </div>
+               
                 </div>
 
                 {/* <div className="meta-panel-field">
@@ -726,6 +747,54 @@ export default function Approvals({ context }: IApprovalsProps) {
               </div>
             </div>
 
+             <div className="meta-panel-section">
+              <h3 className="meta-panel-section-title">Document</h3>
+              <div
+                className="meta-panel-doc-summary meta-panel-doc-summary-hover"
+                onClick={() => openDocument(metadataDoc)}
+                style={{ cursor: "pointer" }}
+                data-testid="button-open-document"
+              >
+                {(() => {
+                  const docExt = metadataDoc.File.Name.split(".").pop();
+                  const docFileConfig = fileTypeConfig[docExt] || fileTypeConfig.other;
+                  const { IconName: DocIcon, className: docIconClass } = docFileConfig;
+                  return (
+                    <>
+                      <div className={`doc-icon-wrap ${docIconClass}`}>
+                        <DocIcon className="doc-icon-svg" />
+                      </div>
+                      <div className="meta-panel-doc-info">
+                        <span className="meta-panel-doc-name" data-testid="text-meta-doc-name">
+                          {metadataDoc?.ActualName}
+                        </span>
+                        <span className="meta-panel-doc-ref">
+                          {metadataDoc.referenceNo} &middot; v
+                          {metadataDoc?.Name?.split(".").pop() === "pdf"
+                            ? metadataDoc?.Level
+                            : metadataDoc?.OData__UIVersionString}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+                <button
+                  type="button"
+                  className="meta-panel-doc-download-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`${metadataDoc?.File?.ServerRelativeUrl}?download=1`, "_blank");
+                  }}
+                  title="Download"
+                  aria-label="Download"
+                  data-testid="button-download-doc"
+                >
+                  <ArrowDownload20Regular className="meta-panel-doc-download-icon" />
+                </button>
+              </div>
+            </div>
+          
+
             {/* <div className="meta-panel-section">
               <h3 className="meta-panel-section-title">Workflow</h3>
               <div className="meta-panel-fields">
@@ -740,8 +809,10 @@ export default function Approvals({ context }: IApprovalsProps) {
                 </div>
               </div>
             </div> */}
+            
           </div>
         )}
+        
       </Panel>
       {isDialogOpen && (
         <Layer>

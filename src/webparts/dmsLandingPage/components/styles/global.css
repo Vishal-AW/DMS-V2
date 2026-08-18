@@ -1697,6 +1697,17 @@ body {
   border-radius: 4px;
 }
 
+/* .approval-card-description {
+  font-size: 13px;
+  color: #605e5c;
+  line-height: 1.5;
+  margin: 0 0 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+} */
+
 .approval-card-description {
   font-size: 13px;
   color: #605e5c;
@@ -1704,6 +1715,7 @@ body {
   margin: 0 0 14px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1867,6 +1879,42 @@ body {
 .meta-panel-doc-ref {
   font-size: 12px;
   color: #a19f9d;
+}
+
+.meta-panel-doc-summary-hover {
+  justify-content: space-between;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.meta-panel-doc-summary-hover:hover {
+  background-color: #f3f2f1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.meta-panel-doc-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #0078d4;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.meta-panel-doc-download-btn:hover {
+  background-color: #e1dfdd;
+  color: #242424;
+}
+
+.meta-panel-doc-download-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .meta-panel-quick-actions {

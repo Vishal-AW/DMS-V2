@@ -80,6 +80,10 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
       SearchData: getValue("SearchData", data, Language),
       Active: getValue("Active", data, Language),
       LastModified: getValue("LastModified", data, Language),
+      LastModifiedBy: getValue("LastModifiedBy", data, Language),
+      CreatedDate: getValue("CreatedDate", data, Language),
+      CreatedBy: getValue("CreatedBy", data, Language),
+
       Tiles: getValue("Tiles", data, Language),
       ThisFieldisRequired: getValue("ThisFieldisRequired", data, Language),
       Archive: getValue("Archive", data, Language),
@@ -222,7 +226,8 @@ export async function GetAllLabel(WebUrl: string, spHttpClient: SPHttpClient, La
       CheckInSuccess: getValue("CheckInSuccess", data, Language),
       Role: getValue("Role", data, Language),
       ProjectName: getValue("ProjectName", data, Language),
-      AuthorName: getValue("AuthorName", data, Language)
+      AuthorName: getValue("AuthorName", data, Language),
+
     };
 
     // 
