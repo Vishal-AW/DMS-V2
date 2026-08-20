@@ -145,6 +145,35 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
 
     const removeSepcialCharacters = (newValue?: string) => newValue?.replace(/[^a-zA-Z0-9\s]/g, '') || '';
 
+    /**
+     * Builds the folder metadata payload for the document item.
+     * Only top-level scalar values (string / number / boolean) are kept.
+     * Arrays (e.g. the folder tree `children`) and nested objects are dropped
+     * because SharePoint cannot infer an OData type for them and rejects the
+     * MERGE with "A value without a type name was found and no expected type is
+     * available." Read-only SharePoint system fields are also dropped.
+     */
+    const sanitizeFolderData = (folderObject: any) => {
+        const systemFields = new Set([
+            "Id", "id", "children", "FileSystemObjectType", "ContentTypeId", "GUID",
+            "Modified", "Created", "AuthorId", "EditorId", "FileRef", "FileLeafRef", "FileDirRef",
+            "ItemChildCount", "FolderChildCount", "OData__UIVersion", "OData__UIVersionString",
+            "ComplianceAssetId", "ParentVersionString", "ParentLeafName",
+            "ServerRedirectedEmbedUri", "ServerRedirectedEmbedUrl",
+            "name", "path", "isLastLevel", "isLoaded", "isLoading", "selected"
+        ]);
+
+        const clean: any = {};
+        Object.keys(folderObject || {}).forEach((key) => {
+            const value = folderObject[key];
+            if (value === null || value === undefined) return;
+            if (typeof value === "object") return; // drop arrays & nested objects
+            if (systemFields.has(key)) return;     // drop SharePoint system/read-only fields
+            clean[key] = value;
+        });
+        return clean;
+    };
+
     const renderDynamicControls = useCallback(() => {
         return dynamicControl.map((item: any, index: number) => {
             const filterObj = configData.find((ele) => ele.Id === item.Id);
@@ -621,16 +650,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
             //     Active: true
             // };
 
-            const folderData = JSON.parse(
-                JSON.stringify(
-                    folderObject,
-                    (key, value) =>
-                        value === null ||
-                            (Array.isArray(value) && value.length === 0)
-                            ? undefined
-                            : value
-                )
-            );
+            const folderData = sanitizeFolderData(folderObject);
 
             let obj: any = {
                 ...folderData,
@@ -789,7 +809,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
 
             const Fileuniqueid = await uuidv4();
             let finalFileName = `${Fileuniqueid}-${item.attachment.name}`;
-            const folderData = JSON.parse(JSON.stringify(folderObject, (key, value) => (value === null || (Array.isArray(value) && value.length === 0)) ? undefined : value));
+            const folderData = sanitizeFolderData(folderObject);
             let obj: any = {
                 ...folderData,
                 ...dynamicValues,
