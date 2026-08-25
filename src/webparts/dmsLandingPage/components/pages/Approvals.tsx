@@ -486,7 +486,7 @@ export default function Approvals({ context }: IApprovalsProps) {
           </div>
           <div className="approval-card-status-wrap">
             <StatusBadge status={doc?.Status.StatusName} />
-            <span className="approval-card-version" data-testid={`text-approval-version-${doc.ID}`}>v{doc.Name?.split(".").pop() === "pdf" ? doc?.Level : doc?.OData__UIVersionString}
+            <span className="approval-card-version" data-testid={`text-approval-version-${doc.ID}`}>v{doc.File.Name?.split(".").pop()?.toLowerCase() === "pdf" ? (doc?.Level ?? "-") : (doc?.OData__UIVersionString ?? "-")}
             </span>
           </div>
         </div>
@@ -772,9 +772,9 @@ export default function Approvals({ context }: IApprovalsProps) {
                         </span>
                         <span className="meta-panel-doc-ref">
                           {metadataDoc.referenceNo} &middot; v
-                          {metadataDoc?.Name?.split(".").pop() === "pdf"
-                            ? metadataDoc?.Level
-                            : metadataDoc?.OData__UIVersionString}
+                          {metadataDoc?.Name?.split(".").pop()?.toLowerCase() === "pdf"
+                            ? (metadataDoc?.Level ?? "-")
+                            : (metadataDoc?.OData__UIVersionString ?? "-")}
                         </span>
                       </div>
                     </div>

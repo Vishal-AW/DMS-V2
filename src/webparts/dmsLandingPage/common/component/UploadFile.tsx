@@ -1007,7 +1007,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                         <th style={{ width: 100 }}>{DisplayLabel.SrNo}</th>
                                         <th>{DisplayLabel.FileName}</th>
                                         <th>{DisplayLabel.IsthisAnUpdateToExistingFile}</th>
-                                        {isUpdateExistingFile && <th>{DisplayLabel.FileName}</th>}
+                                        {attachmentsFiles.some((el: any) => el.isUpdateExistingFile === "Yes") && <th>{DisplayLabel.FileName}</th>}
                                         <th>{DisplayLabel.Versions}</th>
                                         <th style={{ width: 100 }}>{DisplayLabel.Action}</th>
                                     </tr>
@@ -1031,7 +1031,18 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                     value={{ value: item.isUpdateExistingFile, label: item.isUpdateExistingFile }}
                                                     isDisabled={item.isDisabled}
                                                     onChange={async (option: any) => {
-                                                        const attach = await Promise.all(attachmentsFiles.map((ele, i) => i === index ? { ...ele, isUpdateExistingFile: option?.value } : ele));
+                                                        const attach = await Promise.all(attachmentsFiles.map((ele, i) =>
+                                                            i === index
+                                                                ? {
+                                                                    ...ele,
+                                                                    isUpdateExistingFile: option?.value,
+                                                                    // Reset version & clear old file selection when switched to "No"
+                                                                    ...(option?.value === "No"
+                                                                        ? { version: "1.0", OldFileName: "" }
+                                                                        : {})
+                                                                }
+                                                                : ele
+                                                        ));
                                                         let filterFiles = files.filter((el: any) => el.ListItemAllFields.IsExistingFlag === "New");
                                                         if (filterFiles.length > 0 && attachmentsFiles.length > 0) {
                                                             attachmentsFiles.map((el: any) => {
@@ -1052,54 +1063,55 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                     }} />
                                             </td>
 
-                                            {isUpdateExistingFile && (
+                                            {attachmentsFiles.some((el: any) => el.isUpdateExistingFile === "Yes") && (
                                                 <td style={{ width: 250 }}>
-                                                    <Select
-                                                        options={filesData}
-                                                        value={filesData.find(
-                                                            (option: any) => option.value === item.OldFileName
-                                                        )}
-                                                        isSearchable
-                                                        placeholder={DisplayLabel?.Selectanoption}
-                                                        isDisabled={item.isDisabled}
-                                                        onChange={(option: any) => {
-                                                            const fData = filterFilesData.filter(
-                                                                (ele: any) => ele.Name === option?.value
-                                                            );
+                                                    {item.isUpdateExistingFile === "Yes" && (
+                                                        <>
+                                                            <Select
+                                                                options={filesData}
+                                                                value={filesData.find(
+                                                                    (option: any) => option.value === item.OldFileName
+                                                                )}
+                                                                isSearchable
+                                                                placeholder={DisplayLabel?.Selectanoption}
+                                                                isDisabled={item.isDisabled}
+                                                                onChange={(option: any) => {
+                                                                    const fData = filterFilesData.filter(
+                                                                        (ele: any) => ele.Name === option?.value
+                                                                    );
 
-                                                            let level = 1.0;
+                                                                    let level = 1.0;
 
-                                                            if (fData.length > 0)
-                                                                level = parseFloat(fData[0].ListItemAllFields.Level) + 1.0;
+                                                                    if (fData.length > 0)
+                                                                        level = parseFloat(fData[0].ListItemAllFields.Level) + 1.0;
 
-                                                            setAttachmentsFiles((prev) =>
-                                                                prev.map((ele, i) =>
-                                                                    i === index
-                                                                        ? {
-                                                                            ...ele,
-                                                                            OldFileName: option?.value,
-                                                                            version: level.toFixed(1)
-                                                                        }
-                                                                        : ele
-                                                                )
-                                                            );
-                                                        }}
-                                                    />
-                                                    {/* Error Message */}
-                                                    {item.isUpdateExistingFile === "Yes" &&
-                                                        (!item.OldFileName || item.OldFileName === "") &&
-                                                        item.fileError && (
-                                                            <span
-                                                                style={{
-                                                                    color: "red",
-                                                                    fontSize: "12px",
-                                                                    display: "block",
-                                                                    marginTop: "4px"
+                                                                    setAttachmentsFiles((prev) =>
+                                                                        prev.map((ele, i) =>
+                                                                            i === index
+                                                                                ? {
+                                                                                    ...ele,
+                                                                                    OldFileName: option?.value,
+                                                                                    version: level.toFixed(1)
+                                                                                }
+                                                                                : ele
+                                                                        )
+                                                                    );
                                                                 }}
-                                                            >
-                                                                {item.fileError}
-                                                            </span>
-                                                        )}
+                                                            />
+                                                            {(!item.OldFileName || item.OldFileName === "") && item.fileError && (
+                                                                <span
+                                                                    style={{
+                                                                        color: "red",
+                                                                        fontSize: "12px",
+                                                                        display: "block",
+                                                                        marginTop: "4px"
+                                                                    }}
+                                                                >
+                                                                    {item.fileError}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </td>
                                             )}
 
