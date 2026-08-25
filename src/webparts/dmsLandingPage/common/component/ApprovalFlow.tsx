@@ -153,16 +153,29 @@ const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName
                 );
             }
         },
+        // {
+        //     headerName: "Folder Path",
+        //     field: "FileDirRef",
+        //     flex: 1,
+        //     valueGetter: (params: any) => {
+        //         const basePath = "/sites/SPFXDMS";
+        //         const path = params.data?.FolderDocumentPath || "";
+
+        //         return path ? `${basePath}${path.startsWith("/") ? "" : "/"}${path}` : "";
+        // }
+        // },
         {
             headerName: "Folder Path",
             field: "FileDirRef",
             flex: 1,
             valueGetter: (params: any) => {
-                const basePath = "/sites/SPFXDMS";
+                const sitePath = new URL(context.pageContext.web.absoluteUrl).pathname;
                 const path = params.data?.FolderDocumentPath || "";
 
-                return path ? `${basePath}${path.startsWith("/") ? "" : "/"}${path}` : "";
-        }
+                return path
+                    ? `${sitePath}${path.startsWith("/") ? "" : "/"}${path}`
+                    : "";
+            }
         },
         {
             headerName: "Submitted By",
