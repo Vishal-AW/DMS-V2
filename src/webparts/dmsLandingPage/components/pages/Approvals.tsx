@@ -288,6 +288,7 @@ export default function Approvals({ context }: IApprovalsProps) {
     };
 
     await TileSendMail(context, emailObj);
+    setComment("");
     setIsDialogOpen(false);
     getFiles();
   };
@@ -308,6 +309,7 @@ export default function Approvals({ context }: IApprovalsProps) {
 
   const handleReject = (doc: any) => {
     setMetadataDoc(doc);
+    setComment("");
     setActions("REJECT");
     setIsDialogOpen(true);
   };
@@ -818,8 +820,9 @@ export default function Approvals({ context }: IApprovalsProps) {
           <Popup
             role="dialog"
             aria-modal="true"
-            onDismiss={() => setIsDialogOpen(false)}
-            className={popupStyles.overlay}
+            // onDismiss={() => setIsDialogOpen(false) }
+             onDismiss={() => { setIsDialogOpen(false); setComment(""); }}
+             className={popupStyles.overlay}
           >
             <FocusTrapZone>
               <div role="document" className={popupStyles.content}>

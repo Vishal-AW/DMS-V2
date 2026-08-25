@@ -161,9 +161,15 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
             setAllFolderTemplate(data.value.map((el: any) => ({ value: el.Name, label: el.Name })));
     };
 
+    // const getFolderStructure = async () => {
+    //     const data = await getActiveFolder(context.pageContext.web.absoluteUrl, context.spHttpClient);
+    //     setFolderStructure(data.value);
+    // };
+
     const getFolderStructure = async () => {
         const data = await getActiveFolder(context.pageContext.web.absoluteUrl, context.spHttpClient);
-        setFolderStructure(data.value);
+        const sorted = [...data.value].sort((a: any, b: any) => (a.ID ?? a.Id) - (b.ID ?? b.Id));
+        setFolderStructure(sorted);
     };
 
     const getAllUsers = async () => {
@@ -869,6 +875,7 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
     const getTemplateFolders = (templateName: string) => {
         return folderStructure.filter((item: any) => item.TemplateName?.Name === templateName);
     };
+
 
     const buildFolderPreviewTree = (folders: any[], parentId: number | null = null): any[] => {
         return folders

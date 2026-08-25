@@ -44,6 +44,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
     const [parentError, setParentError] = useState("");
 
     const isEditMode = editFolderData !== null;
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -62,7 +63,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
             }
             setNameError("");
             setParentError("");
-
+            setIsSaving(false);   // <-- add to disabled after adding folders
             // Load parent folder options for this template
             loadParentFolders();
         }
@@ -92,6 +93,11 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
         }
     }, [context, templateId, editFolderData]);
 
+    // Button should be enabled only once required fields are filled
+    const isFormValid =
+    folderName.trim().length > 0 &&
+    (!isChildFolder || !!parentFolderId);
+
     const handleSave = async () => {
         // Validation
         if (!folderName.trim()) {
@@ -109,6 +115,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
 
         setNameError("");
         setParentError("");
+        setIsSaving(true);   // <-- add
 
         const option: any = {
             FolderName: folderName.trim(),
@@ -145,6 +152,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
         text: item.text
     }));
 
+
     return (
         <Panel
             isOpen={isOpen}
@@ -157,6 +165,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
                     <PrimaryButton
                         text={isEditMode ? "Update" : "Save"}
                         onClick={handleSave}
+                        disabled={!isFormValid || isSaving}
                         styles={getPrimaryActionButtonStyles(8)}
                     />
                     <DefaultButton
