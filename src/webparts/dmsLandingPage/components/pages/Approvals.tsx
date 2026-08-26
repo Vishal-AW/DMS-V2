@@ -177,6 +177,7 @@ export default function Approvals({ context }: IApprovalsProps) {
 
   const handleApprove = async (doc: any) => {
     setActions("APPROVE");
+    setComment("");
     setMetadataDoc(doc);
     setIsDialogOpen(true);
   };
@@ -237,6 +238,7 @@ export default function Approvals({ context }: IApprovalsProps) {
       emailObj.ID = metadataDoc.Id;
       emailObj.libraryName = libraryName;
       await TileSendMail(context, emailObj);
+      setComment("");
       setIsDialogOpen(false);
       getFiles();
 
