@@ -1119,7 +1119,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                 <TextField value={item.version} disabled />
                                             </td>
 
-                                            <td>
+                                            {/* <td>
                                                 {
                                                     item.attachment.name.split(".").pop() === "pdf" ?
                                                         <IconButton
@@ -1134,6 +1134,33 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
                                                         />
                                                 }
 
+
+                                                <IconButton
+                                                    iconProps={{ iconName: "Delete" }}
+                                                    styles={{ root: { color: "red" } }}
+                                                    onClick={() =>
+                                                        setAttachmentsFiles((prev) =>
+                                                            prev.filter((ele, i) => i !== index)
+                                                        )
+                                                    }
+                                                />
+                                            </td> */}
+                                            <td>
+                                                <IconButton
+                                                    iconProps={{ iconName: item.isDisabled ? "Edit" : "Save" }}
+                                                    styles={{
+                                                        root: {
+                                                            color:
+                                                                item.attachment.name.split(".").pop()?.toLowerCase() === "pdf"
+                                                                    ? "#009ef7"
+                                                                    : "#c8c8c8",
+                                                        },
+                                                    }}
+                                                    disabled={
+                                                        item.attachment.name.split(".").pop()?.toLowerCase() !== "pdf"
+                                                    }
+                                                    onClick={() => onClickDetails(index)}
+                                                />
 
                                                 <IconButton
                                                     iconProps={{ iconName: "Delete" }}
