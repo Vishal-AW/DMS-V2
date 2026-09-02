@@ -769,7 +769,162 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
     };
 
 
-    const submit = async () => {
+    // const submit = async () => {
+    //     let isValid = true;
+    //     if (dynamicControl.length > 0) {
+    //         dynamicControl.forEach((item: any) => {
+    //             if (item.IsRequired && !dynamicValues[item.InternalTitleName]) {
+    //                 setDynamicValuesErr((prev) => ({
+    //                     ...prev,
+    //                     [item.InternalTitleName]: DisplayLabel.ThisFieldisRequired,
+    //                 }));
+    //                 isValid = false;
+    //                 return;
+    //             }
+    //         });
+    //     }
+
+    //     if (filetype === "upload" && attachmentsFiles.length === 0) {
+    //         setAttachmentErr(DisplayLabel.ThisFieldisRequired);
+    //         isValid = false;
+    //     }
+    //     if (!isValid) return;
+    //     setShowLoader({ display: "block" });
+    //     let count = 0;
+    //     const queryURL = `${context.pageContext.web.absoluteUrl}/_api/web/lists/getByTitle('${libName}')/items?$select=EncodedAbsUrl,*,File/Name&$expand=File&$top=1&$orderby=RefSequence desc`;
+    //     const LastDocRes = await getListData(queryURL, context);
+    //     if (LastDocRes.value[0].RefSequence == null || LastDocRes.value[0].RefSequence == undefined) {
+    //         LastDocRes.value[0].RefSequence = 0;
+    //     }
+
+    //     //Added New
+    //     const lastSequence = LastDocRes.value[0]?.RefSequence || 0;
+
+    //     attachmentsFiles.forEach(async (item, index) => {
+    //         if (item.isUpdateExistingFile === "Yes") {
+    //             existingFile.map(async (el) => {
+    //                 await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, { IsExistingFlag: "Old" }, el.ListItemAllFields.ID, libName);
+    //             });
+    //         }
+
+    //         const Fileuniqueid = await uuidv4();
+    //         let finalFileName = `${Fileuniqueid}-${item.attachment.name}`;
+    //         const folderData = sanitizeFolderData(folderObject);
+    //         let obj: any = {
+    //             ...folderData,
+    //             ...dynamicValues,
+    //             ActualName: item.attachment.name,
+    //             FolderDocumentPath: `/${folderPath}`,
+    //             OCRStatus: "Pending",
+    //             UploadFlag: "Frontend",
+    //             Level: item.version,
+    //             IsExistingFlag: item.Flag,
+    //             IsExistingRefID: item.IsExistingRefID,
+    //         };
+    //         let InternalStatus = "Published";
+
+    //         if (folderObject.DefineRole) {
+    //             obj.CurrentApprover = folderObject.ProjectmanagerEmail === null ? folderObject.PublisherEmail : folderObject.ProjectmanagerEmail;
+    //             InternalStatus = folderObject.ProjectmanagerEmail == null ? "PendingWithPublisher" : "PendingWithPM";
+    //         }
+
+    //         const res = item.attachment.name.split('.').slice(0, -1).join('.');
+    //         const extension = item.attachment.name.split('.').pop();
+    //         const rename = (res).replace(/[^a-z0-9-\s]/gi, '');
+    //         if (folderObject.DocumentSuffix !== null && folderObject.DocumentSuffix !== "") {
+    //             let suffix = folderObject.DocumentSuffix;
+
+    //             if (folderObject.DocumentSuffix === "Other") {
+    //                 suffix = folderObject.OtherSuffix;
+    //             }
+    //             obj.ActualName = folderObject.PSType === "Prefix" ? `${suffix}_${rename}.${extension}` : obj.ActualName = `${rename}_${suffix}.${extension}`;
+    //         }
+    //         const status = await getStatusByInternalStatus(context.pageContext.web.absoluteUrl, context.spHttpClient, InternalStatus);
+
+    //         obj.StatusId = status.value[0].ID;
+    //         obj.InternalStatus = status.value[0].InternalStatus;
+    //         obj.DisplayStatus = status.value[0].StatusName;
+    //         obj.Active = true;
+
+    //         // const refCount = LastDocRes.value[0].RefSequence == null ? 0 : LastDocRes.value[0].RefSequence + count;
+    //         // const ReferenceNo = generateAutoRefNumber(refCount, folderObject, LastDocRes.value[0].Created, LibraryDetails);
+
+    //         const refCount = lastSequence + index;
+
+    //         const ReferenceNo = generateAutoRefNumber(
+    //             refCount,
+    //             folderObject,
+    //             LastDocRes.value[0].Created,
+    //             LibraryDetails
+    //         );
+
+
+    //         obj.ReferenceNo = ReferenceNo.refNo.replace(/null/, "");
+    //         obj.RefSequence = ReferenceNo.count;
+
+    //         if (item.Flag === "Replace") {
+
+    //             const existingFile = FileData.find(
+    //                 f => f.ListItemAllFields.ActualName?.toLowerCase() === item.attachment.name.toLowerCase()
+    //             );
+
+    //             if (existingFile) {
+    //                 finalFileName = existingFile.Name;
+
+    //             }
+    //         }
+
+    //         //  let UploadFileData = await UploadFile(context.pageContext.web.absoluteUrl, context.spHttpClient, item.attachment, `${Fileuniqueid}-${item.attachment.name}`, libName, obj, folderPath);
+    //         let UploadFileData = await UploadFile(context.pageContext.web.absoluteUrl, context.spHttpClient, item.attachment, finalFileName, libName, obj, folderPath);
+
+    //         console.log(UploadFileData);
+
+    //         if (folderObject.DefineRole != null) {
+    //             let emailObj: any = {
+    //                 To: folderObject.ProjectmanagerEmail,
+    //                 FolderPath: obj.FolderDocumentPath,
+    //                 DocName: obj.ActualName,
+    //                 AuthorTitle: context.pageContext.user.displayName,
+    //                 TileName: libName,
+    //                 Sub: DisplayLabel.PublisherEmailSubject + " " + obj.ReferenceNo,
+    //                 Status: status.value[0].InternalStatus
+    //             };
+    //             emailObj.ID = folderObject.Id;
+    //             emailObj.libraryName = libName;
+    //             await TileSendMail(context, emailObj);
+    //         }
+    //         count++;
+
+    //         if (item.IsExistingRefID !== "" && item.IsExistingRefID !== null && item.IsExistingRefID !== undefined) {
+    //             if (LibraryDetails.IsArchiveRequired) {
+    //                 const AllData = await getDataByRefID(context, item.IsExistingRefID, libName);
+    //                 const ExistingRefData = AllData.value?.filter((ele: any) => ele.Active == true);
+    //                 if (ExistingRefData?.length > archiveCount) {
+
+    //                     const FileID = ExistingRefData[ExistingRefData?.length - 1].ID;
+    //                     let updateArchiveObj = {
+    //                         Active: false,
+    //                         IsArchiveFlag: true
+    //                     };
+
+    //                     await updateLibrary(context.pageContext.web.absoluteUrl, context.spHttpClient, updateArchiveObj, FileID, libName);
+    //                 }
+    //             }
+    //         }
+
+
+    //         if (count === attachmentsFiles.length) {
+    //             dismissUploadPanel();
+    //             setShowLoader({ display: "none" });
+    //             setAlertMsg(DisplayLabel.SubmitMsg);
+    //             setIsPopupBoxVisible(true);
+    //         }
+
+    //     });
+    // };
+
+
+     const submit = async () => {
         let isValid = true;
         if (dynamicControl.length > 0) {
             dynamicControl.forEach((item: any) => {
@@ -922,7 +1077,7 @@ function UploadFiles({ context, isOpenUploadPanel, dismissUploadPanel, folderPat
 
         });
     };
-
+    
     const hidePopup = useCallback(() => { setIsPopupBoxVisible(false); }, [isPopupBoxVisible]);
 
     return (

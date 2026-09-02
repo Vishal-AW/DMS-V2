@@ -280,10 +280,17 @@ export function generateAutoRefNumber(refCount: any, data: any, CreatedDate: any
                 refNo += `${el}${libDetails.Separator}`;
             else {
                 matches.map(function (element: any, ind: number) {
-                    const elementId = element.replace(/[^a-z0-9\s-_]/gi, '');
+                    // const elementId = element.replace(/[^a-z0-9\s-_]/gi, '');
+                    const elementId = element
+                    .replace(/[^a-z0-9\s-_]/gi, '')
+                    .replace(/\s+/g, '');
+                    
                     if (refFormulaValue.length - 1 == i && matches.length - 1 == ind) {
-                        incrementCount = initialIncrement(elementId, refCount, CreatedDate);
-                        refNo += padLeft(incrementCount.toString(), 5, "0");
+                        // incrementCount = initialIncrement(elementId, refCount, CreatedDate);
+                        // refNo += padLeft(incrementCount.toString(), 5, "0");
+                        incrementCount = initialIncrement(elementId, refCount, CreatedDate) ?? 1;
+                        refNo += padLeft(String(incrementCount), 5, "0");
+
                     } else {
                         if (elementId == "YY_YY")
                             refNo += `${currentFY.startYear}${libDetails.Separator}${currentFY.endYear}`;
@@ -307,23 +314,52 @@ export function generateAutoRefNumber(refCount: any, data: any, CreatedDate: any
     return obj;
 }
 
+// function initialIncrement(val: any, incrementCount: any, CreatedDate: any) {
+//     const lastMonth = new Date(CreatedDate).toLocaleString('default', { month: '2-digit' });
+//     const lastYear = new Date(CreatedDate).getFullYear();
+//     const month = new Date().toLocaleString('default', { month: '2-digit' });
+//     const year = new Date().getFullYear();
+//     const FY: any = getFinancialYear(new Date());
+//     const lastFY: any = getFinancialYear(new Date(CreatedDate));
+//     switch (val) {
+//         case "Continue":
+//             return incrementCount > 0 ? (incrementCount + 1) : 1;
+//         case "Monthly":
+//             return lastMonth == month ? (incrementCount + 1) : 1;
+//         case "Yearly":
+//             return lastYear == year ? (incrementCount + 1) : 1;
+//         case "FinancialYear":
+//             lastFY.endYear == FY.endYear ? (incrementCount + 1) : 1;
+//             break;
+//     }
+// }
+
 function initialIncrement(val: any, incrementCount: any, CreatedDate: any) {
     const lastMonth = new Date(CreatedDate).toLocaleString('default', { month: '2-digit' });
     const lastYear = new Date(CreatedDate).getFullYear();
+
     const month = new Date().toLocaleString('default', { month: '2-digit' });
     const year = new Date().getFullYear();
+
     const FY: any = getFinancialYear(new Date());
     const lastFY: any = getFinancialYear(new Date(CreatedDate));
+
     switch (val) {
         case "Continue":
-            return incrementCount > 0 ? (incrementCount + 1) : 1;
+            return incrementCount > 0 ? incrementCount + 1 : 1;
+
         case "Monthly":
-            return lastMonth == month ? (incrementCount + 1) : 1;
+            return lastMonth === month ? incrementCount + 1 : 1;
+
         case "Yearly":
-            return lastYear == year ? (incrementCount + 1) : 1;
+            return lastYear === year ? incrementCount + 1 : 1;
+
         case "FinancialYear":
-            lastFY.endYear == FY.endYear ? (incrementCount + 1) : 1;
-            break;
+            return lastFY.endYear === FY.endYear
+                ? incrementCount + 1
+                : 1;
+        default:
+            return 1;
     }
 }
 

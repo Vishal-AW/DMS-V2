@@ -39,6 +39,7 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
     const [active, setActive] = useState(true);
     const [parentFolderId, setParentFolderId] = useState<number | undefined>();
     const [parentFolderOptions, setParentFolderOptions] = useState<any[]>([]);
+    const [allFolders, setAllFolders] = useState<any[]>([]);
 
     const [nameError, setNameError] = useState("");
     const [parentError, setParentError] = useState("");
@@ -77,6 +78,9 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
                 templateId
             );
             const folders = res?.value || [];
+
+            setAllFolders(folders);
+
             // Filter out the current folder being edited (to prevent self-reference)
             const filtered = editFolderData
                 ? folders.filter((f: any) => f.ID !== editFolderData.ID)
@@ -110,6 +114,35 @@ const AddFolderPanel: React.FC<AddFolderPanelProps> = ({
         }
         if (isChildFolder && !parentFolderId) {
             setParentError("Parent Folder is required");
+            return;
+        }
+
+        // Duplicate validation: prevent same FolderName under the same ParentFolderId (same level)
+        const duplicateFolder = allFolders.find((f: any) => {
+
+            // Skip current record while editing
+            if (isEditMode && f.ID === editFolderData?.ID) {
+                return false;
+            }
+
+            const existingName = (f.FolderName || "").trim().toLowerCase();
+            const newName = folderName.trim().toLowerCase();
+
+            const existingParentId = f.ParentFolderIdId || null;
+            const selectedParentId = isChildFolder
+                ? parentFolderId
+                : null;
+
+            return (
+                existingName === newName &&
+                existingParentId === selectedParentId
+            );
+        });
+
+        if (duplicateFolder) {
+            setNameError(
+                "Folder with the same name already exists at this level."
+            );
             return;
         }
 

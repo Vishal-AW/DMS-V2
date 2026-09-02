@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import {
     Checkbox,
@@ -78,11 +78,29 @@ const COMMON_ICONS = [
 function IconPicker({ value, onChange }: { value: string; onChange: (v: string) => void; }): JSX.Element {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const iconPickerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent): void => {
+            if (
+                iconPickerRef.current &&
+                !iconPickerRef.current.contains(event.target as Node)
+            ) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const filtered = COMMON_ICONS.filter(n => n.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div className="bpm-icon-picker" style={{ position: 'relative', width: 2 }}>
+        <div ref={iconPickerRef} className="bpm-icon-picker" style={{ position: 'relative', width: 2 }}>
             <div className="bpm-icon-preview" onClick={() => setOpen(o => !o)} title="Change icon"    >
                 <DynamicIcon name={value} size={18} />
                 <span></span>
