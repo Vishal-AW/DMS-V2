@@ -678,7 +678,8 @@ const ProjectEntryForm: React.FC<IProjectEntryProps> = ({
                 `${LibraryDetails.LibraryName}/${Updatedfolderpath}/${folder.FolderName}`,
                 users,
                 LibraryDetails.LibraryName,
-                true
+                //true
+                ChildFolderRoleInheritance
             );
 
             await updateFolderMetaData(response);
