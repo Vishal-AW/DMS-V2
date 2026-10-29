@@ -600,7 +600,7 @@ label {
     top: 10px;
     font-size: 24px;
     cursor: pointer;
-    background: #444;
+    /* background: #444; */
     padding: 10px;
     border-radius: 5px;
     color: white;
@@ -1072,8 +1072,10 @@ aside {
     padding-left: 0 !important;
 }
 
-
+/*Added to hide top black line*/
 #spTopPlaceholder {
     display:none !important;
 }
 
+
+/* New*/

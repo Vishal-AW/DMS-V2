@@ -223,4 +223,34 @@ button[class*="fui-Button"][class*="primary"],
   --colorBrandForegroundLink: #2563eb !important;
   --colorNeutralBackground1: #ffffff !important;
   --colorBrandBackground2Hover: #dbeafe !important;
+
+  /* Interaction-state tokens (hover / pressed / selected).
+     These are what Fluent UI v9 actually reads for hover states on
+     fui-Button (subtle/transparent appearances), fui-MenuItem, fui-Tab,
+     fui-Dropdown, fui-Tooltip, etc.
+     Values are the light-theme (webLightTheme) aliases. Pinning them with
+     !important keeps hover identical on every SharePoint site theme,
+     because the site/page can otherwise override these custom properties
+     (an author !important declaration beats FluentProvider's inline theme). */
+  --colorSubtleBackgroundHover: #f5f5f5 !important;
+  --colorSubtleBackgroundPressed: #e0e0e0 !important;
+  --colorSubtleBackgroundSelected: #ebebeb !important;
+  --colorNeutralBackground1Hover: #f5f5f5 !important;
+  --colorNeutralBackground1Pressed: #e0e0e0 !important;
+  --colorNeutralBackground1Selected: #ebebeb !important;
+  --colorNeutralCardBackgroundHover: #ffffff !important;
+  --colorNeutralForeground1Hover: #242424 !important;
+  --colorNeutralForeground2Hover: #242424 !important;
+  --colorNeutralForeground2Pressed: #242424 !important;
+  --colorNeutralForeground2BrandHover: var(--color-brand-primary) !important;
+  --colorNeutralForeground2BrandSelected: var(--color-brand-primary) !important;
+  --colorNeutralForeground3Hover: #424242 !important;
+  --colorNeutralForegroundOnBrand: #ffffff !important;
+  --colorNeutralStroke1Hover: #c7c7c7 !important;
+  --colorTransparentBackground: transparent !important;
+  --colorTransparentBackgroundHover: transparent !important;
+  --colorNeutralBackgroundDisabled: #f0f0f0 !important;
+  --colorNeutralForegroundDisabled: #bdbdbd !important;
+  --colorNeutralStrokeDisabled: #e0e0e0 !important;
+  --colorStrokeFocus2: #000000 !important;
 }

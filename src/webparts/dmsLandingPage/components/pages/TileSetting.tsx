@@ -117,6 +117,8 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
                 filter: true,
                 sortable: true,
                 field: "Modified",
+                // maxWidth: 80,
+                 width: 30, // Fixed width
                 cellRenderer: (item: any) => {
                     const formattedDate = format(item.data.Modified, "dd/MM/yyyy");
                     const formattedTime = new Date(item.data.Modified).toLocaleTimeString("en-US", {
@@ -124,7 +126,8 @@ const TileSetting: React.FunctionComponent<ITileSettingProps> = ({ context }) =>
                         minute: "2-digit",
                         hour12: true
                     });
-                    return `${item.data.Editor?.Title} ${formattedDate} at ${formattedTime}`;
+                    // return `${item.data.Editor?.Title} ${formattedDate} at ${formattedTime}`;
+                    return `${item.data.Editor?.Title}`;
                 }
             },
             {

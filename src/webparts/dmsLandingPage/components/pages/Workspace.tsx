@@ -83,75 +83,75 @@ interface Folder extends FolderNode {
 /* ------------------------------------------------------------------ */
 /* Reusable view-only styles - light, non-editable, form-consistent    */
 /* ------------------------------------------------------------------ */
-const viewOnlyBackground = "#fafafa";
-const viewOnlyTextColor = "#323130";
-const viewOnlyBorderColor = "#d1d1d1";
+// const viewOnlyBackground = "#fafafa";
+// const viewOnlyTextColor = "#323130";
+// const viewOnlyBorderColor = "#d1d1d1";
 
-const viewOnlyTextFieldStyles: Partial<ITextFieldStyles> = {
-    root: { width: "100%" },
-    fieldGroup: {
-        backgroundColor: viewOnlyBackground,
-        borderColor: viewOnlyBorderColor,
-        borderRadius: 4,
-        selectors: {
-            ":hover": { borderColor: viewOnlyBorderColor },
-            "&.is-focused::after": { border: `1px solid ${viewOnlyBorderColor}` },
-        },
-    },
-    field: {
-        backgroundColor: viewOnlyBackground,
-        color: viewOnlyTextColor,
-        fontWeight: 400,
-    },
-    subComponentStyles: {
-        label: { root: { color: viewOnlyTextColor, fontWeight: 600 } },
-    },
-};
+// const viewOnlyTextFieldStyles: Partial<ITextFieldStyles> = {
+//     root: { width: "100%" },
+//     fieldGroup: {
+//         backgroundColor: viewOnlyBackground,
+//         borderColor: viewOnlyBorderColor,
+//         borderRadius: 4,
+//         selectors: {
+//             ":hover": { borderColor: viewOnlyBorderColor },
+//             "&.is-focused::after": { border: `1px solid ${viewOnlyBorderColor}` },
+//         },
+//     },
+//     field: {
+//         backgroundColor: viewOnlyBackground,
+//         color: viewOnlyTextColor,
+//         fontWeight: 400,
+//     },
+//     subComponentStyles: {
+//         label: { root: { color: viewOnlyTextColor, fontWeight: 600 } },
+//     },
+// };
 
-const viewOnlyDropdownStyles: Partial<IDropdownStyles> = {
-    root: { width: "100%" },
-    label: { color: viewOnlyTextColor, fontWeight: 600 },
-    title: {
-        backgroundColor: viewOnlyBackground,
-        borderColor: viewOnlyBorderColor,
-        color: viewOnlyTextColor,
-        height: 32,
-        lineHeight: 30,
-        fontSize: 14,
-        borderRadius: 4,
-        selectors: {
-            ":hover": { borderColor: viewOnlyBorderColor },
-        },
-    },
-    caretDownWrapper: { lineHeight: 30 },
-    caretDown: { color: "#605e5c", fontSize: 14 },
-};
+// const viewOnlyDropdownStyles: Partial<IDropdownStyles> = {
+//     root: { width: "100%" },
+//     label: { color: viewOnlyTextColor, fontWeight: 600 },
+//     title: {
+//         backgroundColor: viewOnlyBackground,
+//         borderColor: viewOnlyBorderColor,
+//         color: viewOnlyTextColor,
+//         height: 32,
+//         lineHeight: 30,
+//         fontSize: 14,
+//         borderRadius: 4,
+//         selectors: {
+//             ":hover": { borderColor: viewOnlyBorderColor },
+//         },
+//     },
+//     caretDownWrapper: { lineHeight: 30 },
+//     caretDown: { color: "#605e5c", fontSize: 14 },
+// };
 
-const viewOnlyPeoplePickerStyles: Partial<IBasePickerStyles> = {
-    root: { width: "100%" },
-    text: {
-        backgroundColor: viewOnlyBackground,
-        borderColor: viewOnlyBorderColor,
-        borderRadius: 4,
-        selectors: {
-            ":hover": { borderColor: viewOnlyBorderColor },
-        },
-    },
-    itemsWrapper: { backgroundColor: viewOnlyBackground },
-    input: { backgroundColor: viewOnlyBackground, color: viewOnlyTextColor },
-};
+// const viewOnlyPeoplePickerStyles: Partial<IBasePickerStyles> = {
+//     root: { width: "100%" },
+//     text: {
+//         backgroundColor: viewOnlyBackground,
+//         borderColor: viewOnlyBorderColor,
+//         borderRadius: 4,
+//         selectors: {
+//             ":hover": { borderColor: viewOnlyBorderColor },
+//         },
+//     },
+//     itemsWrapper: { backgroundColor: viewOnlyBackground },
+//     input: { backgroundColor: viewOnlyBackground, color: viewOnlyTextColor },
+// };
 
-const viewOnlyToggleStyles = (props: IToggleStyleProps): IToggleStyles => ({
-    root: { marginBottom: 0 },
-    label: { color: viewOnlyTextColor, fontWeight: 600 },
-    container: { marginTop: 4 },
-    pill: {
-        backgroundColor: props.checked ? "#0078d4" : "#f3f2f1",
-        borderColor: viewOnlyBorderColor,
-    },
-    thumb: { backgroundColor: "#ffffff", borderColor: viewOnlyBorderColor },
-    text: { color: viewOnlyTextColor },
-});
+// const viewOnlyToggleStyles = (props: IToggleStyleProps): IToggleStyles => ({
+//     root: { marginBottom: 0 },
+//     label: { color: viewOnlyTextColor, fontWeight: 600 },
+//     container: { marginTop: 4 },
+//     pill: {
+//         backgroundColor: props.checked ? "#0078d4" : "#f3f2f1",
+//         borderColor: viewOnlyBorderColor,
+//     },
+//     thumb: { backgroundColor: "#ffffff", borderColor: viewOnlyBorderColor },
+//     text: { color: viewOnlyTextColor },
+// });
 
 const formatDateValue = (value: any): string => {
     if (!value) return "";
@@ -508,10 +508,60 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     //Added New
     const [canShowButtons, setCanShowButtons] = useState(false);
 
+     //Show Child Folder creation button
+    const [hasSelectedFolder, setHasSelectedFolder] = useState(false);
+
+
+    // Workspace page component — runs every time this page mounts
+    useEffect(() => {
+        const resetScroll = () => {
+            // reset window scroll
+            window.scrollTo(0, 0);
+
+            // reset SharePoint's actual scroll container(s)
+            const selectors = [
+                '#spPageCanvasContent',
+                '.SPPageChrome',
+                '[data-automation-id="contentScrollRegion"]',
+            ];
+            selectors.forEach(sel => {
+                const el = document.querySelector(sel) as HTMLElement | null;
+                if (el) el.scrollTop = 0;
+            });
+
+            // force sticky/scroll-aware components (Fluent UI) to recompute position
+            window.dispatchEvent(new Event('scroll'));
+            window.dispatchEvent(new Event('resize'));
+        };
+
+        // run once immediately
+        resetScroll();
+
+        // run again after layout settles (handles late-mounting sticky elements)
+        const rafId = requestAnimationFrame(resetScroll);
+
+        // and once more after a short delay, in case data/content loads async
+        // and pushes the sticky bar's offset after our first two attempts
+        const timeoutId = setTimeout(resetScroll, 150);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            clearTimeout(timeoutId);
+        };
+    }, []);
+
     useEffect(() => {
         void fetchTileData();
         void getAdmin();
     }, []);
+
+       // Reset the "user explicitly picked a folder" flag whenever the workspace
+    // route changes so the "New Folder" button never carries over from a
+    // previously opened workspace/folder.
+    useEffect(() => {
+        setHasSelectedFolder(false);
+    }, [workspaceId]);
+
 
     const fetchTileData = async () => {
         const sp = spfi().using(SPFx(context));
@@ -756,6 +806,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
         if (!tileData?.LibraryName) return;
 
+           // Root is AUTO-selected here on page/tile load, not by an explicit user
+        // click, so the "New Folder" button must stay hidden until the user
+        // actually opens a folder.
+        setHasSelectedFolder(false);
+
         const rootPath = buildLibraryRootPath(context, tileData?.LibraryName);
         const rootChildFolders = await getChildFolders(context, rootPath);
 
@@ -811,6 +866,11 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         if (!selection) return;
 
         const { folder: selectedFolderWithMetadata, requestId } = selection;
+
+          // The user explicitly clicked into this folder (tile, list row, sidebar
+        // tree node, or breadcrumb segment). Only now may the "New Folder"
+        // button become eligible to show.
+        setHasSelectedFolder(true);
 
         setTables(""); // <-- Reset from Archive/Recycle to Folder view
         expandParentFolders(selectedFolderWithMetadata);
@@ -2237,12 +2297,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const isRootFolder =
         selectedFolder?.path === buildLibraryRootPath(context, tileData?.LibraryName);
 
-    const showNewFolderButton =
-        files.length === 0 &&
-        (
-            !isRootFolder ||                    // Any nested folder
-            selectedFolder?.children?.length > 0 // Root with existing children
-        );
+    // const showNewFolderButton =
+    //     files.length === 0 &&
+    //     (
+    //         !isRootFolder ||                    // Any nested folder
+    //         selectedFolder?.children?.length > 0 // Root with existing children
+    //     );
+    	
+  const showNewFolderButton =
+    !!selectedFolder &&
+    folderPathBread.length > 0 &&
+    files.length === 0 &&
+    !isRootFolder;
+
 
     return (
         <div className="workspace-page" data-testid="page-workspace-explorer">

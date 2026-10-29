@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { IDmsLandingPageProps } from "./IDmsLandingPageProps";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { GetAllLabel } from "../../../Services/ControlLabel";
-import { FluentProvider, Toaster, webDarkTheme } from "@fluentui/react-components";
+import { FluentProvider, Toaster, webLightTheme } from "@fluentui/react-components";
 
 import "./styles/index.css";
 import "./styles/components.css";
@@ -41,7 +41,7 @@ export default class DmsLandingPage extends React.Component<IDmsLandingPageProps
     return (
       <div style={{ width: "100vw" }}>
         <HashRouter>
-          <FluentProvider theme={webDarkTheme}>
+          <FluentProvider theme={webLightTheme}>
 
             <div ref={this.toasterMountRef}>
               <Toaster
