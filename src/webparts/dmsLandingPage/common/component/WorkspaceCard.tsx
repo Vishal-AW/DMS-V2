@@ -4,9 +4,7 @@ import {
   Document24Regular,
   Archive24Regular,
   People24Regular,
-  ChevronRight20Regular,
-  Person20Regular,
-  Calendar20Regular
+  ChevronRight20Regular
 } from '@fluentui/react-icons';
 import { format } from "date-fns";
 
@@ -40,6 +38,16 @@ export default function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps
 
   const cardStyle = { '--card-accent': accentColor } as React.CSSProperties;
 
+  // Initials for the owner avatar (e.g. "Chris Roy" -> "CR")
+  const ownerName = workspace.Author?.Title || '';
+  const ownerInitials = ownerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase();
+
   return (
     <div
       className="workspace-card"
@@ -55,7 +63,7 @@ export default function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps
       }}
       aria-label={`Open ${workspace.TileName} workspace`}
     >
-      <div className="workspace-card-accent" />
+      <span className="workspace-card-glow" aria-hidden="true" />
       <div className="workspace-card-body">
         <div className="workspace-card-header-row">
           <div className="workspace-card-icon-wrap">
@@ -64,7 +72,6 @@ export default function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps
           <h3 className="workspace-card-title" data-testid={`text-workspace-title-${workspace.ID}`}>
             {workspace.TileName}
           </h3>
-          <ChevronRight20Regular className="workspace-card-arrow" />
         </div>
 
         <div className="workspace-card-count" data-testid={`badge-doc-count-${workspace.ID}`}>
@@ -72,19 +79,33 @@ export default function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps
           <span className="workspace-card-count-label">Documents</span> */}
         </div>
 
-        <div className="workspace-card-meta">
-          {workspace.Author.Title && (
-            <div className="workspace-card-meta-item" data-testid={`text-workspace-owner-${workspace.ID}`}>
-              <Person20Regular className="workspace-card-meta-icon" />
-              <span>{workspace.Author.Title}</span>
+        <div className="workspace-card-footer">
+          {ownerName && (
+            <div className="workspace-card-owner">
+              <span className="workspace-card-avatar" aria-hidden="true">
+                {ownerInitials}
+              </span>
+              <span className="workspace-card-owner-text">
+                <span
+                  className="workspace-card-owner-name"
+                  data-testid={`text-workspace-owner-${workspace.ID}`}
+                >
+                  {ownerName}
+                </span>
+                {workspace.Created && (
+                  <span className="workspace-card-owner-date">
+                    Created{' '}
+                    <span data-testid={`text-workspace-date-${workspace.ID}`}>
+                      {format(workspace.Created, "MMM dd, yyyy")}
+                    </span>
+                  </span>
+                )}
+              </span>
             </div>
           )}
-          {workspace.Created && (
-            <div className="workspace-card-meta-item" data-testid={`text-workspace-date-${workspace.ID}`}>
-              <Calendar20Regular className="workspace-card-meta-icon" />
-              <span>{format(workspace.Created, "MMM dd, yyyy")}</span>
-            </div>
-          )}
+          <span className="workspace-card-chevron" aria-hidden="true">
+            <ChevronRight20Regular className="workspace-card-arrow" />
+          </span>
         </div>
       </div>
     </div>
