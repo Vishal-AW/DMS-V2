@@ -5,6 +5,7 @@ import {
   Folder20Filled,
   FolderOpen20Filled,
   FolderArrowRight20Regular,
+  ChevronRight12Regular,
   ChevronRight24Regular,
   MoreHorizontal24Regular,
   MoreHorizontalRegular
@@ -54,7 +55,8 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
     onSelect(folder);
   };
 
-  const leftIndent = 10 + Math.min(level, 6) * 14;
+  // ~18px of extra indentation per nesting level, matching the target design.
+  const leftIndent = 8 + Math.min(level, 6) * 18;
 
   const renderFolderIcon = () => {
     if (folder.isLoading) {
@@ -138,6 +140,20 @@ function FolderTreeItem({ folder, level, selectedId, onSelect, onFolderAction, b
           )}
           {hasChildren && (
             <span className="folder-tree-count">{folder.children?.length}</span>
+          )}
+          {hasChildren && (
+            <span
+              className={`folder-tree-chevron ${isExpanded ? 'folder-tree-chevron-expanded' : ''}`}
+              aria-hidden="true"
+              data-testid={`folder-chevron-${folder.id}`}
+              onClick={(e) => {
+                // Reuses the existing row click handler (select + expand/collapse).
+                e.stopPropagation();
+                handleClick();
+              }}
+            >
+              <ChevronRight12Regular />
+            </span>
           )}
         </div>
 

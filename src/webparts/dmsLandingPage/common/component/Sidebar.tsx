@@ -3,7 +3,8 @@ import { IconButton, Text } from '@fluentui/react';
 import {
   Delete20Regular,
   CheckmarkCircle20Regular,
-  Search20Regular
+  Search20Regular,
+  Send20Regular
 } from '@fluentui/react-icons';
 import FolderTree, { FolderNode } from './FolderTree';
 import { IDmsButton } from "../../components/pages/buttonPermissionHelper";
@@ -21,6 +22,14 @@ interface SidebarProps {
   onArchiveClick?: () => void;
   onApprovalClick?: () => void;
   onAdvancedSearchClick?: () => void;
+  /**
+   * TODO (Transmittals): there is no Transmittals route, handler or count
+   * source in the app yet. These two optional props let the item behave
+   * exactly like "Approval" as soon as the caller supplies them; until then
+   * the pill renders 0 and the click is a no-op.
+   */
+  transmittalsCount?: number;
+  onTransmittalsClick?: () => void;
   LibDetails: any;
   buttons: any;
   permittedButtons?: IDmsButton[];
@@ -39,6 +48,8 @@ const Sidebar = ({
   onApprovalClick,
   onAdvancedSearchClick,
   onArchiveClick,
+  transmittalsCount = 0,
+  onTransmittalsClick,
   LibDetails,
   archiveCount,
   buttons,
@@ -63,7 +74,8 @@ const Sidebar = ({
             tabIndex={0}
           >
             <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
-            <span>Archive({archiveCount})</span>
+            <span className="sidebar-quick-link-label">Archive</span>
+            <span className="sidebar-quick-link-count">{archiveCount ?? 0}</span>
           </div>
         )}
 
@@ -76,7 +88,8 @@ const Sidebar = ({
             tabIndex={0}
           >
             <Delete20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-red" />
-            <span>Recycle Bin ({recycleBinCount})</span>
+            <span className="sidebar-quick-link-label">Recycle Bin</span>
+            <span className="sidebar-quick-link-count">{recycleBinCount}</span>
           </div>
         )}
 
@@ -89,7 +102,25 @@ const Sidebar = ({
             tabIndex={0}
           >
             <CheckmarkCircle20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-green" />
-            <span>Approval ({approvalCount})</span>
+            <span className="sidebar-quick-link-label">Approval</span>
+            <span className="sidebar-quick-link-count">{approvalCount}</span>
+          </div>
+        )}
+
+        {/* NEW: Transmittals - same pattern as Approval (icon + label + count pill).
+            TODO: no route/handler/count source exists yet, so the pill is 0 and the
+            click does nothing until onTransmittalsClick / transmittalsCount are passed in. */}
+        {isButtonPermitted("Transmittals") && (
+          <div
+            className="sidebar-quick-link"
+            onClick={onTransmittalsClick}
+            data-testid="link-transmittals"
+            role="button"
+            tabIndex={0}
+          >
+            <Send20Regular className="sidebar-quick-link-icon sidebar-quick-link-icon-blue" />
+            <span className="sidebar-quick-link-label">Transmittals</span>
+            <span className="sidebar-quick-link-count">{transmittalsCount}</span>
           </div>
         )}
 
@@ -102,7 +133,7 @@ const Sidebar = ({
             tabIndex={0}
           >
             <Search20Regular className="sidebar-quick-link-icon" />
-            <span>Advanced Search</span>
+            <span className="sidebar-quick-link-label">Advanced Search</span>
           </div>
         )}
       </div>

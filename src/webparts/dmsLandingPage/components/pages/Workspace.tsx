@@ -2154,7 +2154,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     <div
                         key={node?.id}
                         className="folder-card"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleFolderSelect(node)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                void handleFolderSelect(node);
+                            }
+                        }}
                     >
                         <FluentIcons.Folder20Filled className="folder-icon" />
                         <span className="folder-name">{node?.name}</span>
@@ -2234,19 +2242,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             },
         ];
     }, []);
-
-    const getItemStyle = (type: string) => ({
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        padding: "8px 12px",
-        borderRadius: "6px",
-        cursor: "pointer",
-        backgroundColor: viewListSetting === type ? "#EAF3FC" : "transparent",
-        color: viewListSetting === type ? "#0F6CBD" : "#323130",
-        fontWeight: viewListSetting === type ? 600 : 400,
-        transition: "all 0.2s ease"
-    });
 
     const projectCreation = useCallback(() => { setIsCreateProjectPopupOpen(true); setFormType("EntryForm"); setProjectUpdateData({}); }, []);
     const hasRequiredPermissions = (folderPath: string) => {
@@ -2328,18 +2323,6 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         {tileData?.TileName}
                     </span>
                 </div>
-                <div className="workspace-topbar-actions">
-                    {canCreateRequest && (
-                        <DefaultButton
-                            className="workspace-new-request-btn"
-                            onClick={projectCreation}
-                            data-testid="button-new-request"
-                        >
-                            <Add20Regular className="workspace-btn-icon" />
-                            <span>New Request</span>
-                        </DefaultButton>
-                    )}
-                </div>
             </div>
 
             <div className="workspace-body">
@@ -2391,6 +2374,18 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 ))}
                             </div>
                             <div className="workspace-content-actions">
+                                {/* Primary toolbar action. Moved here from the top bar to match the
+                                    target layout - same handler (projectCreation) and same test id. */}
+                                {canCreateRequest && (
+                                    <DefaultButton
+                                        className="workspace-new-request-btn"
+                                        onClick={projectCreation}
+                                        data-testid="button-new-request"
+                                    >
+                                        <Add20Regular className="workspace-btn-icon" />
+                                        <span>New Request</span>
+                                    </DefaultButton>
+                                )}
                                 {canShowButtons && (
                                     <>
                                         {tables === "" ? <>
@@ -2484,64 +2479,29 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
+                                {/* View switch - same state (viewListSetting) and the same setters,
+                                    restyled as the segmented grid/list toggle from the design. */}
                                 {selectedFolder?.children.length !== 0 && (
-                                    <Menu>
-                                        <MenuTrigger disableButtonEnhancement>
-                                            <Button
-                                                appearance="transparent"
-                                                iconPosition="after"
-                                                icon={<FluentIcons.Board24Regular />}
-                                            />
-                                        </MenuTrigger>
-
-                                        <MenuPopover
-                                            style={{
-                                                padding: "8px",
-                                                borderRadius: "8px",
-                                                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                                                minWidth: "140px"
-                                            }}
+                                    <div className="workspace-view-toggle" role="group" aria-label="View mode">
+                                        <button
+                                            type="button"
+                                            className={`workspace-view-toggle-btn ${viewListSetting !== 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
+                                            aria-pressed={viewListSetting !== 'List View'}
+                                            title="Tiles"
+                                            onClick={() => setViewListSetting('Tiles View')}
                                         >
-                                            <div
-                                                style={getItemStyle('List View')}
-                                                onClick={() => setViewListSetting('List View')}
-                                                onMouseEnter={(e) => {
-                                                    if (viewListSetting !== 'List View')
-                                                        e.currentTarget.style.backgroundColor = "#F3F2F1";
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    if (viewListSetting !== 'List View')
-                                                        e.currentTarget.style.backgroundColor = "transparent";
-                                                }}
-                                            >
-                                                <FluentIcons.List20Regular
-                                                    style={{
-                                                        color: viewListSetting === 'List View' ? "#0F6CBD" : "#605E5C"
-                                                    }}
-                                                />
-                                                List
-                                            </div>
-                                            <div
-                                                style={getItemStyle('Tiles View')}
-                                                onClick={() => setViewListSetting('Tiles View')}
-                                                onMouseEnter={(e) => {
-                                                    if (viewListSetting !== 'Tiles View')
-                                                        e.currentTarget.style.backgroundColor = "#F3F2F1";
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    if (viewListSetting !== 'Tiles View')
-                                                        e.currentTarget.style.backgroundColor = "transparent";
-                                                }}
-                                            >
-                                                <FluentIcons.Grid20Regular
-                                                    style={{
-                                                        color: viewListSetting === 'Tiles View' ? "#0F6CBD" : "#605E5C"
-                                                    }}
-                                                />
-                                                Tiles
-                                            </div>
-                                        </MenuPopover>
-                                    </Menu>
+                                            <FluentIcons.Grid20Regular />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`workspace-view-toggle-btn ${viewListSetting === 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
+                                            aria-pressed={viewListSetting === 'List View'}
+                                            title="List"
+                                            onClick={() => setViewListSetting('List View')}
+                                        >
+                                            <FluentIcons.List20Regular />
+                                        </button>
+                                    </div>
                                 )}
 
                             </div>
