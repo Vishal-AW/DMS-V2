@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DefaultButton, PrimaryButton, PanelType, Panel, DialogType, TextField, TooltipHost, DirectionalHint, Spinner, SpinnerSize, ActionButton, Dropdown, Toggle, IDropdownStyles, IDropdownOption, ITextFieldStyles, IToggleStyles, IToggleStyleProps, IBasePickerStyles } from '@fluentui/react';
-import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular } from '@fluentui/react-icons';
+import { ArrowUpload20Regular, FolderAdd20Regular, Add20Regular, Home20Regular, ChevronRight12Regular, MoreHorizontalRegular, ChevronRight24Regular, ChevronDown24Regular, Send20Regular, LockClosed16Regular } from '@fluentui/react-icons';
 import Sidebar from "../../common/component/Sidebar";
 import { FolderNode } from "../../common/component/FolderTree";
 import { buildBreadcrumbPath, buildFolderHierarchy, buildLibraryRootPath, checkButtons, checkExtension, fileTypeConfig, getAllDocuments, getChildFolders, getOpenAppURL } from "../../common/commonfunction";
@@ -28,7 +28,6 @@ import {
     MenuList,
     MenuItem,
     Button,
-    Badge,
     Input,
     Label,
     Field
@@ -464,6 +463,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [formType, setFormType] = useState("EntryForm");
     const [tables, setTables] = useState("");
     const [viewListSetting, setViewListSetting] = useState("");
+    /* Rows ticked in the document table (drives "Send Transmittal (n)"). */
+    const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
     const [deletedData, setDeletedData] = useState<any>([]);
     const [approvalData, setApprovalData] = useState<any>([]);
     const [archiveData, setArchiveData] = useState<any>([]);
@@ -1803,16 +1804,53 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
     };
 
+    /* ------------------------------------------------------------------ */
+    /* Document row selection (design feature)                             */
+    /* ------------------------------------------------------------------ */
+    const handleDocumentSelectionChange = useCallback((rows: any[]) => {
+        setSelectedDocuments(rows);
+    }, []);
+
+    /** Stable key so the tick state survives sorting / filtering. */
+    const getDocumentRowKey = useCallback(
+        (item: any) => String(item?.id ?? item?.ID ?? item?.Name ?? ""),
+        []
+    );
+
+    /** Accessible name for the row checkbox. */
+    const getDocumentRowAriaLabel = useCallback(
+        (item: any) => `Select ${item?.ListItemAllFields?.ActualName || item?.Name || "document"}`,
+        []
+    );
+
+    // The counter must never survive a folder switch or a table switch
+    // (the grid itself clears its checkboxes through `selectionResetKey`).
+    useEffect(() => {
+        setSelectedDocuments([]);
+    }, [tables, selectedFolder?.path]);
+
+    // TODO(transmittal): the real Send Transmittal flow (panel / service call)
+    // is not part of this change - only the selection + button are added.
+    const handleSendTransmittal = useCallback(() => {
+        console.log("Send Transmittal", selectedDocuments.map((doc: any) => doc?.id ?? doc?.ID));
+    }, [selectedDocuments]);
+
+    /* ------------------------------------------------------------------ */
+    /* Status pill palette (same status values, refreshed colours)         */
+    /* ------------------------------------------------------------------ */
     const getStatusStyles = (status: any) => {
         switch (status) {
             case "Pending With Approver":
-                return { backgroundColor: "#f1faff", color: "#009ef7" };
+                return { backgroundColor: "#eff6ff", color: "#1d4ed8" };
             case "Published":
-                return { backgroundColor: "#e8fff3", color: "#50cd89" };
+                return { backgroundColor: "#ecfdf3", color: "#067647" };
             case "Pending With Publisher":
-                return { backgroundColor: "#fff8dd", color: "#ffc700" };
+                return { backgroundColor: "#fffaeb", color: "#b54708" };
             case "Rejected":
-                return { backgroundColor: "#fff5f8", color: "#ed1c24" };
+                return { backgroundColor: "#fef3f2", color: "#b42318" };
+            default:
+                // Draft / inactive / anything else reads as neutral grey.
+                return { backgroundColor: "#f1f5f9", color: "#475569" };
         }
     };
 
@@ -1857,14 +1895,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         content={`${checkedOutUser?.Title} ${DisplayLabel.CheckedOutThisItem}`}
                         directionalHint={DirectionalHint.rightCenter} // Positioning
                         styles={{
-                            root: { display: 'inline-block', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+                            root: { display: 'inline-flex', alignItems: 'center', maxWidth: '150px', overflow: 'hidden' }
                         }}
                     >
-                        <Icon
-                            iconName={isCheckedOutByCurrentUser ? "CheckedOutByYou12" : "CheckedOutByOther12"}
-                            style={{ marginLeft: "5px", marginTop: '5px', color: isCheckedOutByCurrentUser ? "#a4262c" : "#605e5c", cursor: "pointer" }}
-                        />
-
+                        <span
+                            className={`doc-checkout-pill ${isCheckedOutByCurrentUser ? "doc-checkout-pill-mine" : "doc-checkout-pill-other"}`}
+                        >
+                            <LockClosed16Regular className="doc-checkout-icon" />
+                            <span className="doc-checkout-text">Checked out</span>
+                        </span>
                     </TooltipHost>
                 )}
             </div>
@@ -2081,7 +2120,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 field: "ListItemAllFields.Level",
                 maxWidth: 80,
                 cellRenderer: (item: any) =>
-                    <span className="table-cell-text table-cell-version" data-testid={`text-version-${item.id}`}>
+                    <span className="table-cell-text table-cell-version doc-version-pill" data-testid={`text-version-${item.id}`}>
                         v{item.data?.Name?.split(".").pop() === "pdf" ? item?.data?.ListItemAllFields?.Level : item?.data?.ListItemAllFields?.OData__UIVersionString}
                     </span>
             },
@@ -2091,14 +2130,14 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                 sortable: true,
                 field: "ListItemAllFields.DisplayStatus",
                 cellRenderer: (item: any) => {
-                    const style = getStatusStyles(item.data.ListItemAllFields.DisplayStatus);
-                    return <div>
-                        <Badge
-                            style={{ ...style }}
-                        >
-                            {item.data.ListItemAllFields.DisplayStatus}
-                        </Badge>
-                    </div>;
+                    const status = item.data.ListItemAllFields.DisplayStatus;
+                    const style = getStatusStyles(status);
+                    return (
+                        <span className="doc-status-pill" style={{ ...style }}>
+                            <span className="doc-status-dot" style={{ backgroundColor: style.color }} />
+                            {status}
+                        </span>
+                    );
                 }
             },
             {
@@ -2113,6 +2152,8 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                         <MenuTrigger disableButtonEnhancement>
                             <Button
                                 appearance="subtle"
+                                className="doc-action-btn"
+                                aria-label="More document actions"
                                 icon={<MoreHorizontalRegular className="table-action-btn" />}
                             />
                         </MenuTrigger>
@@ -2264,7 +2305,19 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         }
         else {
             return (!selectedFolder?.children || selectedFolder?.children.length === 0) ?
-                <ReusableDataTable rowData={files} columnDefs={columns} />
+                <div className="workspace-doc-table-card">
+                    <div className="workspace-doc-table-card-body">
+                        <ReusableDataTable
+                            rowData={files}
+                            columnDefs={columns}
+                            selectionEnabled
+                            getRowKey={getDocumentRowKey}
+                            getRowAriaLabel={getDocumentRowAriaLabel}
+                            onSelectionChange={handleDocumentSelectionChange}
+                            selectionResetKey={selectedFolder?.path ?? ""}
+                        />
+                    </div>
+                </div>
                 :
                 <div>
                     {viewListSetting === "List View" ? (
@@ -2478,6 +2531,25 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 )}
 
 
+
+                                {/* Row-selection action. Disabled until at least one
+                                    document is ticked; the handler is a placeholder. */}
+                                {tables === "" && (!selectedFolder?.children || selectedFolder?.children.length === 0) && (
+                                    <button
+                                        type="button"
+                                        className="workspace-send-transmittal-btn"
+                                        onClick={handleSendTransmittal}
+                                        disabled={selectedDocuments.length === 0}
+                                        title={
+                                            selectedDocuments.length === 0
+                                                ? "Select one or more documents to send a transmittal"
+                                                : `Send ${selectedDocuments.length} selected document(s) as a transmittal`
+                                        }
+                                    >
+                                        <Send20Regular className="workspace-btn-icon" />
+                                        <span>Send Transmittal ({selectedDocuments.length})</span>
+                                    </button>
+                                )}
 
                                 {/* View switch - same state (viewListSetting) and the same setters,
                                     restyled as the segmented grid/list toggle from the design. */}

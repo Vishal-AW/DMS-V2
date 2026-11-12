@@ -3031,3 +3031,431 @@ body {
   min-height: 20px;
   padding: 2px 0;
 }
+
+/* =====================================================================
+   Workspace document list - target design restyle
+   (breadcrumb card, toolbar, table card, status/version pills, footer)
+   Only presentation: no markup contract, test ids or handlers change.
+   ===================================================================== */
+
+/* ---------- Breadcrumb card + toolbar band ---------- */
+.workspace-content-header {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  margin-bottom: 16px;
+  background-color: #ffffff;
+  border: 1px solid #e6ebf3;
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.workspace-folder-breadcrumb {
+  gap: 2px;
+  min-height: 22px;
+  padding-bottom: 12px;
+}
+
+.workspace-folder-breadcrumb-item {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.workspace-folder-breadcrumb-item:hover {
+  color: #1a6fe8;
+  background-color: #eff6ff;
+  text-decoration: none;
+}
+
+.workspace-folder-breadcrumb-current,
+.workspace-folder-breadcrumb-current:hover {
+  color: #0f172a;
+  background-color: transparent;
+  font-weight: 600;
+}
+
+.workspace-folder-breadcrumb-chevron {
+  margin: 0 2px;
+  color: #cbd5e1;
+}
+
+/* Toolbar row sits under the breadcrumb, separated by a hairline. */
+.workspace-content-header .workspace-content-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+}
+
+/* ---------- Send Transmittal (row selection action) ---------- */
+.workspace-send-transmittal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #1a6fe8;
+  background-color: #1a6fe8;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(26, 111, 232, 0.24);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+.workspace-send-transmittal-btn .workspace-btn-icon {
+  color: #ffffff;
+}
+
+.workspace-send-transmittal-btn:hover:not(:disabled) {
+  background-color: #135cc9;
+  border-color: #135cc9;
+  box-shadow: 0 4px 10px rgba(26, 111, 232, 0.28);
+}
+
+.workspace-send-transmittal-btn:focus-visible {
+  outline: 2px solid #1a6fe8;
+  outline-offset: 2px;
+}
+
+.workspace-send-transmittal-btn:disabled {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.workspace-send-transmittal-btn:disabled .workspace-btn-icon {
+  color: #94a3b8;
+}
+
+/* ---------- Table card ---------- */
+.workspace-doc-table-card {
+  background-color: #ffffff;
+  border: 1px solid #e6ebf3;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.workspace-doc-table-card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 8px 0;
+}
+
+/* The grid fills the card instead of the fixed 600px used elsewhere. */
+.workspace-doc-table-card .reusable-data-table-selection {
+  height: 100%;
+  min-height: 460px;
+}
+
+/* ---------- AG Grid cells, header, rows (scoped to the document card) ---- */
+.workspace-doc-table-card .ag-header {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.workspace-doc-table-card .ag-header-cell,
+.workspace-doc-table-card .ag-header-group-cell {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.workspace-doc-table-card .ag-header-cell-text {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.workspace-doc-table-card .ag-header-cell-resize::after {
+  background-color: transparent;
+}
+
+.workspace-doc-table-card .ag-cell {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #334155;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.workspace-doc-table-card .ag-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 120ms ease;
+}
+
+.workspace-doc-table-card .ag-row-hover {
+  background-color: #f8fafc;
+}
+
+/* Selected row (checkbox / header checkbox) */
+.workspace-doc-table-card .ag-row-selected,
+.workspace-doc-table-card .ag-row-selected.ag-row-hover {
+  background-color: #e8f0fe;
+}
+
+.workspace-doc-table-card .ag-row-selected .table-cell-link {
+  color: #0b4fd0;
+}
+
+/* Keyboard focus stays visible */
+.workspace-doc-table-card .ag-cell:focus-within {
+  outline: none;
+}
+
+.workspace-doc-table-card .ag-row:focus-within .ag-cell {
+  box-shadow: none;
+}
+
+.workspace-doc-table-card .ag-cell.ag-cell-focus:not(.ag-cell-range-selected):focus-within {
+  border-color: transparent;
+  outline: 2px solid #1a6fe8;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+/* Selection column + checkboxes */
+.workspace-doc-table-card .ag-selection-checkbox {
+  margin-right: 0;
+}
+
+.workspace-doc-table-card .ag-checkbox-input-wrapper {
+  border-radius: 4px;
+}
+
+.workspace-doc-table-card .ag-checkbox-input-wrapper::after {
+  font-size: 12px;
+}
+
+.workspace-doc-table-card .ag-checkbox-input-wrapper.ag-checked::after,
+.workspace-doc-table-card .ag-checkbox-input-wrapper.ag-indeterminate::after {
+  color: #ffffff;
+}
+
+/* Keep the file icon + name aligned inside a 60px row */
+.workspace-doc-table-card .doc-name-cell {
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.workspace-doc-table-card .table-cell-link {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-doc-table-card .table-cell-link:hover {
+  color: #1a6fe8;
+}
+
+/* ---------- Version pill ---------- */
+.workspace-doc-table-card .doc-version-pill,
+.workspace-doc-table-card .table-cell-version {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background-color: #f1f5f9;
+  border: 1px solid #e6ebf3;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ---------- Status pill (dot + pastel label) ---------- */
+.doc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: currentColor;
+}
+
+/* ---------- Checked-out pill (was a bare icon) ---------- */
+.doc-checkout-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+/* Keep the pill from being squeezed by a long file name */
+.workspace-doc-table-card .doc-name-cell .ms-TooltipHost {
+  flex-shrink: 0;
+}
+
+.doc-checkout-pill-other {
+  background-color: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+.doc-checkout-pill-mine {
+  background-color: #fff4ed;
+  color: #b93815;
+  border: 1px solid #fdd7c0;
+}
+
+.doc-checkout-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.doc-checkout-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Row action button (circular hover target) ---------- */
+.workspace-doc-table-card .doc-action-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border-radius: 50%;
+  color: #64748b;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.workspace-doc-table-card .doc-action-btn:hover {
+  background-color: #eef2f7;
+  color: #1a6fe8;
+}
+
+.workspace-doc-table-card .doc-action-btn:focus-visible {
+  outline: 2px solid #1a6fe8;
+  outline-offset: 1px;
+}
+
+/* ---------- Grid footer (pagination) ---------- */
+.workspace-doc-table-card .ag-paging-panel {
+  height: 52px;
+  padding: 0 16px;
+  border-top: 1px solid #eef2f7;
+  background-color: #ffffff;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 14px;
+}
+
+.workspace-doc-table-card .ag-paging-description,
+.workspace-doc-table-card .ag-paging-row-summary-panel,
+.workspace-doc-table-card .ag-paging-panel .ag-label {
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.workspace-doc-table-card .ag-paging-button {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #1a6fe8;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.workspace-doc-table-card .ag-paging-button:hover:not(.ag-disabled):not(:disabled):not([disabled]) {
+  background-color: #eff6ff;
+}
+
+.workspace-doc-table-card .ag-paging-button.ag-disabled,
+.workspace-doc-table-card .ag-paging-button:disabled,
+.workspace-doc-table-card .ag-paging-button[disabled] {
+  color: #cbd5e1;
+  cursor: default;
+}
+
+.workspace-doc-table-card .ag-paging-button:focus-visible {
+  outline: 2px solid #1a6fe8;
+  outline-offset: 1px;
+}
+
+.workspace-doc-table-card .ag-select .ag-picker-field-wrapper {
+  min-height: 30px;
+  border-radius: 6px;
+  border-color: #e2e8f0;
+  background-color: #ffffff;
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.workspace-doc-table-card .ag-select .ag-picker-field-wrapper:focus-within {
+  outline: 2px solid #1a6fe8;
+  outline-offset: 1px;
+}
+
+/* ---------- Small screens: keep the card comfortable ---------- */
+@media (max-width: 900px) {
+  .workspace-content-header {
+    padding: 12px 14px;
+  }
+
+  .workspace-content-header .workspace-content-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Motion preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .workspace-send-transmittal-btn,
+  .workspace-folder-breadcrumb-item,
+  .workspace-doc-table-card .ag-row,
+  .workspace-doc-table-card .doc-action-btn,
+  .workspace-doc-table-card .ag-paging-button {
+    transition: none;
+  }
+}
+
