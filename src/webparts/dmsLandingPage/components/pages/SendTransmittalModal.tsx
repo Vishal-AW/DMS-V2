@@ -26,7 +26,7 @@ export interface ISendTransmittalModalProps {
      * Called once every copy was added to "ProjectTransmittals" with its metadata.
      * Hook the cover-sheet / mailto step here; it is never called for a failed run.
      * It may return a promise; the popup stays in "Sending…" until it resolves and
-     * only closes afterwards.
+     * closes afterwards. The parent owns the success confirmation popup.
      */
     onSent?: (results: ITransmittalDocumentResult[], form: ISendTransmittalForm) => void | Promise<void>;
 }
@@ -120,21 +120,16 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
     const [emailError, setEmailError] = useState("");
     const [submitError, setSubmitError] = useState("");
     const [isSending, setIsSending] = useState(false);
-    /** File names of a completed run; as soon as it is set the success view is shown. */
-    const [sentFileNames, setSentFileNames] = useState<string[] | null>(null);
 
     /** Wrapper around the PeoplePicker - used to focus the picker's inner input. */
     const pickerWrapRef = useRef<HTMLDivElement>(null);
     const cardRef = useRef<HTMLDivElement>(null);
-    const doneButtonRef = useRef<HTMLButtonElement>(null);
     const previouslyFocusedRef = useRef<HTMLElement | null>(null);
     /**
      * Results of a successful upload. Kept so a failure in the cover-sheet / e-mail
      * step can be retried without copying the documents a second time.
      */
     const uploadedResultsRef = useRef<ITransmittalDocumentResult[] | null>(null);
-    /** True while the success view is shown (see the reset effect below). */
-    const successVisibleRef = useRef(false);
 
     const transmittalDocuments = useMemo<ITransmittalDocument[]>(
         () => (documents || []).map(toTransmittalDocument),
@@ -142,14 +137,8 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
     );
 
     // A fresh popup (or a different selection) always starts with a clean upload state.
-    // The success view is the exception: the parent clears the table selection right
-    // after a successful send, which also changes `documents`, and that must not hide
-    // the confirmation while it is on screen.
     useEffect(() => {
         uploadedResultsRef.current = null;
-        if (!successVisibleRef.current) {
-            setSentFileNames(null);
-        }
     }, [transmittalDocuments]);
 
     /**
@@ -198,20 +187,8 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
         };
     }, [focusPicker]);
 
-    // Move the focus to "Done" as soon as the success view replaces the form.
-    useEffect(() => {
-        if (sentFileNames) {
-            doneButtonRef.current?.focus();
-        }
-    }, [sentFileNames]);
-
-    /**
-     * Leaves the popup. The success flag is cleared here too, so a popup that stays
-     * mounted (or is opened again) never re-opens on a stale confirmation.
-     */
+    /** Leaves the popup; the parent then shows the shared confirmation popup. */
     const dismiss = useCallback(() => {
-        successVisibleRef.current = false;
-        setSentFileNames(null);
         onDismiss();
     }, [onDismiss]);
 
@@ -326,12 +303,12 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
             return;
         }
 
-        // Success - the dialog stays open and shows the confirmation instead of closing.
+        // Success - hand over to the parent, which shows the shared confirmation popup.
+        // Closing this dialog keeps exactly one confirmation on screen.
         storeUploadedResults(null);
-        successVisibleRef.current = true;
-        setSentFileNames(results.map((result) => result.document.actualName || result.document.name));
         setIsSending(false);
-    }, [clientEmail, context, focusPicker, isSending, onSent, remarks, storeUploadedResults, subject, transmittalDocuments]);
+        onDismiss();
+    }, [clientEmail, context, focusPicker, isSending, onDismiss, onSent, remarks, storeUploadedResults, subject, transmittalDocuments]);
 
     const documentCount = transmittalDocuments.length;
 
@@ -350,9 +327,7 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
                     <div className="stm-header-text">
                         <h2 id="stm-title" className="stm-title">Send Transmittal</h2>
                         <p id="stm-subtitle" className="stm-subtitle">
-                            {sentFileNames
-                                ? "Transmittal complete"
-                                : `${documentCount} document${documentCount === 1 ? "" : "s"} selected`}
+                            {`${documentCount} document${documentCount === 1 ? "" : "s"} selected`}
                         </p>
                     </div>
                     <button
@@ -366,176 +341,126 @@ const SendTransmittalModal: React.FC<ISendTransmittalModalProps> = ({
                     </button>
                 </div>
 
-                {/* Form view - replaced by the success view once the copies are in. */}
-                {!sentFileNames && (
-                    <>
-                        <div className="stm-field">
-                            <label className="stm-label">
-                                Client email <span aria-hidden="true" style={{ color: "#dc2626" }}>*</span>
-                            </label>
-                            <div
-                                ref={pickerWrapRef}
-                                className={`stm-picker${emailError ? " stm-picker-invalid" : ""}`}
-                                aria-describedby={emailError ? "stm-client-email-error" : undefined}
-                            >
-                                <PeoplePicker
-                                    context={peoplePickerContext}
-                                    personSelectionLimit={5}
-                                    showtooltip={true}
-                                    showHiddenInUI={false}
-                                    ensureUser={true}
-                                    principalTypes={[PrincipalType.User]}
-                                    placeholder="client@company.com"
-                                    disabled={isSending}
-                                    onChange={(users: any[]) => {
-                                        // The picker exposes the user's e-mail in secondaryText.
-                                        const emails = (users || [])
-                                            .map((user) => (user && typeof user.secondaryText === "string"
-                                                ? user.secondaryText.trim()
-                                                : ""))
-                                            .filter((email) => email.length > 0);
-
-                                        setSelectedClientEmails(emails);
-                                        setClientEmail(emails.join(", "));
-
-                                        if (emails.length > 0) {
-                                            setEmailError("");
-                                        }
-                                    }}
-                                    defaultSelectedUsers={selectedClientEmails}
-                                />
-                            </div>
-                            {emailError && (
-                                <div id="stm-client-email-error" className="stm-field-error" role="alert">
-                                    {emailError}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="stm-field">
-                            <label className="stm-label" htmlFor="stm-subject">Subject</label>
-                            <input
-                                id="stm-subject"
-                                className="stm-input"
-                                type="text"
-                                value={subject}
-                                onChange={(event) => setSubject(event.target.value)}
-                                disabled={isSending}
-                            />
-                        </div>
-
-                        <div className="stm-field">
-                            <label className="stm-label" htmlFor="stm-remarks">Remarks (optional)</label>
-                            <textarea
-                                id="stm-remarks"
-                                className="stm-textarea"
-                                rows={3}
-                                value={remarks}
-                                onChange={(event) => setRemarks(event.target.value)}
-                                disabled={isSending}
-                            />
-                        </div>
-
-                        <div className="stm-docs">
-                            <div className="stm-docs-header">Documents included ({documentCount})</div>
-                            <div className="stm-docs-list">
-                                {documentCount === 0 && (
-                                    <div className="stm-docs-empty">No documents selected.</div>
-                                )}
-                                {transmittalDocuments.map((document, index) => {
-                                    const badge = getFileBadge(document);
-                                    const meta = getDocumentMeta(document);
-
-                                    return (
-                                        <div className="stm-doc-row" key={`${document.id}-${index}`}>
-                                            <span className={`stm-doc-badge ${badge.modifierClass}`} aria-hidden="true">
-                                                {badge.label || <Document20Regular />}
-                                            </span>
-                                            <span className="stm-doc-name" title={document.actualName}>
-                                                {document.actualName}
-                                            </span>
-                                            {meta && <span className="stm-doc-meta">{meta}</span>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <p className="stm-note">
-                            Each selected document is copied into Project Transmittals and tagged with its reference, level and
-                            the transmittal status. The original files stay untouched in the current folder.
-                        </p>
-
-                        {submitError && (
-                            <div className="stm-global-error" role="alert">{submitError}</div>
-                        )}
-
-                        <div className="stm-actions">
-                            <button
-                                type="button"
-                                className="stm-btn stm-btn-secondary"
-                                onClick={handleCancel}
-                                disabled={isSending}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="stm-btn stm-btn-primary"
-                                onClick={handleSubmit}
-                                disabled={isSending}
-                                aria-busy={isSending}
-                            >
-                                {isSending ? "Sending…" : "Generate & Send"}
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {sentFileNames && (
+                <div className="stm-field">
+                    <label className="stm-label">
+                        Client email <span aria-hidden="true" style={{ color: "#dc2626" }}>*</span>
+                    </label>
                     <div
-                        className="stm-success"
-                        role="status"
-                        aria-live="polite"
-                        data-testid="modal-transmittal-success"
+                        ref={pickerWrapRef}
+                        className={`stm-picker${emailError ? " stm-picker-invalid" : ""}`}
+                        aria-describedby={emailError ? "stm-client-email-error" : undefined}
                     >
-                        <span className="stm-success-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="34" height="34" focusable="false">
-                                <path
-                                    d="M5 12.6l4.6 4.6L19 7.6"
-                                    fill="none"
-                                    stroke="#15803d"
-                                    strokeWidth="2.4"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                            </svg>
-                        </span>
-                        <h3 className="stm-success-title">Transmittal sent</h3>
-                        <p className="stm-success-text">
-                            {`${sentFileNames.length} document${sentFileNames.length === 1 ? " was" : "s were"} added to Project Transmittals.`}
-                        </p>
-                        {sentFileNames.length > 0 && (
-                            <ul className="stm-success-list">
-                                {sentFileNames.map((fileName, index) => (
-                                    <li className="stm-success-item" key={`${fileName}-${index}`} title={fileName}>
-                                        {fileName}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        <div className="stm-actions">
-                            <button
-                                ref={doneButtonRef}
-                                type="button"
-                                className="stm-btn stm-btn-primary"
-                                onClick={dismiss}
-                            >
-                                Done
-                            </button>
-                        </div>
+                        <PeoplePicker
+                            context={peoplePickerContext}
+                            personSelectionLimit={5}
+                            showtooltip={true}
+                            showHiddenInUI={false}
+                            ensureUser={true}
+                            principalTypes={[PrincipalType.User]}
+                            placeholder="client@company.com"
+                            disabled={isSending}
+                            onChange={(users: any[]) => {
+                                // The picker exposes the user's e-mail in secondaryText.
+                                const emails = (users || [])
+                                    .map((user) => (user && typeof user.secondaryText === "string"
+                                        ? user.secondaryText.trim()
+                                        : ""))
+                                    .filter((email) => email.length > 0);
+
+                                setSelectedClientEmails(emails);
+                                setClientEmail(emails.join(", "));
+
+                                if (emails.length > 0) {
+                                    setEmailError("");
+                                }
+                            }}
+                            defaultSelectedUsers={selectedClientEmails}
+                        />
                     </div>
+                    {emailError && (
+                        <div id="stm-client-email-error" className="stm-field-error" role="alert">
+                            {emailError}
+                        </div>
+                    )}
+                </div>
+
+                <div className="stm-field">
+                    <label className="stm-label" htmlFor="stm-subject">Subject</label>
+                    <input
+                        id="stm-subject"
+                        className="stm-input"
+                        type="text"
+                        value={subject}
+                        onChange={(event) => setSubject(event.target.value)}
+                        disabled={isSending}
+                    />
+                </div>
+
+                <div className="stm-field">
+                    <label className="stm-label" htmlFor="stm-remarks">Remarks (optional)</label>
+                    <textarea
+                        id="stm-remarks"
+                        className="stm-textarea"
+                        rows={3}
+                        value={remarks}
+                        onChange={(event) => setRemarks(event.target.value)}
+                        disabled={isSending}
+                    />
+                </div>
+
+                <div className="stm-docs">
+                    <div className="stm-docs-header">Documents included ({documentCount})</div>
+                    <div className="stm-docs-list">
+                        {documentCount === 0 && (
+                            <div className="stm-docs-empty">No documents selected.</div>
+                        )}
+                        {transmittalDocuments.map((document, index) => {
+                            const badge = getFileBadge(document);
+                            const meta = getDocumentMeta(document);
+
+                            return (
+                                <div className="stm-doc-row" key={`${document.id}-${index}`}>
+                                    <span className={`stm-doc-badge ${badge.modifierClass}`} aria-hidden="true">
+                                        {badge.label || <Document20Regular />}
+                                    </span>
+                                    <span className="stm-doc-name" title={document.actualName}>
+                                        {document.actualName}
+                                    </span>
+                                    {meta && <span className="stm-doc-meta">{meta}</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <p className="stm-note">
+                    Each selected document is copied into Project Transmittals and tagged with its reference, level and
+                    the transmittal status. The original files stay untouched in the current folder.
+                </p>
+
+                {submitError && (
+                    <div className="stm-global-error" role="alert">{submitError}</div>
                 )}
+
+                <div className="stm-actions">
+                    <button
+                        type="button"
+                        className="stm-btn stm-btn-secondary"
+                        onClick={handleCancel}
+                        disabled={isSending}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        className="stm-btn stm-btn-primary"
+                        onClick={handleSubmit}
+                        disabled={isSending}
+                        aria-busy={isSending}
+                    >
+                        {isSending ? "Sending…" : "Generate & Send"}
+                    </button>
+                </div>
 
             </div>
         </div>,
