@@ -51,7 +51,8 @@ const ReusableDataTable: React.FC<IReusableDataTableComponentProps> = ({
                 // every other table keeps its current appearance.
                 ...(selectionEnabled
                     ? {
-                        rowHeight: 60,
+                        rowHeight: 76,
+                        headerHeight: 48,
                         headerTextColor: "#475569",
                         selectedRowBackgroundColor: "#e8f0fe",
                         checkboxBorderRadius: 4,

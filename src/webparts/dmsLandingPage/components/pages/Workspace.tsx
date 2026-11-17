@@ -51,6 +51,20 @@ import ApprovalFlow from "../../common/component/ApprovalFlow";
 import PageLoader from "../../common/component/PageLoader";
 import { getPermittedButtons } from "./ButtonsService";
 import { IDmsButton } from "./buttonPermissionHelper";
+import SendTransmittalModal from "./SendTransmittalModal";
+import { ITransmittalDocumentResult } from "../../../../Services/TransmittalService";
+
+/**
+ * Compact letter shown inside the small file-type badge of the document list.
+ * Only a visual mapping - the file type itself is still resolved from the
+ * existing `fileTypeConfig` lookup. Types without an entry keep their Fluent
+ * document icon.
+ */
+const FILE_TYPE_BADGE_LABELS: Record<string, string> = {
+    docx: "W",
+    xlsx: "X",
+    pdf: "PDF",
+};
 
 
 
@@ -465,6 +479,9 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [viewListSetting, setViewListSetting] = useState("");
     /* Rows ticked in the document table (drives "Send Transmittal (n)"). */
     const [selectedDocuments, setSelectedDocuments] = useState<any[]>([]);
+    const [isSendTransmittalOpen, setIsSendTransmittalOpen] = useState<boolean>(false);
+    /* Bumped after a successful transmittal so the grid drops its tick marks. */
+    const [selectionResetCounter, setSelectionResetCounter] = useState<number>(0);
     const [deletedData, setDeletedData] = useState<any>([]);
     const [approvalData, setApprovalData] = useState<any>([]);
     const [archiveData, setArchiveData] = useState<any>([]);
@@ -1827,27 +1844,54 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     // (the grid itself clears its checkboxes through `selectionResetKey`).
     useEffect(() => {
         setSelectedDocuments([]);
+        setIsSendTransmittalOpen(false);
     }, [tables, selectedFolder?.path]);
 
-    // TODO(transmittal): the real Send Transmittal flow (panel / service call)
-    // is not part of this change - only the selection + button are added.
+    /* Opens the Send Transmittal dialog for the currently ticked documents. */
     const handleSendTransmittal = useCallback(() => {
-        console.log("Send Transmittal", selectedDocuments.map((doc: any) => doc?.id ?? doc?.ID));
-    }, [selectedDocuments]);
+        if (selectedDocuments.length === 0) {
+            return;
+        }
+        setIsSendTransmittalOpen(true);
+    }, [selectedDocuments.length]);
+
+    const dismissSendTransmittal = useCallback(() => {
+        setIsSendTransmittalOpen(false);
+    }, []);
+
+    /*
+     * Every copy made it into Project Transmittals: clear the tick marks (the
+     * grid resets through `selectionResetKey`) and confirm with the shared popup.
+     */
+    // TODO(transmittal): the cover-sheet / mailto step does not exist in this
+    // page yet. When it is added it must run only after the upload resolved and
+    // must use the second `onSent` argument (`clientEmails`, `subject`, `remarks`).
+    const handleTransmittalSent = useCallback((results: ITransmittalDocumentResult[]) => {
+        const copied = results.length;
+        setSelectedDocuments([]);
+        setSelectionResetCounter((value) => value + 1);
+        setAlertMsg(`${copied} document${copied === 1 ? "" : "s"} added to Project Transmittals.`);
+        setPopupType("success");
+        setIsPopupBoxVisible(true);
+    }, []);
 
     /* ------------------------------------------------------------------ */
     /* Status pill palette (same status values, refreshed colours)         */
     /* ------------------------------------------------------------------ */
     const getStatusStyles = (status: any) => {
         switch (status) {
-            case "Pending With Approver":
-                return { backgroundColor: "#eff6ff", color: "#1d4ed8" };
             case "Published":
-                return { backgroundColor: "#ecfdf3", color: "#067647" };
+                return { backgroundColor: "#dcfce7", color: "#15803d" };
+            case "In Review":
+                return { backgroundColor: "#fef3c7", color: "#a16207" };
+            case "Approved":
+            case "Pending With Approver":
+                return { backgroundColor: "#dbeafe", color: "#1d4ed8" };
             case "Pending With Publisher":
-                return { backgroundColor: "#fffaeb", color: "#b54708" };
+                return { backgroundColor: "#fef3c7", color: "#a16207" };
             case "Rejected":
                 return { backgroundColor: "#fef3f2", color: "#b42318" };
+            case "Draft":
             default:
                 // Draft / inactive / anything else reads as neutral grey.
                 return { backgroundColor: "#f1f5f9", color: "#475569" };
@@ -1858,13 +1902,20 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
         const ext = item.Name.split(".").pop();
         const config = fileTypeConfig[ext] || fileTypeConfig.other;
         const { IconName, className } = config;
+        // Compact letter badge for Word / Excel / PDF. Every other type keeps
+        // its Fluent document icon.
+        const badgeLabel = FILE_TYPE_BADGE_LABELS[(ext || "").toLowerCase()];
         const checkedOutUser = item?.CheckedOutByUser;
         const isCheckedOut = item?.CheckOutType === 0;
         const isCheckedOutByCurrentUser = checkedOutUser?.Id === UserID;
         return (
             <div className="doc-name-cell" data-testid={`link-document-${item.id}`}>
                 <div className={`doc-icon-wrap ${className}`}>
-                    <IconName className="doc-icon-svg" />
+                    {badgeLabel ? (
+                        <span className="doc-file-badge" aria-hidden="true">{badgeLabel}</span>
+                    ) : (
+                        <IconName className="doc-icon-svg" />
+                    )}
                 </div>
                 <span
                     className="table-cell-link"
@@ -2314,7 +2365,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                             getRowKey={getDocumentRowKey}
                             getRowAriaLabel={getDocumentRowAriaLabel}
                             onSelectionChange={handleDocumentSelectionChange}
-                            selectionResetKey={selectedFolder?.path ?? ""}
+                            selectionResetKey={`${selectedFolder?.path ?? ""}|${selectionResetCounter}`}
                         />
                     </div>
                 </div>
@@ -2410,23 +2461,54 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                     )}
                     {selectedFolder && folderPathBread.length > 0 && (
                         <div className="workspace-content-header">
-                            <div className="workspace-folder-breadcrumb" data-testid="nav-folder-breadcrumb">
-                                {folderPathBread.map((node, i) => (
-                                    <span key={node.id} className="workspace-folder-breadcrumb-segment">
-                                        {i > 0 && <ChevronRight12Regular className="workspace-folder-breadcrumb-chevron" />}
-                                        <span
-                                            className={`workspace-folder-breadcrumb-item ${i === folderPathBread.length - 1 ? 'workspace-folder-breadcrumb-current' : ''}`}
-                                            onClick={() => {
-                                                if (i < folderPathBread.length - 1) handleFolderSelect(node);
-                                            }}
-                                            data-testid={`breadcrumb-folder-${node.id}`}
-                                        >
-                                            {node.name}
+                            {/* Breadcrumb: its own slim white card with the blue accent edge */}
+                            <div className="workspace-breadcrumb-card">
+                                <div className="workspace-folder-breadcrumb" data-testid="nav-folder-breadcrumb">
+                                    {folderPathBread.map((node, i) => (
+                                        <span key={node.id} className="workspace-folder-breadcrumb-segment">
+                                            {i > 0 && <ChevronRight12Regular className="workspace-folder-breadcrumb-chevron" />}
+                                            <span
+                                                className={`workspace-folder-breadcrumb-item ${i === folderPathBread.length - 1 ? 'workspace-folder-breadcrumb-current' : ''}`}
+                                                onClick={() => {
+                                                    if (i < folderPathBread.length - 1) handleFolderSelect(node);
+                                                }}
+                                                data-testid={`breadcrumb-folder-${node.id}`}
+                                            >
+                                                {node.name}
+                                            </span>
                                         </span>
-                                    </span>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                            <div className="workspace-content-actions">
+
+                            {/* Toolbar: view switch on the left, actions right-aligned */}
+                            <div className="workspace-toolbar">
+                                {/* View switch - same state (viewListSetting) and the same setters,
+                                    restyled as the segmented grid/list toggle from the design. */}
+                                {selectedFolder?.children.length !== 0 && (
+                                    <div className="workspace-view-toggle" role="group" aria-label="View mode">
+                                        <button
+                                            type="button"
+                                            className={`workspace-view-toggle-btn ${viewListSetting !== 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
+                                            aria-pressed={viewListSetting !== 'List View'}
+                                            title="Tiles"
+                                            onClick={() => setViewListSetting('Tiles View')}
+                                        >
+                                            <FluentIcons.Grid20Regular />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`workspace-view-toggle-btn ${viewListSetting === 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
+                                            aria-pressed={viewListSetting === 'List View'}
+                                            title="List"
+                                            onClick={() => setViewListSetting('List View')}
+                                        >
+                                            <FluentIcons.List20Regular />
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="workspace-content-actions">
                                 {/* Primary toolbar action. Moved here from the top bar to match the
                                     target layout - same handler (projectCreation) and same test id. */}
                                 {canCreateRequest && (
@@ -2551,31 +2633,7 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                     </button>
                                 )}
 
-                                {/* View switch - same state (viewListSetting) and the same setters,
-                                    restyled as the segmented grid/list toggle from the design. */}
-                                {selectedFolder?.children.length !== 0 && (
-                                    <div className="workspace-view-toggle" role="group" aria-label="View mode">
-                                        <button
-                                            type="button"
-                                            className={`workspace-view-toggle-btn ${viewListSetting !== 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
-                                            aria-pressed={viewListSetting !== 'List View'}
-                                            title="Tiles"
-                                            onClick={() => setViewListSetting('Tiles View')}
-                                        >
-                                            <FluentIcons.Grid20Regular />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`workspace-view-toggle-btn ${viewListSetting === 'List View' ? 'workspace-view-toggle-btn-active' : ''}`}
-                                            aria-pressed={viewListSetting === 'List View'}
-                                            title="List"
-                                            onClick={() => setViewListSetting('List View')}
-                                        >
-                                            <FluentIcons.List20Regular />
-                                        </button>
-                                    </div>
-                                )}
-
+                                </div>
                             </div>
                         </div>
                     )}
@@ -2709,6 +2767,15 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
             <ConfirmationDialog hideDialog={hideDialogCheckOut} closeDialog={closeDialogCheckOut} handleConfirm={handleConfirmCheckOut} msg={message} />
             <PopupBox isPopupBoxVisible={isPopupBoxVisible} hidePopup={hidePopup} msg={alertMsg} type={popupType} />
             <PopupBox isPopupBoxVisible={isShowCommnPopupBoxVisible} hidePopup={hideCommonPopup} msg={alertMsg} type="warning" />
+            {isSendTransmittalOpen && (
+                <SendTransmittalModal
+                    context={context}
+                    documents={selectedDocuments}
+                    folderPath={folderPathBread.map((node) => node.name).join(" / ")}
+                    onDismiss={dismissSendTransmittal}
+                    onSent={handleTransmittalSent}
+                />
+            )}
         </div>
     );
 };
