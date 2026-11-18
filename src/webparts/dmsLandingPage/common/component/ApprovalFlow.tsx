@@ -10,7 +10,7 @@ import PopupBox, { ConfirmationDialog } from "./PopupBox";
 import { ILabel } from "../../../../Intrface/ILabel";
 import { format } from "date-fns";
 import ReusableDataTable from "../../components/ResuableComponents/ReusableDataTable";
-import { Web } from "@pnp/sp/webs";
+//import { Web } from "@pnp/sp/webs";
 
 interface IApproval {
     context: WebPartContext;
@@ -20,6 +20,7 @@ interface IApproval {
     userEmail: string;
     action: string;
 }
+
 const ApprovalFlow: React.FunctionComponent<IApproval> = ({ context, libraryName, userEmail, action }) => {
     const [files, setFiles] = useState([]);
     const buttonStyles = { root: { marginRight: 8 } };
