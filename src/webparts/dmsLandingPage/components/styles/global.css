@@ -97,7 +97,15 @@ body {
 .workspace-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /*
+   * Never pin the page to the viewport height. The workspace is rendered
+   * below SharePoint's own chrome, so `height: 100vh` pushes the bottom of
+   * the page (audit card + document rows) outside the visible area and the
+   * host clips it. `min-height` keeps the shell full-screen while the
+   * content grows and the page scrolls in normal document flow.
+   */
+  min-height: 100vh;
+  height: auto;
   background-color: #f5f7fb;
 }
 
@@ -292,12 +300,19 @@ body {
 .workspace-body {
   display: flex;
   flex: 1;
+  /* Two-column shell only. It must not clip the document table. */
+  min-height: 0;
   overflow: hidden;
 }
 
 .workspace-content {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  /* Vertical scrolling lives here (normal flow); wide content scrolls
+     inside its own card so the page never gets a horizontal scrollbar. */
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 22px 28px 28px;
   display: flex;
   flex-direction: column;
@@ -3231,7 +3246,14 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  /*
+   * Grows into any spare vertical space (so the grid still fills the card
+   * when the audit log is closed) but can never shrink (flex-shrink: 0).
+   * As a `flex: 1` item the card was squeezed by the audit card above it
+   * (min-height: 0 + overflow: hidden), which clipped every AG Grid row and
+   * left only the header visible. The page/content now scrolls instead.
+   */
+  flex: 1 0 auto;
   min-height: 0;
 }
 
