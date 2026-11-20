@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { WebPartContext } from "@microsoft/sp-webpart-base";
+import { SPHttpClient } from "@microsoft/sp-http";
 
 /**
  * Send-Transmittal upload service.
@@ -336,7 +337,23 @@ const toAbsoluteUrl = (webUrl: string, serverRelativeUrl: string): string => {
     }
 };
 
-const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
+/**
+ * Minimal response surface used by the helpers below.
+ *
+ * Both the browser `Response` (returned by `fetch`) and `SPHttpClientResponse`
+ * (returned by `spHttpClient`) satisfy it, so one helper can serve both call paths.
+ * `Response` itself cannot be used here: SPFx 1.22 ships `SPHttpClientResponse`
+ * (via `HttpClientResponse implements Response`) whose members no longer match the
+ * current `lib.dom` `Response` definition (e.g. `bytes()`, `body`, `redirected`).
+ */
+interface ISharePointResponse {
+    readonly ok: boolean;
+    readonly status: number;
+    json(): Promise<any>;
+    text(): Promise<string>;
+}
+
+const readErrorMessage = async (response: ISharePointResponse, fallback: string): Promise<string> => {
     let text = "";
     try {
         text = await response.text();
@@ -367,7 +384,8 @@ const readErrorMessage = async (response: Response, fallback: string): Promise<s
     return `${fallback} (HTTP ${response.status})`;
 };
 
-const readJson = async (response: Response): Promise<any> => {
+/** Reads a JSON body from a `fetch` or `spHttpClient` response; null when it is empty/invalid. */
+const readJson = async (response: ISharePointResponse): Promise<any> => {
     try {
         return await response.json();
     } catch {
@@ -836,6 +854,40 @@ const applyTransmittalMetadata = async (
         throw new Error(failedField.ErrorMessage || `A metadata value was rejected${fieldName}.`);
     }
 };
+
+/* ------------------------------------------------------------------ */
+/* Read: transmittal audit log                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Reads every copy in "ProjectTransmittals" (one item per document).
+ *
+ * The send flow writes all copies to the library root (see `uploadCopy`), so an
+ * item carries no "source folder" column. The caller therefore scopes the rows
+ * to the open folder by matching the copy name against the files on screen
+ * (see `mapAuditRow` / `filterAuditLogEntries` in TransmittalAuditLog.tsx) and
+ * sorts them by `Created`, newest first.
+ */
+export async function getTransmittalAuditLog(context: WebPartContext): Promise<any[]> {
+    const url = `${context.pageContext.web.absoluteUrl}` +
+        `/_api/web/lists/getbytitle('${escapeODataString(TRANSMITTAL_LIBRARY_NAME)}')/items` +
+        `?$select=*,Author/Title,File/Name&$expand=Author,File&$orderby=Id desc&$top=5000`;
+
+    const response = await context.spHttpClient.get(url, SPHttpClient.configurations.v1, {
+        headers: {
+            Accept: "application/json;odata=nometadata",
+            "odata-version": ""
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`The transmittal audit log could not be loaded (${response.status}).`);
+    }
+
+    const data = await readJson(response);
+    const items = data?.value || data?.d?.results || [];
+    return items;
+}
 
 const deleteFileQuietly = async (webUrl: string, fileServerRelativeUrl: string, digest: string): Promise<void> => {
     try {

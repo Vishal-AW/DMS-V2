@@ -52,7 +52,12 @@ import PageLoader from "../../common/component/PageLoader";
 import { getPermittedButtons } from "./ButtonsService";
 import { IDmsButton } from "./buttonPermissionHelper";
 import SendTransmittalModal from "./SendTransmittalModal";
-import { ITransmittalDocumentResult } from "../../../../Services/TransmittalService";
+import { ITransmittalDocumentResult, ISendTransmittalForm } from "../../../../Services/TransmittalService";
+import {
+    IAuditLogDocumentRef,
+    TransmittalAuditLog,
+    TransmittalAuditLogToggle
+} from "./TransmittalAuditLog";
 
 /**
  * Compact letter shown inside the small file-type badge of the document list.
@@ -482,6 +487,16 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     const [isSendTransmittalOpen, setIsSendTransmittalOpen] = useState<boolean>(false);
     /* Bumped after a successful transmittal so the grid drops its tick marks. */
     const [selectionResetCounter, setSelectionResetCounter] = useState<number>(0);
+    /*
+     * Transmittal audit log. The card reads "ProjectTransmittals" itself (real
+     * rows, newest first) and reports how many transmittals are on screen for
+     * the blue badge. `auditLogRefreshToken` is bumped after a send so the card
+     * refetches; opening/closing the card never hits the service.
+     */
+    const [auditLogCount, setAuditLogCount] = useState<number>(0);
+    const [auditLogRefreshToken, setAuditLogRefreshToken] = useState<number>(0);
+    /* "Audit Log" toggle in the action bar - collapsed by default. */
+    const [isAuditLogOpen, setIsAuditLogOpen] = useState<boolean>(false);
     const [deletedData, setDeletedData] = useState<any>([]);
     const [approvalData, setApprovalData] = useState<any>([]);
     const [archiveData, setArchiveData] = useState<any>([]);
@@ -1867,14 +1882,73 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
     // TODO(transmittal): the cover-sheet / mailto step does not exist in this
     // page yet. When it is added it must run only after the upload resolved and
     // must use the second `onSent` argument (`clientEmails`, `subject`, `remarks`).
-    const handleTransmittalSent = useCallback((results: ITransmittalDocumentResult[]) => {
+    const handleTransmittalSent = useCallback((results: ITransmittalDocumentResult[], form?: ISendTransmittalForm) => {
         const copied = results.length;
+
+        /* --- Audit log: reload the real rows from Project Transmittals ---- */
+        setAuditLogRefreshToken((value) => value + 1);
+        /* Surface the refreshed log so the confirmation and the card agree. */
+        setIsAuditLogOpen(true);
+
         setSelectedDocuments([]);
         setSelectionResetCounter((value) => value + 1);
         setAlertMsg(`${copied} document${copied === 1 ? "" : "s"} added to Project Transmittals.`);
         setPopupType("success");
         setIsPopupBoxVisible(true);
+    }, [context, folderPathBread, selectedDocuments, userPerms]);
+
+    /* Action bar toggle for the audit log panel. */
+    const toggleAuditLog = useCallback(() => {
+        setIsAuditLogOpen((isOpen) => !isOpen);
     }, []);
+
+    /* Escape / programmatic close, stable so the memoised panel can skip work. */
+    const closeAuditLog = useCallback(() => {
+        setIsAuditLogOpen(false);
+    }, []);
+
+    /*
+     * Badge count reported by the audit log card (distinct ReferenceNo values
+     * for the open folder). Stable so the card's effect never re-runs.
+     */
+    const handleAuditLogCountChange = useCallback((count: number) => {
+        setAuditLogCount(count);
+    }, []);
+
+    /*
+     * Audit log scope
+     * ------------------------------------------------------------------
+     * The control belongs to document listings only: a leaf folder whose
+     * grid currently shows files. As soon as the view has no documents
+     * (folder tree, approval/archive tabs, empty folder) the toggle is not
+     * rendered at all. The card scopes its own rows to `documentsInView`, so
+     * stale transmittals from other folders never leak into the panel.
+     */
+    const isDocumentView =
+        !!selectedFolder &&
+        tables === "" &&
+        (!selectedFolder.children || selectedFolder.children.length === 0);
+
+    const documentsInView = useMemo<IAuditLogDocumentRef[]>(
+        () =>
+            isDocumentView
+                ? files.map((file: any) => ({
+                    id: String(file?.id ?? file?.ID ?? ""),
+                    name: String(file?.ListItemAllFields?.ActualName || file?.Name || "")
+                }))
+                : [],
+        [files, isDocumentView]
+    );
+
+    /* Visibility contract: documents in view -> toggle exists. */
+    const hasDocuments = isDocumentView && documentsInView.length > 0;
+
+    /* Navigating away from a document listing closes the panel. */
+    useEffect(() => {
+        if (!hasDocuments) {
+            setIsAuditLogOpen(false);
+        }
+    }, [hasDocuments]);
 
     /* ------------------------------------------------------------------ */
     /* Status pill palette (same status values, refreshed colours)         */
@@ -2615,6 +2689,18 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
 
 
 
+                                {/* Audit log toggle. Only rendered while the
+                                    current folder view actually contains
+                                    documents; the badge counts the distinct
+                                    transmittals read for those documents. */}
+                                {hasDocuments && (
+                                    <TransmittalAuditLogToggle
+                                        isOpen={isAuditLogOpen}
+                                        count={auditLogCount}
+                                        onToggle={toggleAuditLog}
+                                    />
+                                )}
+
                                 {/* Row-selection action. Disabled until at least one
                                     document is ticked; the handler is a placeholder. */}
                                 {tables === "" && (!selectedFolder?.children || selectedFolder?.children.length === 0) && (
@@ -2637,6 +2723,24 @@ const Workspace: React.FunctionComponent<IWorkspaceProps> = ({ context }) => {
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* Transmittal audit log card. Rendered in normal document
+                        flow between the action bar and the documents table, so
+                        both cards are visible at the same time and the table is
+                        only pushed down - never hidden, replaced or unmounted
+                        (its selection, filters, sorting and scroll survive).
+                        Only available for a document view with at least one file. */}
+                    {hasDocuments && (
+                        <TransmittalAuditLog
+                            isOpen={isAuditLogOpen}
+                            context={context}
+                            documents={documentsInView}
+                            folderPath={selectedFolder?.path}
+                            refreshToken={auditLogRefreshToken}
+                            onCountChange={handleAuditLogCountChange}
+                            onRequestClose={closeAuditLog}
+                        />
                     )}
 
                     {selectedFolder ? (
